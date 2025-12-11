@@ -1,6 +1,6 @@
 .DS_Store
 *.bean
-data/
+data
 
 # Build
 neve
