@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 服务标识符 (唯一标识，用于 launchctl 命令) -->
+    <key>Label</key>
+    <string>com.neve.server</string>
+    
+    <!-- 执行程序路径 (请修改为你的实际路径) -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/hh/Workspace/Neve/neve</string>
+    </array>
+    
+    <!-- 工作目录 (程序运行时的当前目录，用于相对路径解析) -->
+    <key>WorkingDirectory</key>
+    <string>/Users/hh/Workspace/Neve</string>
+    
+    <!-- 环境变量配置 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Beancount 数据目录路径 -->
+        <key>NEVE_DATA_DIR</key>
+        <string>/Users/hh/Workspace/Neve/data</string>
+        
+        <!-- HTTP 服务端口 (修改此值更换端口) -->
+        <key>NEVE_PORT</key>
+        <string>8080</string>
+    </dict>
+    
+    <!-- 加载时立即启动 (实现开机自启) -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- 保持运行 (崩溃后自动重启) -->
+    <key>KeepAlive</key>
+    <true/>
+    
+    <!-- 标准输出日志路径 -->
+    <key>StandardOutPath</key>
+    <string>/Users/hh/Library/Logs/neve.log</string>
+    
+    <!-- 错误输出日志路径 -->
+    <key>StandardErrorPath</key>
+    <string>/Users/hh/Library/Logs/neve.error.log</string>
+</dict>
+</plist>

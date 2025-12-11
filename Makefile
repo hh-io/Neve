@@ -1,30 +1,30 @@
 .PHONY: all build dev clean deps run
 
-# Build everything
+# 构建全部
 all: deps build
 
-# Install dependencies
+# 安装依赖
 deps:
-	cd web && npm install
+	cd web && pnpm install
 
-# Build frontend and embed in server
+# 构建前端并嵌入后端
 build: deps
-	cd web && npm run build
+	cd web && pnpm run build
 	cd server && go mod tidy && go build -o ../neve .
 
-# Run development server (frontend only)
+# 前端开发模式 (热重载)
 dev:
-	cd web && npm run dev
+	cd web && pnpm run dev
 
-# Run the production server
+# 运行生产服务器
 run: build
 	./neve
 
-# Clean build artifacts
+# 清理构建产物
 clean:
 	rm -rf server/static
 	rm -f neve
 
-# Build and run for development
+# 后端开发模式
 dev-server:
 	cd server && go run .
