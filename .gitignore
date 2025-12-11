@@ -1,0 +1,16 @@
+.DS_Store
+*.bean
+data/
+
+# Build
+neve
+server/static/*
+!server/static/.gitkeep
+
+# Node
+node_modules/
+web/dist/
+
+# IDE
+.idea/
+.vscode/
