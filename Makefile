@@ -45,9 +45,11 @@ build-web:
 
 # 构建后端：编译 Go 二进制文件 (依赖前端构建产物用于 embed)
 build-server: build-web
+	@echo "🔍 检查代码质量..."
+	@cd $(SERVER_DIR) && go fmt ./... && go vet ./...
 	@echo "🔨 构建后端二进制..."
 	@cd $(SERVER_DIR) && go build -ldflags "$(GO_LDFLAGS)" -o ../$(BINARY_NAME) .
-	@echo "📊 二进制大小: $$(du -h $(BINARY_NAME) | cut -f1)"
+	@echo "✌️ 构建完成,二进制大小: $$(du -h $(BINARY_NAME) | cut -f1)"
 
 # ==============================================================================
 # 运行与开发
