@@ -71,7 +71,7 @@ dev-web:
 # 后端开发模式 (配合 air 或手动重启)
 dev-server:
 	@echo "🔧 启动后端开发服务器..."
-	@cd $(SERVER_DIR) && go run .
+	@cd $(SERVER_DIR) && NEVE_DATA_DIR=../data go run .
 
 # ==============================================================================
 # 清理与辅助
