@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"neve/parser"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -47,6 +50,8 @@ func (s *Server) SetupRoutes(r *gin.Engine) {
 		api.GET("/analytics", s.handleAnalytics)
 		api.GET("/accounts", s.handleAccounts)
 		api.POST("/refresh", s.handleRefresh)
+		api.GET("/budgets", s.handleGetBudgets)
+		api.POST("/budgets", s.handleSaveBudgets)
 	}
 }
 
@@ -123,6 +128,47 @@ func (s *Server) handleRefresh(c *gin.Context) {
 		"message": "data refreshed",
 		"summary": analytics.Summary,
 	})
+}
+
+func (s *Server) handleGetBudgets(c *gin.Context) {
+	budgetFile := filepath.Join(s.dataDir, "budgets.json")
+	data, err := os.ReadFile(budgetFile)
+	if err != nil {
+		// Return empty object if file doesn't exist
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
+
+	var budgets map[string]float64
+	if err := json.Unmarshal(data, &budgets); err != nil {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
+
+	c.JSON(http.StatusOK, budgets)
+}
+
+func (s *Server) handleSaveBudgets(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		return
+	}
+
+	// Validate JSON
+	var budgets map[string]float64
+	if err := json.Unmarshal(body, &budgets); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+		return
+	}
+
+	budgetFile := filepath.Join(s.dataDir, "budgets.json")
+	if err := os.WriteFile(budgetFile, body, 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "saved"})
 }
 
 // GetDataDir returns absolute data directory path

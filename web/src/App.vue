@@ -7,6 +7,31 @@
           <img src="/neve.svg" alt="Neve" class="logo-icon" />
           <span class="logo-text">Neve</span>
         </div>
+        
+        <!-- Time Period Selector -->
+        <div class="time-selector" v-if="analytics">
+          <button 
+            class="time-btn" 
+            :class="{ active: timePeriod === 'month' }"
+            @click="setTimePeriod('month')"
+          >本月</button>
+          <button 
+            class="time-btn" 
+            :class="{ active: timePeriod === 'lastMonth' }"
+            @click="setTimePeriod('lastMonth')"
+          >上月</button>
+          <button 
+            class="time-btn" 
+            :class="{ active: timePeriod === 'year' }"
+            @click="setTimePeriod('year')"
+          >本年</button>
+          <button 
+            class="time-btn" 
+            :class="{ active: timePeriod === 'all' }"
+            @click="setTimePeriod('all')"
+          >全部</button>
+        </div>
+        
         <button class="btn btn-secondary" @click="refresh" :disabled="loading">
           <svg
             class="icon"
@@ -40,198 +65,223 @@
 
       <!-- Dashboard -->
       <template v-else-if="analytics">
-        <!-- Summary Cards -->
-        <section class="summary-section fade-in">
-          <div class="grid grid-4">
-            <div class="glass-card stat-card net-worth-card">
-              <span class="label">净资产</span>
-              <span class="value">{{
-                formatMoney(analytics.summary.netWorth)
-              }}</span>
-              <span
-                class="trend positive"
-                v-if="analytics.summary.netWorth > 0"
-              >
-                资产 {{ formatMoney(analytics.summary.totalAssets) }}
-              </span>
-            </div>
-            <div class="glass-card stat-card">
-              <span class="label">本月收入</span>
-              <span class="value income">{{
-                formatMoney(analytics.summary.monthIncome)
-              }}</span>
-            </div>
-            <div class="glass-card stat-card">
-              <span class="label">本月支出</span>
-              <span class="value expense">{{
-                formatMoney(analytics.summary.monthExpense)
-              }}</span>
-            </div>
-            <div class="glass-card stat-card">
-              <span class="label">本月结余</span>
-              <span
-                class="value"
-                :class="
-                  analytics.summary.monthBalance >= 0 ? 'income' : 'expense'
-                "
-              >
-                {{ formatMoney(analytics.summary.monthBalance) }}
-              </span>
-            </div>
-          </div>
-        </section>
+        <!-- Tab Navigation -->
+        <TabNavigation v-model="activeTab" :tabs="tabs" />
 
-        <!-- Charts Section -->
-        <section class="charts-section fade-in" style="animation-delay: 0.1s">
-          <div class="grid grid-2">
-            <!-- Expense Pie Chart -->
-            <div class="glass-card chart-card">
-              <h3 class="card-title">本月支出分类</h3>
-              <div class="chart-container">
-                <v-chart :option="expenseChartOption" autoresize />
-              </div>
-            </div>
-
-            <!-- Trend Chart with Period Selector -->
-            <div class="glass-card chart-card">
-              <div class="card-header">
-                <h3 class="card-title">收支趋势</h3>
-                <div class="period-selector">
-                  <button 
-                    class="period-btn" 
-                    :class="{ active: trendPeriod === 'day' }"
-                    @click="trendPeriod = 'day'"
-                  >日</button>
-                  <button 
-                    class="period-btn" 
-                    :class="{ active: trendPeriod === 'week' }"
-                    @click="trendPeriod = 'week'"
-                  >周</button>
-                  <button 
-                    class="period-btn" 
-                    :class="{ active: trendPeriod === 'month' }"
-                    @click="trendPeriod = 'month'"
-                  >月</button>
-                </div>
-              </div>
-              <div class="chart-container">
-                <v-chart :option="trendChartOption" autoresize />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Account Balances & Monthly Comparison -->
-        <section class="details-section fade-in" style="animation-delay: 0.2s">
-          <div class="grid grid-2">
-            <!-- Account Balances -->
-            <div class="glass-card">
-              <h3 class="card-title">账户余额</h3>
-              <div class="account-list">
-                <div
-                  v-for="account in analytics.accountBalances.slice(0, 10)"
-                  :key="account.account"
-                  class="account-item"
+        <!-- Tab: Overview (概览) -->
+        <div v-show="activeTab === 'overview'" class="tab-content">
+          <!-- Summary Cards -->
+          <section class="summary-section fade-in">
+            <div class="grid grid-4">
+              <div class="glass-card stat-card net-worth-card">
+                <span class="label">净资产</span>
+                <span class="value">{{
+                  formatMoney(analytics.summary.netWorth)
+                }}</span>
+                <span
+                  class="trend positive"
+                  v-if="analytics.summary.netWorth > 0"
                 >
-                  <div class="account-info">
-                    <span class="account-name">{{
-                      formatAccountName(account.account)
-                    }}</span>
-                    <span class="account-type">{{ account.type }}</span>
+                  资产 {{ formatMoney(analytics.summary.totalAssets) }}
+                </span>
+              </div>
+              <div class="glass-card stat-card">
+                <span class="label">本月收入</span>
+                <span class="value income">{{
+                  formatMoney(analytics.summary.monthIncome)
+                }}</span>
+              </div>
+              <div class="glass-card stat-card">
+                <span class="label">本月支出</span>
+                <span class="value expense">{{
+                  formatMoney(analytics.summary.monthExpense)
+                }}</span>
+              </div>
+              <div class="glass-card stat-card">
+                <span class="label">本月结余</span>
+                <span
+                  class="value"
+                  :class="
+                    analytics.summary.monthBalance >= 0 ? 'income' : 'expense'
+                  "
+                >
+                  {{ formatMoney(analytics.summary.monthBalance) }}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Daily Average & Health -->
+          <section class="analytics-section fade-in">
+            <div class="grid grid-2">
+              <div class="glass-card stat-card daily-avg-card">
+                <span class="label">日均消费</span>
+                <span class="value expense">¥{{ analytics.dailyAverage?.toFixed(2) || '0.00' }}</span>
+                <span class="trend">本月已消费 {{ new Date().getDate() }} 天</span>
+              </div>
+              <div class="glass-card">
+                <h3 class="card-title">财务健康</h3>
+                <div class="health-stats">
+                  <div class="health-item">
+                    <span class="health-label">资产负债比</span>
+                    <span class="health-value" :class="debtRatio < 0.5 ? 'good' : 'warning'">
+                      {{ (debtRatio * 100).toFixed(1) }}%
+                    </span>
                   </div>
-                  <span
-                    class="account-balance"
-                    :class="account.balance >= 0 ? 'positive' : 'negative'"
+                  <div class="health-item">
+                    <span class="health-label">月结余率</span>
+                    <span class="health-value" :class="savingsRate > 0.2 ? 'good' : savingsRate > 0 ? 'ok' : 'warning'">
+                      {{ (savingsRate * 100).toFixed(1) }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Tab: Spending (收支) -->
+        <div v-show="activeTab === 'spending'" class="tab-content">
+          <section class="analytics-section fade-in">
+            <div class="grid grid-2">
+              <!-- Expense Pie Chart -->
+              <div class="glass-card chart-card">
+                <h3 class="card-title">本月支出分类</h3>
+                <div class="chart-container">
+                  <v-chart :option="expenseChartOption" autoresize />
+                </div>
+              </div>
+              <IncomeChart :data="analytics.incomeBreakdown" />
+            </div>
+          </section>
+
+          <section class="analytics-section fade-in">
+            <div class="grid grid-2">
+              <PlatformRanking :data="analytics.platformRanking" />
+              <MerchantRanking :data="analytics.merchantRanking" />
+            </div>
+          </section>
+        </div>
+
+        <!-- Tab: Trends (趋势) -->
+        <div v-show="activeTab === 'trends'" class="tab-content">
+          <section class="analytics-section fade-in">
+            <div class="grid grid-2">
+              <!-- Trend Chart with Period Selector -->
+              <div class="glass-card chart-card">
+                <div class="card-header">
+                  <h3 class="card-title">收支趋势</h3>
+                  <div class="period-selector">
+                    <button 
+                      class="period-btn" 
+                      :class="{ active: trendPeriod === 'day' }"
+                      @click="trendPeriod = 'day'"
+                    >日</button>
+                    <button 
+                      class="period-btn" 
+                      :class="{ active: trendPeriod === 'week' }"
+                      @click="trendPeriod = 'week'"
+                    >周</button>
+                    <button 
+                      class="period-btn" 
+                      :class="{ active: trendPeriod === 'month' }"
+                      @click="trendPeriod = 'month'"
+                    >月</button>
+                  </div>
+                </div>
+                <div class="chart-container">
+                  <v-chart :option="trendChartOption" autoresize />
+                </div>
+              </div>
+
+              <!-- Monthly Comparison Bar Chart -->
+              <div class="glass-card chart-card">
+                <div class="card-header">
+                  <h3 class="card-title">月度对比</h3>
+                  <div class="period-selector">
+                    <button 
+                      class="period-btn" 
+                      :class="{ active: comparisonMonths === 3 }"
+                      @click="comparisonMonths = 3"
+                    >3个月</button>
+                    <button 
+                      class="period-btn" 
+                      :class="{ active: comparisonMonths === 6 }"
+                      @click="comparisonMonths = 6"
+                    >6个月</button>
+                    <button 
+                      class="period-btn" 
+                      :class="{ active: comparisonMonths === 12 }"
+                      @click="comparisonMonths = 12"
+                    >12个月</button>
+                  </div>
+                </div>
+                <div class="chart-container">
+                  <v-chart :option="comparisonChartOption" autoresize />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="analytics-section fade-in">
+            <div class="grid grid-2">
+              <WeekdayChart :data="analytics.weekdayDistribution" />
+              <CategoryTrendChart :data="analytics.categoryTrends" />
+            </div>
+          </section>
+
+          <section class="analytics-section fade-in">
+            <AnnualReport :monthlyTrend="analytics.monthlyTrend || []" />
+          </section>
+        </div>
+
+        <!-- Tab: Accounts (账户) -->
+        <div v-show="activeTab === 'accounts'" class="tab-content">
+          <section class="analytics-section fade-in">
+            <div class="grid grid-2">
+              <!-- Account Balances -->
+              <div class="glass-card">
+                <h3 class="card-title">账户余额</h3>
+                <div class="account-list">
+                  <div
+                    v-for="account in analytics.accountBalances"
+                    :key="account.account"
+                    class="account-item"
                   >
-                    {{ formatMoney(account.balance) }}
-                  </span>
+                    <div class="account-info">
+                      <span class="account-name">{{
+                        formatAccountName(account.account)
+                      }}</span>
+                      <span class="account-type">{{ account.type }}</span>
+                    </div>
+                    <span
+                      class="account-balance"
+                      :class="account.balance >= 0 ? 'positive' : 'negative'"
+                    >
+                      {{ formatMoney(account.balance) }}
+                    </span>
+                  </div>
                 </div>
               </div>
+              <LiabilityOverview :data="analytics.liabilityBreakdown" />
             </div>
+          </section>
+        </div>
 
-            <!-- Monthly Comparison Bar Chart -->
-            <div class="glass-card chart-card">
-              <div class="card-header">
-                <h3 class="card-title">月度对比</h3>
-                <div class="period-selector">
-                  <button 
-                    class="period-btn" 
-                    :class="{ active: comparisonMonths === 3 }"
-                    @click="comparisonMonths = 3"
-                  >3个月</button>
-                  <button 
-                    class="period-btn" 
-                    :class="{ active: comparisonMonths === 6 }"
-                    @click="comparisonMonths = 6"
-                  >6个月</button>
-                  <button 
-                    class="period-btn" 
-                    :class="{ active: comparisonMonths === 12 }"
-                    @click="comparisonMonths = 12"
-                  >12个月</button>
-                </div>
-              </div>
-              <div class="chart-container">
-                <v-chart :option="comparisonChartOption" autoresize />
-              </div>
-            </div>
-          </div>
-        </section>
+        <!-- Tab: Budget (预算) -->
+        <div v-show="activeTab === 'budget'" class="tab-content">
+          <section class="analytics-section fade-in">
+            <BudgetCard 
+              :expenseByCategory="analytics.expenseByCategory || []"
+              :allCategories="allCategories"
+            />
+          </section>
+        </div>
 
-        <!-- New Analytics Row 1: Income Chart & Daily Stats -->
-        <section class="analytics-section fade-in" style="animation-delay: 0.25s">
-          <div class="grid grid-2">
-            <IncomeChart :data="analytics.incomeBreakdown" />
-            <div class="glass-card stat-card daily-avg-card">
-              <span class="label">日均消费</span>
-              <span class="value expense">¥{{ analytics.dailyAverage?.toFixed(2) || '0.00' }}</span>
-              <span class="trend">本月已消费 {{ new Date().getDate() }} 天</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- New Analytics Row 2: Platform & Merchant Rankings -->
-        <section class="analytics-section fade-in" style="animation-delay: 0.3s">
-          <div class="grid grid-2">
-            <PlatformRanking :data="analytics.platformRanking" />
-            <MerchantRanking :data="analytics.merchantRanking" />
-          </div>
-        </section>
-
-        <!-- New Analytics Row 3: Weekday & Category Trends -->
-        <section class="analytics-section fade-in" style="animation-delay: 0.35s">
-          <div class="grid grid-2">
-            <WeekdayChart :data="analytics.weekdayDistribution" />
-            <CategoryTrendChart :data="analytics.categoryTrends" />
-          </div>
-        </section>
-
-        <!-- Liability Overview -->
-        <section class="analytics-section fade-in" style="animation-delay: 0.4s">
-          <div class="grid grid-2">
-            <LiabilityOverview :data="analytics.liabilityBreakdown" />
-            <div class="glass-card">
-              <h3 class="card-title">财务健康</h3>
-              <div class="health-stats">
-                <div class="health-item">
-                  <span class="health-label">资产负债比</span>
-                  <span class="health-value" :class="debtRatio < 0.5 ? 'good' : 'warning'">
-                    {{ (debtRatio * 100).toFixed(1) }}%
-                  </span>
-                </div>
-                <div class="health-item">
-                  <span class="health-label">月结余率</span>
-                  <span class="health-value" :class="savingsRate > 0.2 ? 'good' : savingsRate > 0 ? 'ok' : 'warning'">
-                    {{ (savingsRate * 100).toFixed(1) }}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Transaction Details (Full Width) -->
-        <section class="transactions-section fade-in" style="animation-delay: 0.3s">
+        <!-- Tab: Transactions (交易) -->
+        <div v-show="activeTab === 'transactions'" class="tab-content">
+          <!-- Transaction Details (Full Width) -->
+          <section class="transactions-section fade-in">
           <div class="glass-card">
             <div class="transactions-header">
               <h3 class="card-title">交易明细</h3>
@@ -331,6 +381,7 @@
             </div>
           </div>
         </section>
+        </div>
 
         <!-- Footer -->
         <footer class="footer">
@@ -361,6 +412,10 @@ import WeekdayChart from "./components/WeekdayChart.vue";
 import CategoryTrendChart from "./components/CategoryTrendChart.vue";
 import LiabilityOverview from "./components/LiabilityOverview.vue";
 import IncomeChart from "./components/IncomeChart.vue";
+import TabNavigation from "./components/TabNavigation.vue";
+import BudgetCard from "./components/BudgetCard.vue";
+import AnnualReport from "./components/AnnualReport.vue";
+
 // Register ECharts components
 use([
   CanvasRenderer,
@@ -382,6 +437,52 @@ const trendPeriod = ref('day');
 
 // Monthly comparison period
 const comparisonMonths = ref(3);
+
+// Global time period filter
+const timePeriod = ref('month');
+
+const timeRange = computed(() => {
+  const now = new Date();
+  let start, end;
+  
+  switch (timePeriod.value) {
+    case 'month':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      break;
+    case 'lastMonth':
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+      break;
+    case 'year':
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 11, 31);
+      break;
+    case 'all':
+    default:
+      return null; // No filter
+  }
+  
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10)
+  };
+});
+
+function setTimePeriod(period) {
+  timePeriod.value = period;
+}
+
+// Tab navigation
+const activeTab = ref('overview');
+const tabs = [
+  { id: 'overview', label: '概览', icon: '📊' },
+  { id: 'spending', label: '收支', icon: '💰' },
+  { id: 'trends', label: '趋势', icon: '📈' },
+  { id: 'accounts', label: '账户', icon: '💳' },
+  { id: 'budget', label: '预算', icon: '🎯' },
+  { id: 'transactions', label: '交易', icon: '📝' },
+];
 
 // Transaction filters
 const searchQuery = ref('');
@@ -523,6 +624,12 @@ const expenseCategories = computed(() => {
     if (cat && cat !== '-') cats.add(cat);
   });
   return Array.from(cats).sort();
+});
+
+// All categories from expenseByCategory for budget
+const allCategories = computed(() => {
+  if (!analytics.value?.expenseByCategory) return [];
+  return analytics.value.expenseByCategory.map(e => e.category);
 });
 
 // Extract available tags from transactions
@@ -975,6 +1082,11 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
+/* Tab Content */
+.tab-content {
+  padding-top: var(--space-6);
+}
+
 /* Header */
 .header {
   position: sticky;
@@ -993,6 +1105,37 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-4);
+}
+
+.time-selector {
+  display: flex;
+  gap: var(--space-1);
+  background: rgba(0, 0, 0, 0.04);
+  padding: var(--space-1);
+  border-radius: var(--radius-lg);
+}
+
+.time-btn {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.time-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.time-btn.active {
+  background: white;
+  color: var(--color-blue);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .logo {
@@ -1646,6 +1789,113 @@ section {
 
   .col-category {
     display: none;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .app {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  }
+  
+  .glass-card {
+    background: rgba(30, 30, 50, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+  }
+  
+  .glass-card:hover {
+    background: rgba(40, 40, 60, 0.9);
+  }
+  
+  .header {
+    background: rgba(20, 20, 35, 0.9);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .tab-nav {
+    background: rgba(20, 20, 35, 0.9);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .tab-btn {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .tab-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .tab-btn.active {
+    color: #5AC8FA;
+  }
+  
+  .time-selector {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  .time-btn {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .time-btn.active {
+    background: rgba(90, 200, 250, 0.2);
+    color: #5AC8FA;
+    box-shadow: none;
+  }
+  
+  .stat-card .label,
+  .card-title,
+  .account-name {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .stat-card .value {
+    color: #f0f0f0;
+  }
+  
+  .stat-card .value.income {
+    color: #32D74B;
+  }
+  
+  .stat-card .value.expense {
+    color: #FF453A;
+  }
+  
+  .net-worth-card {
+    background: var(--gradient-blue);
+  }
+  
+  .table-header {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .table-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .search-input,
+  .category-select,
+  .tag-select,
+  .date-input {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f0f0f0;
+  }
+  
+  .period-btn {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .period-btn.active {
+    background: rgba(90, 200, 250, 0.2);
+    color: #5AC8FA;
+  }
+  
+  .footer {
+    border-top-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
   }
 }
 </style>
