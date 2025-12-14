@@ -1,49 +1,118 @@
 <template>
-  <div class="app">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <div class="logo">
-          <img src="/neve.svg" alt="Neve" class="logo-icon" />
-          <span class="logo-text">Neve</span>
+  <div class="app-layout" :class="themeClass">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Logo -->
+      <div class="logo-section animate-fade-in-up">
+        <div class="logo-icon animate-pulse-soft">
+          <span v-html="icons.layers"></span>
         </div>
-        
-        <!-- Time Period Selector -->
-        <div class="time-selector" v-if="analytics">
-          <button class="time-btn" :class="{ active: timePeriod === 'month' }" @click="setTimePeriod('month')">本月</button>
-          <button class="time-btn" :class="{ active: timePeriod === 'lastMonth' }" @click="setTimePeriod('lastMonth')">上月</button>
-          <button class="time-btn" :class="{ active: timePeriod === 'year' }" @click="setTimePeriod('year')">本年</button>
-          <button class="time-btn" :class="{ active: timePeriod === 'all' }" @click="setTimePeriod('all')">全部</button>
+        <div class="logo-text">
+          <h1>Neve</h1>
+          <p>智能记账系统</p>
         </div>
-        
-        <button class="btn btn-secondary" @click="refresh" :disabled="loading">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6M1 20v-6h6M20.49 9A9 9 0 1 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-          </svg>
-          <span>{{ loading ? "刷新中..." : "刷新数据" }}</span>
-        </button>
       </div>
-    </header>
+
+      <!-- Navigation -->
+      <nav class="nav-menu">
+        <div class="nav-section">
+          <button
+            v-for="(item, index) in navItems"
+            :key="item.id"
+            class="nav-item animate-slide-in-left"
+            :class="{ active: activeTab === item.id }"
+            :style="{ animationDelay: `${index * 0.1}s` }"
+            @click="activeTab = item.id"
+          >
+            <div class="nav-icon">
+              <span v-html="icons[item.icon]"></span>
+            </div>
+            <span>{{ item.label }}</span>
+          </button>
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <button class="nav-item" @click="activeTab = 'settings'">
+          <div class="nav-icon">
+            <span v-html="icons.settings"></span>
+          </div>
+          <span>设置</span>
+        </button>
+      </nav>
+
+      <!-- User Section -->
+      <div class="user-section">
+        <div class="user-card">
+          <div class="user-avatar">N</div>
+          <div class="user-info">
+            <div class="user-name">Neve 用户</div>
+            <div class="user-email">neve@example.com</div>
+          </div>
+        </div>
+      </div>
+    </aside>
 
     <!-- Main Content -->
-    <main class="container">
+    <main class="main-content">
       <!-- Error State -->
-      <div v-if="error" class="error-card glass-card">
-        <h3>加载失败</h3>
-        <p>{{ error }}</p>
-        <button class="btn" @click="refresh">重试</button>
+      <div v-if="error" class="card-static" style="padding: var(--space-8); text-align: center;">
+        <h3 style="color: var(--expense); margin-bottom: var(--space-4);">加载失败</h3>
+        <p style="color: var(--text-secondary);">{{ error }}</p>
+        <button class="btn btn-primary" style="margin-top: var(--space-4);" @click="refresh">重试</button>
       </div>
 
       <!-- Loading State -->
-      <div v-else-if="loading && !analytics" class="loading-state">
-        <div class="spinner"></div>
-        <p>加载中...</p>
+      <div v-else-if="loading && !analytics" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; gap: var(--space-4);">
+        <div style="width: 48px; height: 48px; border: 3px solid var(--brand-primary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="color: var(--text-secondary);">加载中...</p>
       </div>
 
       <!-- Dashboard -->
       <template v-else-if="analytics">
-        <!-- Tab Navigation -->
-        <TabNavigation v-model="activeTab" :tabs="tabs" />
+        <!-- Page Header -->
+        <header class="page-header animate-fade-in-up">
+          <div class="page-title">
+            <h2>{{ currentPageTitle }}</h2>
+            <p>{{ currentPageDesc }}</p>
+          </div>
+          <div class="header-actions">
+            <!-- Theme Switcher -->
+            <div class="theme-switcher">
+              <div class="theme-slider" :class="themeMode"></div>
+              <button 
+                class="theme-btn" 
+                :class="{ active: themeMode === 'light' }"
+                @click="setTheme('light')"
+                title="亮色模式"
+              >
+                <span v-html="icons.sun"></span>
+              </button>
+              <button 
+                class="theme-btn" 
+                :class="{ active: themeMode === 'dark' }"
+                @click="setTheme('dark')"
+                title="暗色模式"
+              >
+                <span v-html="icons.moon"></span>
+              </button>
+              <button 
+                class="theme-btn" 
+                :class="{ active: themeMode === 'system' }"
+                @click="setTheme('system')"
+                title="跟随系统"
+              >
+                <span v-html="icons.monitor"></span>
+              </button>
+            </div>
+
+            <!-- Refresh -->
+            <button class="btn btn-secondary" @click="refresh" :disabled="loading">
+              <span v-html="icons.refresh" style="width: 16px; height: 16px;"></span>
+              <span>{{ loading ? '刷新中...' : '刷新数据' }}</span>
+            </button>
+          </div>
+        </header>
 
         <!-- Tab Contents -->
         <OverviewTab v-show="activeTab === 'overview'" :analytics="analytics" />
@@ -51,31 +120,33 @@
         <TrendsTab v-show="activeTab === 'trends'" :analytics="analytics" />
         <AccountsTab v-show="activeTab === 'accounts'" :analytics="analytics" />
         
-        <div v-show="activeTab === 'budget'" class="tab-content">
-          <section class="analytics-section fade-in">
-            <BudgetCard 
-              :expenseByCategory="analytics.expenseByCategory || []"
-              :allCategories="allCategories"
-            />
-          </section>
+        <div v-show="activeTab === 'budget'" class="section-mb">
+          <BudgetCard 
+            :expenseByCategory="analytics.expenseByCategory || []"
+            :allCategories="allCategories"
+          />
         </div>
         
         <TransactionsTab v-show="activeTab === 'transactions'" :transactions="analytics.recentTransactions || []" />
 
         <!-- Footer -->
-        <footer class="footer">
-          <p>最后更新: {{ formatDateTime(analytics.summary.lastUpdated) }}</p>
+        <footer style="text-align: center; padding: var(--space-8); color: var(--text-tertiary); font-size: var(--font-size-sm); border-top: 1px solid var(--border); margin-top: var(--space-8);">
+          <p>最后更新: {{ formatDateTime(analytics.summary?.lastUpdated) }}</p>
         </footer>
       </template>
     </main>
+
+    <!-- FAB -->
+    <button class="fab" title="新增交易">
+      <span v-html="icons.plus"></span>
+    </button>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 
 // Components
-import TabNavigation from "./components/TabNavigation.vue";
 import OverviewTab from "./components/tabs/OverviewTab.vue";
 import SpendingTab from "./components/tabs/SpendingTab.vue";
 import TrendsTab from "./components/tabs/TrendsTab.vue";
@@ -85,29 +156,80 @@ import BudgetCard from "./components/BudgetCard.vue";
 
 // Composables
 import { formatDateTime } from "./composables/useFormatters";
+import { icons, navItems } from "./composables/icons";
 
 // State
 const analytics = ref(null);
 const loading = ref(false);
 const error = ref(null);
+const activeTab = ref('overview');
 
-// Time period
-const timePeriod = ref('month');
+// Theme
+const themeMode = ref('system'); // 'light' | 'dark' | 'system'
 
-function setTimePeriod(period) {
-  timePeriod.value = period;
+const themeClass = computed(() => {
+  if (themeMode.value === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'theme-dark' : 'theme-light';
+  }
+  return `theme-${themeMode.value}`;
+});
+
+// Apply theme to document root
+function applyTheme() {
+  const html = document.documentElement;
+  html.classList.remove('theme-light', 'theme-dark');
+  html.classList.add(themeClass.value);
 }
 
-// Tab navigation
-const activeTab = ref('overview');
-const tabs = [
-  { id: 'overview', label: '概览', icon: '📊' },
-  { id: 'spending', label: '收支', icon: '💰' },
-  { id: 'trends', label: '趋势', icon: '📈' },
-  { id: 'accounts', label: '账户', icon: '💳' },
-  { id: 'budget', label: '预算', icon: '🎯' },
-  { id: 'transactions', label: '交易', icon: '📝' },
-];
+watch(themeClass, applyTheme, { immediate: true });
+
+function setTheme(mode) {
+  themeMode.value = mode;
+  localStorage.setItem('neve-theme', mode);
+}
+
+// Initialize theme
+onMounted(() => {
+  const saved = localStorage.getItem('neve-theme');
+  if (saved && ['light', 'dark', 'system'].includes(saved)) {
+    themeMode.value = saved;
+  }
+  applyTheme();
+  
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (themeMode.value === 'system') {
+      applyTheme();
+    }
+  });
+});
+
+// Page info
+const currentPageTitle = computed(() => {
+  const titles = {
+    overview: '概览',
+    spending: '收支分析',
+    trends: '趋势图表',
+    accounts: '账户管理',
+    budget: '预算管理',
+    transactions: '交易明细',
+    settings: '设置',
+  };
+  return titles[activeTab.value] || '概览';
+});
+
+const currentPageDesc = computed(() => {
+  const descs = {
+    overview: '欢迎回来，这是您的财务概况',
+    spending: '查看收入与支出的详细分析',
+    trends: '了解您的财务变化趋势',
+    accounts: '管理您的所有账户',
+    budget: '设置并跟踪您的预算目标',
+    transactions: '查看所有交易记录',
+    settings: '自定义您的偏好设置',
+  };
+  return descs[activeTab.value] || '';
+});
 
 // Categories for budget
 const allCategories = computed(() => {
@@ -148,111 +270,8 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-/* Import all the original styles - keeping CSS in App.vue for now */
-.app {
-  min-height: 100vh;
-}
-
-/* Tab Content */
-.tab-content {
-  padding-top: var(--space-6);
-}
-
-/* Header */
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: var(--space-4) var(--space-6);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.time-selector {
-  display: flex;
-  gap: var(--space-1);
-  background: rgba(0, 0, 0, 0.04);
-  padding: var(--space-1);
-  border-radius: var(--radius-lg);
-}
-
-.time-btn {
-  padding: var(--space-2) var(--space-4);
-  border: none;
-  background: transparent;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.time-btn:hover { color: var(--color-text-primary); }
-.time-btn.active { background: white; color: var(--color-blue); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.logo-icon { width: 36px; height: 36px; }
-.logo-text { font-size: var(--font-size-xl); font-weight: 700; color: var(--color-text-primary); }
-
-.container { max-width: 1400px; margin: 0 auto; padding: var(--space-6); }
-
-/* Error & Loading */
-.error-card { text-align: center; padding: var(--space-8); }
-.error-card h3 { color: var(--color-red); margin-bottom: var(--space-4); }
-
-.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; gap: var(--space-4); }
-
-.spinner {
-  width: 48px; height: 48px;
-  border: 3px solid var(--color-blue);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Buttons */
-.btn {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: none; border-radius: var(--radius-md);
-  font-size: var(--font-size-sm); font-weight: 600;
-  cursor: pointer; transition: all var(--transition-fast);
-}
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-secondary { background: var(--glass-bg); backdrop-filter: var(--glass-blur); color: var(--color-text-primary); border: 1px solid rgba(0, 0, 0, 0.1); }
-.btn-secondary:hover:not(:disabled) { background: rgba(0, 0, 0, 0.05); }
-
-.icon { width: 16px; height: 16px; }
-
-/* Footer */
-.footer { text-align: center; padding: var(--space-8); color: var(--color-text-tertiary); font-size: var(--font-size-sm); border-top: 1px solid rgba(0, 0, 0, 0.05); margin-top: var(--space-8); }
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .app { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%); }
-  .header { background: rgba(20, 20, 35, 0.9); border-bottom-color: rgba(255, 255, 255, 0.1); }
-  .time-selector { background: rgba(255, 255, 255, 0.08); }
-  .time-btn { color: rgba(255, 255, 255, 0.6); }
-  .time-btn.active { background: rgba(90, 200, 250, 0.2); color: #5AC8FA; box-shadow: none; }
-  .footer { border-top-color: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.5); }
+<style>
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
