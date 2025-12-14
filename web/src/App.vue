@@ -178,6 +178,58 @@
           </div>
         </section>
 
+        <!-- New Analytics Row 1: Income Chart & Daily Stats -->
+        <section class="analytics-section fade-in" style="animation-delay: 0.25s">
+          <div class="grid grid-2">
+            <IncomeChart :data="analytics.incomeBreakdown" />
+            <div class="glass-card stat-card daily-avg-card">
+              <span class="label">日均消费</span>
+              <span class="value expense">¥{{ analytics.dailyAverage?.toFixed(2) || '0.00' }}</span>
+              <span class="trend">本月已消费 {{ new Date().getDate() }} 天</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- New Analytics Row 2: Platform & Merchant Rankings -->
+        <section class="analytics-section fade-in" style="animation-delay: 0.3s">
+          <div class="grid grid-2">
+            <PlatformRanking :data="analytics.platformRanking" />
+            <MerchantRanking :data="analytics.merchantRanking" />
+          </div>
+        </section>
+
+        <!-- New Analytics Row 3: Weekday & Category Trends -->
+        <section class="analytics-section fade-in" style="animation-delay: 0.35s">
+          <div class="grid grid-2">
+            <WeekdayChart :data="analytics.weekdayDistribution" />
+            <CategoryTrendChart :data="analytics.categoryTrends" />
+          </div>
+        </section>
+
+        <!-- Liability Overview -->
+        <section class="analytics-section fade-in" style="animation-delay: 0.4s">
+          <div class="grid grid-2">
+            <LiabilityOverview :data="analytics.liabilityBreakdown" />
+            <div class="glass-card">
+              <h3 class="card-title">财务健康</h3>
+              <div class="health-stats">
+                <div class="health-item">
+                  <span class="health-label">资产负债比</span>
+                  <span class="health-value" :class="debtRatio < 0.5 ? 'good' : 'warning'">
+                    {{ (debtRatio * 100).toFixed(1) }}%
+                  </span>
+                </div>
+                <div class="health-item">
+                  <span class="health-label">月结余率</span>
+                  <span class="health-value" :class="savingsRate > 0.2 ? 'good' : savingsRate > 0 ? 'ok' : 'warning'">
+                    {{ (savingsRate * 100).toFixed(1) }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Transaction Details (Full Width) -->
         <section class="transactions-section fade-in" style="animation-delay: 0.3s">
           <div class="glass-card">
@@ -302,6 +354,13 @@ import {
   GridComponent,
 } from "echarts/components";
 
+// Import new components
+import PlatformRanking from "./components/PlatformRanking.vue";
+import MerchantRanking from "./components/MerchantRanking.vue";
+import WeekdayChart from "./components/WeekdayChart.vue";
+import CategoryTrendChart from "./components/CategoryTrendChart.vue";
+import LiabilityOverview from "./components/LiabilityOverview.vue";
+import IncomeChart from "./components/IncomeChart.vue";
 // Register ECharts components
 use([
   CanvasRenderer,
@@ -322,7 +381,7 @@ const error = ref(null);
 const trendPeriod = ref('day');
 
 // Monthly comparison period
-const comparisonMonths = ref(6);
+const comparisonMonths = ref(3);
 
 // Transaction filters
 const searchQuery = ref('');
@@ -548,6 +607,19 @@ const monthlyComparison = computed(() => {
   };
 });
 
+// Financial health metrics
+const debtRatio = computed(() => {
+  const assets = analytics.value?.summary?.totalAssets || 1;
+  const liabilities = analytics.value?.summary?.totalLiabilities || 0;
+  return liabilities / assets;
+});
+
+const savingsRate = computed(() => {
+  const income = analytics.value?.summary?.monthIncome || 1;
+  const expense = analytics.value?.summary?.monthExpense || 0;
+  return (income - expense) / income;
+});
+
 // Chart options
 const expenseChartOption = computed(() => {
   if (!analytics.value?.expenseByCategory?.length) {
@@ -619,8 +691,17 @@ const comparisonChartOption = computed(() => {
       axisPointer: { type: "shadow" },
       formatter: (params) => {
         const month = params[0].axisValue;
-        return `<strong>${month}</strong><br/>` + 
-          params.map(p => `${p.marker} ${p.seriesName}: ¥${p.value.toFixed(2)}`).join('<br/>');
+        let html = `<strong>${month}</strong><br/>`;
+        params.forEach(p => {
+          // For 结余, use dynamic color based on value
+          let marker = p.marker;
+          if (p.seriesName === '结余') {
+            const color = p.value >= 0 ? '#007AFF' : '#AF52DE';
+            marker = `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+          }
+          html += `${marker} ${p.seriesName}: ¥${p.value.toFixed(2)}<br/>`;
+        });
+        return html;
       }
     },
     legend: {
@@ -671,10 +752,14 @@ const comparisonChartOption = computed(() => {
         data: balanceData.map(v => ({ 
           value: v, 
           itemStyle: { 
-            color: v >= 0 ? "#007AFF" : "#FF453A",
             borderRadius: getRadius(v) 
           } 
         })),
+        itemStyle: { 
+          color: (params) => {
+            return balanceData[params.dataIndex] >= 0 ? "#007AFF" : "#AF52DE";
+          }
+        },
         barWidth: "20%",
       },
     ],
@@ -1412,6 +1497,52 @@ section {
 
 .net-worth-card .value {
   color: white;
+}
+
+/* Daily Average Card */
+.daily-avg-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Health Stats */
+.health-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.health-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: var(--radius-md);
+}
+
+.health-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.health-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.health-value.good {
+  color: var(--color-green);
+}
+
+.health-value.ok {
+  color: var(--color-orange);
+}
+
+.health-value.warning {
+  color: var(--color-red);
 }
 
 /* Loading */
