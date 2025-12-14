@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neve - Minimalist Bookkeeping</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @layer base {
+            body {
+                transition: background-color 0.3s ease, color 0.3s ease;
+            }
+        }
+        .card-enter {
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen font-sans transition-colors duration-300">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="snowflake" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xl font-semibold tracking-tight">Neve</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="sun" id="sun-icon" class="hidden"></i>
+                    <i data-lucide="moon" id="moon-icon" class="hidden"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 pt-24 pb-12">
+        <!-- Header Section -->
+        <header class="mb-10 card-enter">
+            <h1 class="text-3xl font-bold mb-2">Morning, Alex</h1>
+            <p class="text-slate-500 dark:text-slate-400">Here's your financial overview for March.</p>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 card-enter" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Balance</span>
+                    <i data-lucide="wallet" class="w-5 h-5 text-indigo-500"></i>
+                </div>
+                <div class="text-2xl font-bold">$12,450.00</div>
+                <div class="text-emerald-500 text-xs mt-2 flex items-center gap-1">
+                    <i data-lucide="trending-up" class="w-3 h-3"></i>
+                    +2.4% from last month
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 card-enter" style="animation-delay: 0.2s">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Monthly Income</span>
+                    <i data-lucide="arrow-down-left" class="w-5 h-5 text-emerald-500"></i>
+                </div>
+                <div class="text-2xl font-bold">$4,200.00</div>
+                <div class="text-slate-400 text-xs mt-2">Expected: $4,500.00</div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 card-enter" style="animation-delay: 0.3s">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Monthly Expenses</span>
+                    <i data-lucide="arrow-up-right" class="w-5 h-5 text-rose-400"></i>
+                </div>
+                <div class="text-2xl font-bold">$1,840.50</div>
+                <div class="text-rose-400 text-xs mt-2 flex items-center gap-1">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                    85% of budget used
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Transactions -->
+            <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden card-enter" style="animation-delay: 0.4s">
+                <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <h2 class="font-semibold">Recent Transactions</h2>
+                    <button class="text-indigo-500 text-sm font-medium hover:underline">View All</button>
+                </div>
+                <div class="p-2 custom-scrollbar max-h-[400px] overflow-y-auto">
+                    <template id="transaction-item">
+                        <div class="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer group">
+                            <div class="flex items-center gap-4">
+                                <div class="icon-container w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"></div>
+                                <div>
+                                    <div class="font-medium text-sm title-text"></div>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400 date-text"></div>
+                                </div>
+                            </div>
+                            <div class="font-semibold amount-text"></div>
+                        </div>
+                    </template>
+                    <div id="transactions-list"></div>
+                </div>
+            </div>
+
+            <!-- Budget Distribution -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 card-enter" style="animation-delay: 0.5s">
+                <h2 class="font-semibold mb-6">Budgets</h2>
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-500 dark:text-slate-400">Food & Drinks</span>
+                            <span class="font-medium">$450 / $600</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-400 w-[75%] rounded-full"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-500 dark:text-slate-400">Entertainment</span>
+                            <span class="font-medium">$120 / $200</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-400 w-[60%] rounded-full"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-500 dark:text-slate-400">Transport</span>
+                            <span class="font-medium">$290 / $300</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-rose-400 w-[96%] rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="w-full mt-8 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-500 hover:border-indigo-500 transition-all text-sm font-medium flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    Add New Category
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button class="fixed bottom-8 right-8 w-14 h-14 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 z-50">
+        <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
+
+    <script>
+        // Data
+        const transactions = [
+            { id: 1, title: 'Starbucks Coffee', date: 'Today, 09:42 AM', amount: -5.50, category: 'food', icon: 'coffee', color: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+            { id: 2, title: 'Salary Deposit', date: 'Yesterday, 02:00 PM', amount: 4200.00, category: 'income', icon: 'arrow-down-circle', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' },
+            { id: 3, title: 'Netflix Subscription', date: 'Mar 12, 2024', amount: -15.99, category: 'entertainment', icon: 'tv', color: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' },
+            { id: 4, title: 'Apple Store', date: 'Mar 10, 2024', amount: -129.00, category: 'shopping', icon: 'shopping-bag', color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' },
+            { id: 5, title: 'Uber Trip', date: 'Mar 08, 2024', amount: -24.50, category: 'transport', icon: 'car', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' }
+        ];
+
+        // Theme Logic
+        const themeToggle = document.getElementById('theme-toggle');
+        const sunIcon = document.getElementById('sun-icon');
+        const moonIcon = document.getElementById('moon-icon');
+
+        function setTheme(theme) {
+            if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+                localStorage.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+                localStorage.theme = 'light';
+            }
+            lucide.createIcons();
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            setTheme(isDark ? 'light' : 'dark');
+        });
+
+        // Initialize theme
+        setTheme(localStorage.theme || 'system');
+
+        // Render Transactions
+        const listContainer = document.getElementById('transactions-list');
+        const template = document.getElementById('transaction-item');
+
+        transactions.forEach(t => {
+            const clone = template.content.cloneNode(true);
+            const iconCont = clone.querySelector('.icon-container');
+            iconCont.className += ` ${t.color}`;
+            iconCont.innerHTML = `<i data-lucide="${t.icon}" class="w-5 h-5"></i>`;
+            
+            clone.querySelector('.title-text').textContent = t.title;
+            clone.querySelector('.date-text').textContent = t.date;
+            
+            const amountEl = clone.querySelector('.amount-text');
+            amountEl.textContent = (t.amount > 0 ? '+' : '') + t.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            amountEl.className += t.amount > 0 ? ' text-emerald-500' : ' text-slate-700 dark:text-slate-200';
+            
+            listContainer.appendChild(clone);
+        });
+
+        // Init Lucide
+        lucide.createIcons();
+    </script>
+</body>
+</html>

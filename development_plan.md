@@ -146,3 +146,4 @@ YYYY-MM-DD * "交易对手(Payee)" "描述(Narration)" #标签(可选)
 4. 货币单位固定为 CNY。
 
 **请确认你已完全理解上述 Beancount 语法结构。**
+

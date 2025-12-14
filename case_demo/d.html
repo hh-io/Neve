@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neve | Mindful Bookkeeping</title><!--gemini-->
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        // Neve Low Saturation Palette
+                        neve: {
+                            50: '#F8FAFC',  // Light Bg
+                            100: '#F1F5F9', // Light Surface
+                            200: '#E2E8F0', // Borders
+                            300: '#CBD5E1', // Icons inactive
+                            400: '#94A3B8', // Subtext
+                            500: '#64748B', // Body text
+                            600: '#475569', // Headings
+                            700: '#334155', // Dark text
+                            800: '#1E293B', // Dark Surface
+                            900: '#0F172A', // Dark Bg
+                            950: '#020617', // Darker Accents
+                        },
+                        brand: {
+                            light: '#818CF8', // Muted Indigo
+                            DEFAULT: '#6366F1',
+                            dark: '#4F46E5',
+                        },
+                        success: {
+                            muted: '#34D399', // Low sat green
+                            bg: 'rgba(52, 211, 153, 0.1)'
+                        },
+                        danger: {
+                            muted: '#F87171', // Low sat red
+                            bg: 'rgba(248, 113, 113, 0.1)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Smooth transitions for theme switching */
+        body {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        /* Animation utilities */
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+    </style>
+</head>
+<body class="bg-neve-50 text-neve-700 dark:bg-neve-900 dark:text-neve-100 h-screen flex overflow-hidden selection:bg-brand-light selection:text-white">
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="hidden md:flex w-64 flex-col border-r border-neve-200 dark:border-neve-800 bg-white dark:bg-neve-950 transition-colors duration-300">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-brand-DEFAULT flex items-center justify-center text-white shadow-lg shadow-brand-light/30">
+                <i class="fa-solid fa-n"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-neve-800 dark:text-white">Neve</h1>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-1 mt-4">
+            <a href="#" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-neve-100 dark:bg-neve-800 text-brand-dark dark:text-brand-light transition-all">
+                <i class="fa-solid fa-layer-group w-5"></i>
+                Overview
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-neve-500 hover:bg-neve-50 hover:text-neve-900 dark:text-neve-400 dark:hover:bg-neve-900 dark:hover:text-neve-100 transition-all">
+                <i class="fa-solid fa-chart-pie w-5"></i>
+                Trends
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-neve-500 hover:bg-neve-50 hover:text-neve-900 dark:text-neve-400 dark:hover:bg-neve-900 dark:hover:text-neve-100 transition-all">
+                <i class="fa-solid fa-wallet w-5"></i>
+                Accounts
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-neve-500 hover:bg-neve-50 hover:text-neve-900 dark:text-neve-400 dark:hover:bg-neve-900 dark:hover:text-neve-100 transition-all">
+                <i class="fa-solid fa-piggy-bank w-5"></i>
+                Budget
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-neve-500 hover:bg-neve-50 hover:text-neve-900 dark:text-neve-400 dark:hover:bg-neve-900 dark:hover:text-neve-100 transition-all">
+                <i class="fa-solid fa-arrow-right-arrow-left w-5"></i>
+                Transactions
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-neve-200 dark:border-neve-800">
+             <button onclick="toggleTheme()" class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium bg-neve-50 dark:bg-neve-900 text-neve-600 dark:text-neve-300 hover:bg-neve-100 dark:hover:bg-neve-800 transition-all">
+                <span id="theme-text">System Mode</span>
+                <i id="theme-icon" class="fa-solid fa-circle-half-stroke"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        <!-- Mobile Header -->
+        <header class="md:hidden flex items-center justify-between p-4 bg-white dark:bg-neve-950 border-b border-neve-200 dark:border-neve-800 z-20">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-brand-DEFAULT flex items-center justify-center text-white">
+                    <i class="fa-solid fa-n"></i>
+                </div>
+                <h1 class="font-bold text-neve-800 dark:text-white">Neve</h1>
+            </div>
+            <button onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center bg-neve-50 dark:bg-neve-900 text-neve-600 dark:text-neve-300">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </header>
+
+        <!-- Scrollable Area -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth pb-24 md:pb-8">
+            
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 fade-in-up">
+                <div>
+                    <h2 class="text-2xl font-bold text-neve-900 dark:text-white">Dashboard</h2>
+                    <p class="text-neve-500 dark:text-neve-400 text-sm mt-1">Welcome back, here's your financial overview.</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex gap-3">
+                    <button class="px-4 py-2 bg-white dark:bg-neve-800 border border-neve-200 dark:border-neve-700 rounded-lg text-sm font-medium text-neve-600 dark:text-neve-300 shadow-sm hover:bg-neve-50 dark:hover:bg-neve-700 transition-colors">
+                        <i class="fa-solid fa-download mr-2"></i> Report
+                    </button>
+                    <button class="px-4 py-2 bg-brand-DEFAULT hover:bg-brand-dark text-white rounded-lg text-sm font-medium shadow-lg shadow-brand-light/30 transition-all transform hover:scale-105 active:scale-95">
+                        <i class="fa-solid fa-plus mr-2"></i> Add Transaction
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Total Balance -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-neve-800 border border-neve-200 dark:border-neve-700 shadow-sm fade-in-up delay-100 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-wallet text-6xl text-neve-400"></i>
+                    </div>
+                    <p class="text-sm font-medium text-neve-500 dark:text-neve-400">Total Balance</p>
+                    <h3 class="text-3xl font-bold text-neve-900 dark:text-white mt-2">$24,562.00</h3>
+                    <div class="flex items-center mt-4 text-xs font-medium">
+                        <span class="px-2 py-1 rounded-full bg-success-bg text-success-muted flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-trend-up"></i> +2.4%
+                        </span>
+                        <span class="ml-2 text-neve-400">vs last month</span>
+                    </div>
+                </div>
+
+                <!-- Income -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-neve-800 border border-neve-200 dark:border-neve-700 shadow-sm fade-in-up delay-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-neve-500 dark:text-neve-400">Income</p>
+                            <h3 class="text-2xl font-bold text-neve-900 dark:text-white mt-1">$4,250.00</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-neve-100 dark:bg-neve-700 flex items-center justify-center text-success-muted">
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 h-1.5 w-full bg-neve-100 dark:bg-neve-900 rounded-full overflow-hidden">
+                        <div class="h-full bg-success-muted rounded-full" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Expenses -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-neve-800 border border-neve-200 dark:border-neve-700 shadow-sm fade-in-up delay-300">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-neve-500 dark:text-neve-400">Expenses</p>
+                            <h3 class="text-2xl font-bold text-neve-900 dark:text-white mt-1">$1,890.00</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-neve-100 dark:bg-neve-700 flex items-center justify-center text-danger-muted">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 h-1.5 w-full bg-neve-100 dark:bg-neve-900 rounded-full overflow-hidden">
+                        <div class="h-full bg-danger-muted rounded-full" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Transactions Split -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Chart Section -->
+                <div class="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-neve-800 border border-neve-200 dark:border-neve-700 shadow-sm fade-in-up delay-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-bold text-neve-900 dark:text-white">Analytics</h3>
+                        <select class="bg-neve-50 dark:bg-neve-900 border-none text-xs font-medium text-neve-600 dark:text-neve-300 rounded-lg px-3 py-1 outline-none">
+                            <option>This Week</option>
+                            <option>This Month</option>
+                            <option>This Year</option>
+                        </select>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-neve-800 border border-neve-200 dark:border-neve-700 shadow-sm fade-in-up delay-200">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-bold text-neve-900 dark:text-white">Transactions</h3>
+                        <a href="#" class="text-xs font-medium text-brand-DEFAULT hover:text-brand-dark">View All</a>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Item 1 -->
+                        <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-neve-100 dark:bg-neve-700 flex items-center justify-center text-neve-600 dark:text-neve-300 group-hover:bg-brand-light/20 group-hover:text-brand-DEFAULT transition-colors">
+                                    <i class="fa-brands fa-apple"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-neve-900 dark:text-neve-100">Apple Store</p>
+                                    <p class="text-xs text-neve-500">Gadgets</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-neve-900 dark:text-white">-$1,299</p>
+                                <p class="text-xs text-neve-400">Today</p>
+                            </div>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-neve-100 dark:bg-neve-700 flex items-center justify-center text-neve-600 dark:text-neve-300 group-hover:bg-brand-light/20 group-hover:text-brand-DEFAULT transition-colors">
+                                    <i class="fa-solid fa-briefcase"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-neve-900 dark:text-neve-100">Freelance</p>
+                                    <p class="text-xs text-neve-500">Income</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-success-muted">+$850</p>
+                                <p class="text-xs text-neve-400">Yesterday</p>
+                            </div>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-neve-100 dark:bg-neve-700 flex items-center justify-center text-neve-600 dark:text-neve-300 group-hover:bg-brand-light/20 group-hover:text-brand-DEFAULT transition-colors">
+                                    <i class="fa-solid fa-coffee"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-neve-900 dark:text-neve-100">Starbucks</p>
+                                    <p class="text-xs text-neve-500">Food & Drink</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-neve-900 dark:text-white">-$5.50</p>
+                                <p class="text-xs text-neve-400">Yesterday</p>
+                            </div>
+                        </div>
+
+                         <!-- Item 4 -->
+                         <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-neve-100 dark:bg-neve-700 flex items-center justify-center text-neve-600 dark:text-neve-300 group-hover:bg-brand-light/20 group-hover:text-brand-DEFAULT transition-colors">
+                                    <i class="fa-solid fa-house"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-neve-900 dark:text-neve-100">Rent</p>
+                                    <p class="text-xs text-neve-500">Housing</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-neve-900 dark:text-white">-$1,200</p>
+                                <p class="text-xs text-neve-400">Oct 24</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer / Design System Info -->
+            <div class="mt-8 pt-8 border-t border-neve-200 dark:border-neve-800 text-center">
+                <button onclick="document.getElementById('palette-modal').classList.remove('hidden')" class="text-xs text-neve-400 hover:text-brand-DEFAULT transition-colors">
+                    View "Neve" Color System
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Navigation (Bottom) -->
+    <nav class="md:hidden fixed bottom-0 w-full bg-white dark:bg-neve-950 border-t border-neve-200 dark:border-neve-800 flex justify-around p-3 z-30 pb-safe">
+        <a href="#" class="flex flex-col items-center gap-1 text-brand-DEFAULT">
+            <i class="fa-solid fa-layer-group text-lg"></i>
+            <span class="text-[10px] font-medium">Home</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 text-neve-400 hover:text-neve-600 dark:hover:text-neve-200">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span class="text-[10px] font-medium">Trends</span>
+        </a>
+        <div class="relative -top-6">
+            <button class="w-12 h-12 rounded-full bg-brand-DEFAULT text-white shadow-lg shadow-brand-light/40 flex items-center justify-center transform transition-transform active:scale-95">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+        <a href="#" class="flex flex-col items-center gap-1 text-neve-400 hover:text-neve-600 dark:hover:text-neve-200">
+            <i class="fa-solid fa-wallet text-lg"></i>
+            <span class="text-[10px] font-medium">Wallet</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 text-neve-400 hover:text-neve-600 dark:hover:text-neve-200">
+            <i class="fa-solid fa-piggy-bank text-lg"></i>
+            <span class="text-[10px] font-medium">Budget</span>
+        </a>
+    </nav>
+
+    <!-- Palette Modal -->
+    <div id="palette-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-neve-900 rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-neve-200 dark:border-neve-700 relative">
+            <button onclick="document.getElementById('palette-modal').classList.add('hidden')" class="absolute top-4 right-4 text-neve-400 hover:text-neve-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-neve-900 dark:text-white mb-4">Neve Color System</h3>
+            <div class="space-y-4 font-mono text-xs">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="mb-2 font-bold text-neve-500">Light Mode</p>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-[#F8FAFC] border"></div> <span>Bg: #F8FAFC</span></div>
+                            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-[#FFFFFF] border"></div> <span>Surface: #FFFFFF</span></div>
+                            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-[#334155]"></div> <span>Text: #334155</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="mb-2 font-bold text-neve-500">Dark Mode</p>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-[#0F172A] border"></div> <span>Bg: #0F172A</span></div>
+                            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-[#1E293B] border"></div> <span>Surface: #1E293B</span></div>
+                            <div class="flex items-center gap-2"><div class="w-4 h-4 rounded bg-[#F1F5F9] border"></div> <span>Text: #F1F5F9</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="mb-2 font-bold text-neve-500">Accents (Low Saturation)</p>
+                    <div class="flex gap-4">
+                        <div class="text-center"><div class="w-8 h-8 rounded-full bg-[#6366F1] mx-auto mb-1"></div><span>Brand</span></div>
+                        <div class="text-center"><div class="w-8 h-8 rounded-full bg-[#34D399] mx-auto mb-1"></div><span>Success</span></div>
+                        <div class="text-center"><div class="w-8 h-8 rounded-full bg-[#F87171] mx-auto mb-1"></div><span>Danger</span></div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-neve-100 dark:bg-neve-950 rounded text-neve-600 dark:text-neve-400 mt-4">
+                    Copy logic: Use Slate/Zinc for neutrals, Indigo for brand. Reduce opacity or saturation for specific elements.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logic -->
+    <script>
+        // --- Theme Logic ---
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        
+        // 0 = System, 1 = Light, 2 = Dark
+        let themeState = parseInt(localStorage.getItem('neve_theme_state')) || 0; 
+
+        function applyTheme() {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            // Remove previous classes
+            document.documentElement.classList.remove('dark');
+            
+            let iconClass = 'fa-circle-half-stroke';
+            let textLabel = 'System Mode';
+
+            if (themeState === 0) { // System
+                if (isDark) document.documentElement.classList.add('dark');
+                iconClass = 'fa-circle-half-stroke';
+                textLabel = 'System Mode';
+            } else if (themeState === 1) { // Light
+                iconClass = 'fa-sun';
+                textLabel = 'Light Mode';
+            } else if (themeState === 2) { // Dark
+                document.documentElement.classList.add('dark');
+                iconClass = 'fa-moon';
+                textLabel = 'Dark Mode';
+            }
+
+            // Update UI
+            if(themeIcon) {
+                themeIcon.className = 'fa-solid ' + iconClass;
+                // Add simple rotation animation
+                themeIcon.style.transform = 'rotate(360deg)';
+                setTimeout(() => themeIcon.style.transform = 'rotate(0deg)', 300);
+            }
+            if(themeText) themeText.textContent = textLabel;
+
+            // Update Chart if exists
+            updateChartTheme();
+        }
+
+        function toggleTheme() {
+            themeState = (themeState + 1) % 3;
+            localStorage.setItem('neve_theme_state', themeState);
+            applyTheme();
+        }
+
+        // Listen for system changes if in system mode
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (themeState === 0) applyTheme();
+        });
+
+        // Initialize Theme
+        applyTheme();
+
+
+        // --- Chart Logic ---
+        let financeChart;
+
+        function initChart() {
+            const ctx = document.getElementById('financeChart');
+            if(!ctx) return;
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? '#334155' : '#E2E8F0';
+            const textColor = isDark ? '#94A3B8' : '#64748B';
+
+            // Data
+            const data = {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: [1200, 1900, 1500, 2200, 1800, 2500, 3100],
+                        borderColor: '#34D399', // success-muted
+                        backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Expense',
+                        data: [800, 1200, 900, 1500, 1100, 1800, 1400],
+                        borderColor: '#F87171', // danger-muted
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    }
+                ]
+            };
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                color: textColor,
+                                usePointStyle: true,
+                                boxWidth: 6
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                            titleColor: isDark ? '#F8FAFC' : '#1E293B',
+                            bodyColor: isDark ? '#CBD5E1' : '#64748B',
+                            borderColor: isDark ? '#334155' : '#E2E8F0',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor,
+                                borderDash: [5, 5],
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            };
+
+            financeChart = new Chart(ctx, config);
+        }
+
+        function updateChartTheme() {
+            if (!financeChart) return;
+            
+            const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? '#334155' : '#E2E8F0';
+            const textColor = isDark ? '#94A3B8' : '#64748B';
+            const tooltipBg = isDark ? '#1E293B' : '#FFFFFF';
+            const tooltipTitle = isDark ? '#F8FAFC' : '#1E293B';
+            const tooltipBody = isDark ? '#CBD5E1' : '#64748B';
+            const tooltipBorder = isDark ? '#334155' : '#E2E8F0';
+
+            financeChart.options.scales.y.grid.color = gridColor;
+            financeChart.options.scales.x.ticks.color = textColor;
+            financeChart.options.scales.y.ticks.color = textColor;
+            financeChart.options.plugins.legend.labels.color = textColor;
+            
+            financeChart.options.plugins.tooltip.backgroundColor = tooltipBg;
+            financeChart.options.plugins.tooltip.titleColor = tooltipTitle;
+            financeChart.options.plugins.tooltip.bodyColor = tooltipBody;
+            financeChart.options.plugins.tooltip.borderColor = tooltipBorder;
+
+            financeChart.update();
+        }
+
+        // Init Chart after load
+        document.addEventListener('DOMContentLoaded', initChart);
+
+    </script>
+</body>
+</html>
