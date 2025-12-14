@@ -149,7 +149,15 @@
                     <span class="tx-narration">{{
                       tx.narration || tx.payee || "未命名"
                     }}</span>
-                    <span class="tx-date">{{ formatDate(tx.date) }}</span>
+                    <div class="tx-meta">
+                      <span class="tx-date">{{ formatDate(tx.date) }}</span>
+                      <span
+                        v-for="tag in tx.tags"
+                        :key="tag"
+                        class="tx-tag"
+                        :class="getTagClass(tag)"
+                      >#{{ tag }}</span>
+                    </div>
                   </div>
                   <span
                     class="tx-amount"
@@ -286,6 +294,25 @@ function formatTransactionAmount(tx) {
   if (incomePosting) return "+" + formatMoney(-incomePosting.amount).slice(1);
 
   return formatMoney(tx.postings?.[0]?.amount || 0);
+}
+
+// Get tag styling class based on platform
+function getTagClass(tag) {
+  const tagLower = tag.toLowerCase();
+  const tagColors = {
+    meituan: 'tag-meituan',
+    jd: 'tag-jd',
+    taobao: 'tag-taobao',
+    eleme: 'tag-eleme',
+    pdd: 'tag-pdd',
+    didi: 'tag-didi',
+    douyin: 'tag-douyin',
+    xianyu: 'tag-xianyu',
+    offline: 'tag-offline',
+    subscription: 'tag-subscription',
+    unknown: 'tag-unknown',
+  };
+  return tagColors[tagLower] || 'tag-default';
 }
 
 // Chart options
@@ -572,9 +599,86 @@ section {
   white-space: nowrap;
 }
 
+.tx-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .tx-date {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+}
+
+.tx-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+}
+
+/* Platform-specific tag colors */
+.tx-tag.tag-meituan {
+  background: rgba(255, 190, 0, 0.15);
+  color: #D4A300;
+}
+
+.tx-tag.tag-jd {
+  background: rgba(230, 0, 18, 0.12);
+  color: #C80010;
+}
+
+.tx-tag.tag-taobao {
+  background: rgba(255, 85, 0, 0.12);
+  color: #E04A00;
+}
+
+.tx-tag.tag-eleme {
+  background: rgba(0, 150, 230, 0.12);
+  color: #0086CC;
+}
+
+.tx-tag.tag-pdd {
+  background: rgba(230, 0, 35, 0.12);
+  color: #D60020;
+}
+
+.tx-tag.tag-didi {
+  background: rgba(255, 140, 0, 0.12);
+  color: #E07800;
+}
+
+.tx-tag.tag-douyin {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1C1C1C;
+}
+
+.tx-tag.tag-xianyu {
+  background: rgba(255, 200, 50, 0.15);
+  color: #CC9900;
+}
+
+.tx-tag.tag-offline {
+  background: rgba(100, 100, 100, 0.1);
+  color: #666666;
+}
+
+.tx-tag.tag-subscription {
+  background: rgba(90, 50, 200, 0.12);
+  color: #5A32C8;
+}
+
+.tx-tag.tag-unknown {
+  background: rgba(150, 150, 150, 0.15);
+  color: #888888;
+}
+
+.tx-tag.tag-default {
+  background: rgba(0, 122, 255, 0.1);
+  color: #007AFF;
 }
 
 .tx-amount {
