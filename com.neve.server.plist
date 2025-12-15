@@ -25,16 +25,24 @@
         
         <!-- HTTP 服务端口 (修改此值更换端口) -->
         <key>NEVE_PORT</key>
-        <string>8080</string>
+        <string>9999</string>
     </dict>
     
-    <!-- 加载时立即启动 (实现开机自启) -->
+    <!-- 开机自动启动 -->
     <key>RunAtLoad</key>
     <true/>
     
     <!-- 保持运行 (崩溃后自动重启) -->
     <key>KeepAlive</key>
-    <true/>
+    <dict>
+        <!-- 只在成功退出时不重启 -->
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    
+    <!-- 重启间隔 (秒) -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
     
     <!-- 标准输出日志路径 -->
     <key>StandardOutPath</key>

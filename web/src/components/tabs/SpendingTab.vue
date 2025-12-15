@@ -21,7 +21,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-income-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.barChart" style="stroke: var(--income); width: 20px; height: 20px;"></span>
+            <span v-html="icons.pieChart" style="stroke: var(--income); width: 20px; height: 20px;"></span>
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">收入来源</span>
         </div>
