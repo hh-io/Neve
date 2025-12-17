@@ -4,8 +4,8 @@
     <aside class="sidebar">
       <!-- Logo -->
       <div class="logo-section animate-fade-in-up">
-        <div class="logo-icon animate-pulse-soft">
-          <span v-html="icons.layers"></span>
+        <div class="logo-icon-new">
+          <span>N</span>
         </div>
         <div class="logo-text">
           <h1>Neve</h1>

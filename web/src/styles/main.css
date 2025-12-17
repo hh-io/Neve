@@ -218,6 +218,83 @@ body {
   box-shadow: 0 4px 12px rgba(91, 154, 154, 0.3);
 }
 
+.logo-icon-new {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  position: relative;
+  transition: all var(--transition-slow);
+}
+
+/* Light Theme Logo - Purple gradient */
+.theme-light .logo-icon-new,
+:root:not(.theme-dark) .logo-icon-new {
+  background: linear-gradient(135deg, #818CF8, #6366F1);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+}
+
+.theme-light .logo-icon-new::after,
+:root:not(.theme-dark) .logo-icon-new::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.4), rgba(99, 102, 241, 0.2));
+  z-index: -1;
+  filter: blur(8px);
+  animation: logoGlowLight 2s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlowLight {
+  0% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 0.8;
+  }
+}
+
+/* Dark Theme Logo - Dark with blue underglow */
+.theme-dark .logo-icon-new {
+  background: linear-gradient(145deg, #1E2433, #0F1219);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(99, 102, 241, 0.2),
+    0 0 40px rgba(99, 102, 241, 0.15);
+}
+
+.theme-dark .logo-icon-new::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(99, 102, 241, 0.6) 0%, transparent 70%);
+  filter: blur(4px);
+  animation: logoGlowDark 2s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlowDark {
+  0% {
+    opacity: 0.4;
+    width: 20px;
+  }
+
+  100% {
+    opacity: 0.8;
+    width: 28px;
+  }
+}
+
 .logo-text h1 {
   font-size: var(--font-size-lg);
   font-weight: 600;
