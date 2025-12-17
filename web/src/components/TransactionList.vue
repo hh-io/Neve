@@ -9,9 +9,13 @@
       :key="`${tx.date}-${index}`"
       class="tx-row"
     >
-      <!-- Icon -->
+      <!-- Icon (using Vue components) -->
       <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-        <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '18px', height: '18px' }"></span>
+        <component 
+          :is="getCategoryIconComponent(tx.category)" 
+          :size="18" 
+          :color="tx.isIncome ? 'var(--income)' : 'var(--expense)'" 
+        />
       </div>
       
       <!-- Main Info -->
@@ -40,10 +44,10 @@
 import { computed } from 'vue';
 import { 
   getCategoryLabel, 
-  getCategoryIcon, 
   processTransaction, 
   formatTransactionDate 
 } from '../composables/useCategories';
+import { getCategoryIconComponent } from './icons';
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -105,21 +109,6 @@ const formatDate = formatTransactionDate;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.tx-icon span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tx-icon span :deep(svg) {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
 }
 
 .tx-main {

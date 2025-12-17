@@ -72,7 +72,11 @@
           >
             <!-- Icon -->
             <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-              <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '20px', height: '20px' }"></span>
+              <component 
+                :is="getCategoryIconComponent(tx.category)" 
+                :size="20" 
+                :color="tx.isIncome ? 'var(--income)' : 'var(--expense)'" 
+              />
             </div>
             
             <!-- Main Content -->
@@ -131,11 +135,11 @@ import { ref, computed, watch } from 'vue';
 import { icons } from '../../composables/icons';
 import { 
   getCategoryLabel, 
-  getCategoryIcon, 
   processTransaction, 
   getRelativeDateLabel,
   getTagColor 
 } from '../../composables/useCategories';
+import { getCategoryIconComponent } from '../icons';
 
 const props = defineProps({
   transactions: { type: Array, required: true }

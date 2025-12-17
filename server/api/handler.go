@@ -127,14 +127,16 @@ func (s *Server) handleRefresh(c *gin.Context) {
 
 	if sinceLastRefresh < 5*time.Second {
 		c.JSON(http.StatusTooManyRequests, gin.H{
-			"error":      "请求过于频繁，请稍后再试",
+			"error":      ErrRateLimited,
 			"retryAfter": (5*time.Second - sinceLastRefresh).Seconds(),
 		})
 		return
 	}
 
 	if err := s.Refresh(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": NewAPIError("REFRESH_FAILED", err.Error()),
+		})
 		return
 	}
 

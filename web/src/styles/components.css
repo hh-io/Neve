@@ -223,26 +223,27 @@
 }
 
 /* ========== Refresh Button ========== */
-.btn-refresh {
-    background-color: #0a0c10 !important;
-    background-image: none !important;
-    border: none !important;
-    outline: none !important;
-    color: rgba(255, 255, 255, 0.95) !important;
-    border-radius: 10px !important;
-    padding: 10px 18px !important;
+/* Use high specificity selectors to avoid !important */
+.header-actions .btn.btn-refresh {
+    background-color: #0a0c10;
+    background-image: none;
+    border: none;
+    outline: none;
+    color: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    padding: 10px 18px;
     font-weight: 500;
     font-size: 0.875rem;
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.5rem !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     position: relative;
     z-index: 1;
     transition: all 0.25s ease;
-    box-shadow: none !important;
+    box-shadow: none;
 }
 
-.btn-refresh::before {
+.header-actions .btn.btn-refresh::before {
     content: '';
     position: absolute;
     top: 0;
@@ -258,23 +259,23 @@
     transition: all 0.25s ease;
 }
 
-.btn-refresh:hover {
-    background-color: #12151d !important;
+.header-actions .btn.btn-refresh:hover {
+    background-color: #12151d;
     transform: translateY(-1px);
 }
 
-.btn-refresh:hover::before {
+.header-actions .btn.btn-refresh:hover::before {
     box-shadow:
         -6px 3px 18px 0 rgba(99, 102, 241, 0.45),
         6px 3px 18px 0 rgba(99, 102, 241, 0.45),
         0 10px 24px -2px rgba(99, 102, 241, 0.6);
 }
 
-.btn-refresh:active {
+.header-actions .btn.btn-refresh:active {
     transform: scale(0.98) translateY(0);
 }
 
-.btn-refresh:active::before {
+.header-actions .btn.btn-refresh:active::before {
     box-shadow:
         -3px 1px 8px 0 rgba(99, 102, 241, 0.3),
         3px 1px 8px 0 rgba(99, 102, 241, 0.3),
@@ -282,29 +283,29 @@
 }
 
 /* Light Theme Refresh Button */
-.theme-light .btn-refresh,
-:root:not(.theme-dark):not(.theme-geek) .btn-refresh {
-    background-color: var(--light-brand-primary) !important;
-    color: white !important;
-    box-shadow: 0 2px 8px rgba(91, 154, 154, 0.25) !important;
+.theme-light .header-actions .btn.btn-refresh,
+:root:not(.theme-dark):not(.theme-geek) .header-actions .btn.btn-refresh {
+    background-color: var(--light-brand-primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(91, 154, 154, 0.25);
 }
 
-.theme-light .btn-refresh::before,
-:root:not(.theme-dark):not(.theme-geek) .btn-refresh::before {
+.theme-light .header-actions .btn.btn-refresh::before,
+:root:not(.theme-dark):not(.theme-geek) .header-actions .btn.btn-refresh::before {
     box-shadow: none;
 }
 
-.theme-light .btn-refresh:hover,
-:root:not(.theme-dark):not(.theme-geek) .btn-refresh:hover {
-    background-color: var(--light-brand-secondary) !important;
+.theme-light .header-actions .btn.btn-refresh:hover,
+:root:not(.theme-dark):not(.theme-geek) .header-actions .btn.btn-refresh:hover {
+    background-color: var(--light-brand-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(91, 154, 154, 0.35) !important;
+    box-shadow: 0 4px 12px rgba(91, 154, 154, 0.35);
 }
 
-.theme-light .btn-refresh:active,
-:root:not(.theme-dark):not(.theme-geek) .btn-refresh:active {
+.theme-light .header-actions .btn.btn-refresh:active,
+:root:not(.theme-dark):not(.theme-geek) .header-actions .btn.btn-refresh:active {
     transform: scale(0.98) translateY(0);
-    box-shadow: 0 1px 4px rgba(91, 154, 154, 0.2) !important;
+    box-shadow: 0 1px 4px rgba(91, 154, 154, 0.2);
 }
 
 .theme-geek .btn-secondary:active {
