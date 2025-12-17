@@ -14,3 +14,6 @@
 
 /* 4. Components (cards, buttons, etc) */
 @import './components.css';
+
+/* 5. Mobile responsive styles (must be last) */
+@import './mobile.css';

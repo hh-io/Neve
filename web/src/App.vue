@@ -71,6 +71,9 @@
 
     <!-- Toast -->
     <AppToast :show="toast.show" :message="toast.message" :type="toast.type" />
+
+    <!-- Mobile Bottom Navigation (visible on mobile only via CSS) -->
+    <MobileNav :activeTab="activeTab" @update:activeTab="activeTab = $event" />
   </div>
 </template>
 
@@ -80,6 +83,7 @@ import { ref, computed, onMounted, watch } from "vue";
 // Layout Components
 import AppSidebar from "./components/layout/AppSidebar.vue";
 import ThemeSwitcher from "./components/layout/ThemeSwitcher.vue";
+import MobileNav from "./components/layout/MobileNav.vue";
 import AppToast from "./components/common/AppToast.vue";
 
 // Tab Components
