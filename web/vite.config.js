@@ -6,6 +6,16 @@ export default defineConfig({
   build: {
     outDir: "../server/static",
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate ECharts into its own chunk (lazy loaded)
+          'echarts': ['echarts', 'vue-echarts'],
+          // Separate Vue core
+          'vue-vendor': ['vue'],
+        },
+      },
+    },
   },
   server: {
     proxy: {
