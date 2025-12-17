@@ -61,6 +61,7 @@ import { use } from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, MarkLineComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+import { getThemeColor } from '../composables/useThemeColor';
 
 use([LineChart, GridComponent, TooltipComponent, MarkLineComponent, CanvasRenderer]);
 
@@ -175,25 +176,25 @@ const chartOption = computed(() => {
     smooth: true,
     symbol: 'circle',
     symbolSize: (value) => value > avg * 2 ? 10 : 6, // Larger symbol for anomalies
-    lineStyle: { width: 2, color: '#C27B7B' },
+    lineStyle: { width: 2, color: getThemeColor('--expense') || '#F87171' },
     itemStyle: { 
-      color: (params) => params.value > avg * 2 ? '#FF6B6B' : '#C27B7B' // Red for anomaly
+      color: (params) => params.value > avg * 2 ? getThemeColor('--expense') || '#F87171' : getThemeColor('--expense') || '#F87171'
     },
     areaStyle: {
       color: {
         type: 'linear',
         x: 0, y: 0, x2: 0, y2: 1,
         colorStops: [
-          { offset: 0, color: 'rgba(194, 123, 123, 0.3)' },
-          { offset: 1, color: 'rgba(194, 123, 123, 0)' }
+          { offset: 0, color: getThemeColor('--expense-light') || 'rgba(248, 113, 113, 0.15)' },
+          { offset: 1, color: 'rgba(0,0,0,0)' }
         ]
       }
     },
     markLine: {
       silent: true,
       symbol: 'none',
-      lineStyle: { color: '#888', type: 'dashed', width: 1 },
-      data: [{ yAxis: avg, label: { formatter: '均值', position: 'end', fontSize: 10 } }]
+      lineStyle: { color: getThemeColor('--text-tertiary') || '#94A3B8', type: 'dashed', width: 1 },
+      data: [{ yAxis: avg, label: { formatter: '均值', position: 'end', fontSize: 10, color: getThemeColor('--text-tertiary') || '#94A3B8' } }]
     }
   }];
 
@@ -206,15 +207,15 @@ const chartOption = computed(() => {
       smooth: true,
       symbol: 'circle',
       symbolSize: 6,
-      lineStyle: { width: 2, color: '#6B9B7A' },
-      itemStyle: { color: '#6B9B7A' },
+      lineStyle: { width: 2, color: getThemeColor('--income') || '#34D399' },
+      itemStyle: { color: getThemeColor('--income') || '#34D399' },
       areaStyle: {
         color: {
           type: 'linear',
           x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(107, 155, 122, 0.2)' },
-            { offset: 1, color: 'rgba(107, 155, 122, 0)' }
+            { offset: 0, color: getThemeColor('--income-light') || 'rgba(52, 211, 153, 0.15)' },
+            { offset: 1, color: 'rgba(0,0,0,0)' }
           ]
         }
       }
@@ -231,7 +232,7 @@ const chartOption = computed(() => {
     legend: compareMode.value && compareCategory.value ? {
       data: [getCategoryLabel(selectedCategory.value), getCategoryLabel(compareCategory.value)],
       bottom: 0,
-      textStyle: { color: '#9CA3AF', fontSize: 11 }
+      textStyle: { color: 'var(--text-secondary)', fontSize: 11 }
     } : undefined,
     grid: {
       left: 10,
@@ -244,14 +245,14 @@ const chartOption = computed(() => {
       type: 'category',
       data: labels,
       axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: '#9CA3AF', fontSize: 11 },
+      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
       axisLabel: {
-        color: '#9CA3AF',
+        color: 'var(--text-secondary)',
         formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },

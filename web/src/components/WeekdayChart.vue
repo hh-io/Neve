@@ -13,6 +13,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
+import { getThemeColor } from '../composables/useThemeColor';
 
 const props = defineProps({
   data: { type: Array, default: () => [] }
@@ -82,14 +83,14 @@ const chartOption = computed(() => {
       type: 'category',
       data: orderedData.map(d => d.name),
       axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: '#9CA3AF', fontSize: 11 },
+      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
       axisLabel: {
-        color: '#9CA3AF',
+        color: 'var(--text-secondary)',
         formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },
@@ -99,7 +100,7 @@ const chartOption = computed(() => {
       itemStyle: {
         color: (params) => {
           const name = orderedData[params.dataIndex]?.name;
-          return (name === '周六' || name === '周日') ? '#C9A856' : '#5B9A9A';
+          return (name === '周六' || name === '周日') ? (getThemeColor('--warning') || '#FBBF24') : (getThemeColor('--brand-primary') || '#6366F1');
         },
         borderRadius: [4, 4, 0, 0],
       },

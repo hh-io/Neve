@@ -104,11 +104,39 @@
 
   /* Sidebar */
   --sidebar-width: 256px;
+
+  /* Geek Theme (Slate/Indigo) */
+  --geek-bg-primary: #0F172A;
+  --geek-bg-secondary: #1E293B;
+  --geek-bg-tertiary: #334155;
+  --geek-text-primary: #F1F5F9;
+  --geek-text-secondary: #94A3B8;
+  --geek-text-tertiary: #64748B;
+  --geek-border: #334155;
+  --geek-border-hover: #475569;
+
+  /* Brand - Indigo */
+  --geek-brand-primary: #6366F1;
+  --geek-brand-secondary: #818CF8;
+  --geek-brand-light: rgba(99, 102, 241, 0.15);
+
+  /* Semantic - Geek */
+  --geek-income: #34D399;
+  --geek-income-light: rgba(52, 211, 153, 0.15);
+  --geek-expense: #F87171;
+  --geek-expense-light: rgba(248, 113, 113, 0.15);
+  --geek-warning: #FBBF24;
+  --geek-warning-light: rgba(251, 191, 36, 0.15);
+  --geek-info: #60A5FA;
+  --geek-info-light: rgba(96, 165, 250, 0.15);
+
+  --geek-shadow: rgba(0, 0, 0, 0.3);
+  --geek-shadow-lg: rgba(0, 0, 0, 0.5);
 }
 
 /* ========== Theme Classes ========== */
 .theme-light,
-:root:not(.theme-dark) {
+:root:not(.theme-dark):not(.theme-geek) {
   --bg-primary: var(--light-bg-primary);
   --bg-secondary: var(--light-bg-secondary);
   --bg-tertiary: var(--light-bg-tertiary);
@@ -154,6 +182,30 @@
   --info-light: var(--dark-info-light);
   --shadow: var(--dark-shadow);
   --shadow-lg: var(--dark-shadow-lg);
+}
+
+.theme-geek {
+  --bg-primary: var(--geek-bg-primary);
+  --bg-secondary: var(--geek-bg-secondary);
+  --bg-tertiary: var(--geek-bg-tertiary);
+  --text-primary: var(--geek-text-primary);
+  --text-secondary: var(--geek-text-secondary);
+  --text-tertiary: var(--geek-text-tertiary);
+  --border: var(--geek-border);
+  --border-hover: var(--geek-border-hover);
+  --brand-primary: var(--geek-brand-primary);
+  --brand-secondary: var(--geek-brand-secondary);
+  --brand-light: var(--geek-brand-light);
+  --income: var(--geek-income);
+  --income-light: var(--geek-income-light);
+  --expense: var(--geek-expense);
+  --expense-light: var(--geek-expense-light);
+  --warning: var(--geek-warning);
+  --warning-light: var(--geek-warning-light);
+  --info: var(--geek-info);
+  --info-light: var(--geek-info-light);
+  --shadow: var(--geek-shadow);
+  --shadow-lg: var(--geek-shadow-lg);
 }
 
 /* ========== Reset & Base ========== */
@@ -310,6 +362,48 @@ body {
   }
 }
 
+/* Geek Theme Logo - Indigo Glow */
+/* Geek Theme Logo - Pure Black with Indigo Glow */
+/* Geek Theme Logo - Pure Black with Indigo Glow */
+.app-layout.theme-geek .logo-icon-new {
+  background: #000000;
+  box-shadow:
+    0 4px 12px rgba(99, 102, 241, 0.3),
+    0 0 20px rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-geek .logo-icon-new::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), transparent);
+  z-index: -1;
+  filter: blur(8px);
+  animation: logoGlowGeek 3s ease-in-out infinite alternate;
+}
+
+.theme-geek .logo-text h1 {
+  color: #FFFFFF;
+}
+
+.theme-geek .logo-text p {
+  display: none;
+}
+
+@keyframes logoGlowGeek {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
 .logo-text h1 {
   font-size: var(--font-size-lg);
   font-weight: 600;
@@ -388,6 +482,30 @@ body {
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base);
+}
+
+.theme-geek .nav-icon {
+  background-color: transparent;
+  width: 24px;
+}
+
+.theme-geek .nav-item:hover {
+  background-color: #0F172A;
+  color: #F1F5F9;
+}
+
+.theme-geek .nav-item.active {
+  background-color: #1E293B;
+  color: #818CF8;
+}
+
+.theme-geek .nav-item.active::before {
+  display: none;
+}
+
+.theme-geek .sidebar {
+  background-color: #020617;
+  border-right-color: #1E293B;
 }
 
 .nav-icon span {
@@ -517,7 +635,13 @@ body {
 }
 
 .theme-slider.system {
+  left: calc(3px + 108px);
+}
+
+.theme-slider.geek {
   left: calc(3px + 72px);
+  background-color: var(--brand-primary);
+  box-shadow: 0 0 10px var(--brand-light);
 }
 
 .theme-btn {
@@ -769,7 +893,32 @@ body {
   transform: scale(1.05);
 }
 
-/* ========== FAB ========== */
+/* Geek Theme Refresh Button - Match d.html Add Transaction */
+.theme-geek .btn-secondary {
+  background-color: #6366F1;
+  /* Brand Default */
+  border: none;
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 8px 16px;
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3), 0 4px 6px -2px rgba(99, 102, 241, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+}
+
+.theme-geek .btn-secondary:hover {
+  background-color: #4F46E5;
+  /* Brand Dark */
+  transform: scale(1.05);
+  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4), 0 10px 10px -5px rgba(99, 102, 241, 0.2);
+  color: white;
+}
+
+.theme-geek .btn-secondary:active {
+  transform: scale(0.95);
+}
+
+/* ========== Floating Action Button ========== */
 .fab {
   position: fixed;
   bottom: var(--space-8);
@@ -784,7 +933,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(91, 154, 154, 0.4);
+  box-shadow: 0 4px 16px var(--shadow-lg);
   transition: all var(--transition-slow);
   z-index: 50;
 }
@@ -797,12 +946,29 @@ body {
 
 .fab:hover {
   transform: scale(1.1) rotate(90deg);
-  box-shadow: 0 8px 24px rgba(91, 154, 154, 0.5);
+  box-shadow: 0 8px 24px var(--shadow-lg);
 }
 
 .fab svg {
   width: 24px;
   height: 24px;
+}
+
+/* Geek Theme FAB - Indigo with Shadow */
+.theme-geek .fab {
+  background: #6366F1;
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3), 0 4px 6px -2px rgba(99, 102, 241, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-geek .fab:hover {
+  transform: scale(1.05) rotate(90deg);
+  background-color: #4F46E5;
+  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4), 0 10px 10px -5px rgba(99, 102, 241, 0.2);
+}
+
+.theme-geek .fab:active {
+  transform: scale(0.95);
 }
 
 /* ========== Animations ========== */

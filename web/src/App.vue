@@ -101,6 +101,14 @@
               </button>
               <button 
                 class="theme-btn" 
+                :class="{ active: themeMode === 'geek' }"
+                @click="setTheme('geek')"
+                title="极客模式"
+              >
+                <span v-html="icons.terminal"></span>
+              </button>
+              <button 
+                class="theme-btn" 
                 :class="{ active: themeMode === 'system' }"
                 @click="setTheme('system')"
                 title="跟随系统"
@@ -198,7 +206,7 @@ const themeClass = computed(() => {
 // Apply theme to document root
 function applyTheme() {
   const html = document.documentElement;
-  html.classList.remove('theme-light', 'theme-dark');
+  html.classList.remove('theme-light', 'theme-dark', 'theme-geek');
   html.classList.add(themeClass.value);
 }
 
@@ -212,7 +220,7 @@ function setTheme(mode) {
 // Initialize theme
 onMounted(() => {
   const saved = localStorage.getItem('neve-theme');
-  if (saved && ['light', 'dark', 'system'].includes(saved)) {
+  if (saved && ['light', 'dark', 'geek', 'system'].includes(saved)) {
     themeMode.value = saved;
   }
   applyTheme();
