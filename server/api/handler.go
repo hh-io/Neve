@@ -8,15 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Server holds the API server state
 type Server struct {
-	dataDir string
-	ledger  *parser.Ledger
-	mu      sync.RWMutex
+	dataDir     string
+	ledger      *parser.Ledger
+	mu          sync.RWMutex
+	lastRefresh time.Time
 }
 
 // NewServer creates a new API server
@@ -118,10 +120,27 @@ func (s *Server) handleAccounts(c *gin.Context) {
 }
 
 func (s *Server) handleRefresh(c *gin.Context) {
+	// Rate limit: minimum 5 seconds between refreshes
+	s.mu.RLock()
+	sinceLastRefresh := time.Since(s.lastRefresh)
+	s.mu.RUnlock()
+
+	if sinceLastRefresh < 5*time.Second {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error":      "请求过于频繁，请稍后再试",
+			"retryAfter": (5*time.Second - sinceLastRefresh).Seconds(),
+		})
+		return
+	}
+
 	if err := s.Refresh(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	s.mu.Lock()
+	s.lastRefresh = time.Now()
+	s.mu.Unlock()
 
 	analytics := parser.Analyze(s.ledger)
 	c.JSON(http.StatusOK, gin.H{

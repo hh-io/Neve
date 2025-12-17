@@ -129,6 +129,13 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { icons } from '../../composables/icons';
+import { 
+  getCategoryLabel, 
+  getCategoryIcon, 
+  processTransaction, 
+  getRelativeDateLabel,
+  getTagColor 
+} from '../../composables/useCategories';
 
 const props = defineProps({
   transactions: { type: Array, required: true }
@@ -139,100 +146,11 @@ const searchQuery = ref('');
 const categoryFilter = ref('');
 const typeFilter = ref('');
 const currentPage = ref(1);
-const pageSize = 20; // Increased slightly for better density
+const pageSize = 20;
 
-// Category label mapping
-const categoryLabels = {
-  Food: '餐饮', Shopping: '购物', Transport: '交通', Entertainment: '娱乐',
-  Gift: '红包/礼物', Financial: '金融', Communication: '通讯', Lodging: '住宿',
-  Digital: '数码', Health: '健康', Education: '教育', Income: '收入', Other: '其他'
-};
-
-function getCategoryLabel(cat) {
-  return categoryLabels[cat] || cat || '其他';
-}
-
-function getRelativeDateLabel(dateStr) {
-  const date = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  // Reset hours to compare just dates
-  date.setHours(0,0,0,0);
-  today.setHours(0,0,0,0);
-  yesterday.setHours(0,0,0,0);
-
-  if (date.getTime() === today.getTime()) {
-    return '今天';
-  } else if (date.getTime() === yesterday.getTime()) {
-    return '昨天';
-  } else {
-    // Format: MM月DD日 Weekday
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    const weekday = weekdays[date.getDay()];
-    return `${month}月${day}日 ${weekday}`;
-  }
-}
-
-// Low saturation pastel colors for tags
-function getTagColor(tag) {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  // High lightness, low saturation for pastel background
-  const h = hash % 360;
-  return `hsl(${h}, 30%, 90%)`;
-}
-
-// Process transactions to extract amount and category from postings
+// Process transactions using shared utility
 const processedTransactions = computed(() => {
-  return props.transactions.map(tx => {
-    let amount = 0;
-    let category = 'Other';
-    let isIncome = false;
-    let accountShort = '';
-    
-    // Find the expense or income posting
-    if (tx.postings && tx.postings.length > 0) {
-      for (const posting of tx.postings) {
-        const account = posting.account || '';
-        
-        if (account.startsWith('Expenses:')) {
-          amount = posting.amount;
-          isIncome = false;
-          // Extract category from account (e.g., Expenses:Food:Delivery -> Food)
-          const parts = account.split(':');
-          category = parts.length > 1 ? parts[1] : 'Other';
-        } else if (account.startsWith('Income:')) {
-          amount = Math.abs(posting.amount);
-          isIncome = true;
-          const parts = account.split(':');
-          category = parts.length > 1 ? parts[1] : 'Income';
-        }
-        
-        // Get payment account (Assets or Liabilities)
-        if (account.startsWith('Assets:') || account.startsWith('Liabilities:')) {
-          const parts = account.split(':');
-          accountShort = parts.length > 2 ? parts[2] : (parts.length > 1 ? parts[1] : account);
-        }
-      }
-    }
-    
-    return {
-      ...tx,
-      amount,
-      category,
-      isIncome,
-      accountShort,
-      payee: tx.payee || '',
-      narration: tx.narration || ''
-    };
-  });
+  return props.transactions.map(processTransaction);
 });
 
 const categories = computed(() => {
@@ -296,7 +214,6 @@ const groupedTransactions = computed(() => {
       };
     }
     groups[dateStr].items.push(tx);
-    // Calculate total for header (only for visible items on this page)
     if (tx.isIncome) {
       groups[dateStr].income += Math.abs(tx.amount);
     } else {
@@ -304,7 +221,6 @@ const groupedTransactions = computed(() => {
     }
   });
 
-  // Sort groups by date descending
   return Object.values(groups).sort((a, b) => {
     return new Date(b.dateStr) - new Date(a.dateStr);
   });
@@ -313,20 +229,6 @@ const groupedTransactions = computed(() => {
 watch([searchQuery, categoryFilter, typeFilter], () => {
   currentPage.value = 1;
 });
-
-function getCategoryIcon(category) {
-  const iconMap = {
-    Food: icons.food,
-    Shopping: icons.shopping,
-    Transport: icons.transfer,
-    Gift: icons.gift,
-    Entertainment: icons.entertainment,
-    Financial: icons.wallet,
-    Income: icons.arrowDown,
-    Health: icons.heart,
-  };
-  return iconMap[category] || icons.creditCard;
-}
 </script>
 
 <style scoped>

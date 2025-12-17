@@ -1,60 +1,13 @@
 <template>
   <div class="app-layout" :class="themeClass">
     <!-- Sidebar -->
-    <aside class="sidebar">
-      <!-- Logo -->
-      <div class="logo-section animate-fade-in-up">
-        <div class="logo-icon-new">
-          <span>N</span>
-        </div>
-        <div class="logo-text">
-          <h1>Neve</h1>
-          <p>智能记账系统</p>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="nav-menu">
-        <div class="nav-section">
-          <button
-            v-for="(item, index) in navItems"
-            :key="item.id"
-            class="nav-item animate-slide-in-left"
-            :class="{ active: activeTab === item.id }"
-            :style="{ animationDelay: `${index * 0.1}s` }"
-            @click="activeTab = item.id"
-          >
-            <div class="nav-icon">
-              <span v-html="icons[item.icon]"></span>
-            </div>
-            <span>{{ item.label }}</span>
-          </button>
-        </div>
-
-        <div class="nav-divider"></div>
-
-        <button class="nav-item" :class="{ active: activeTab === 'budget' }" @click="activeTab = 'budget'">
-          <div class="nav-icon">
-            <span v-html="icons.budget"></span>
-          </div>
-          <span>预算</span>
-        </button>
-      </nav>
-
-      <!-- Stats Section -->
-      <div v-if="analytics" class="user-section animate-fade-in-up" style="animation-delay: 0.2s;">
-        <div class="stats-card">
-          <div class="stats-icon-wrapper">
-            <span v-html="icons.trophy" class="stats-icon"></span>
-          </div>
-          <div class="stats-content">
-            <div class="stats-label">已记录交易</div>
-            <div class="stats-value">{{ totalTransactionCount }} <span class="stats-unit">笔</span></div>
-            <div class="stats-subtitle">坚持记账 {{ trackingDays }} 天</div>
-          </div>
-        </div>
-      </div>
-    </aside>
+    <AppSidebar 
+      :activeTab="activeTab" 
+      :showStats="!!analytics"
+      :transactionCount="totalTransactionCount"
+      :trackingDays="trackingDays"
+      @update:activeTab="activeTab = $event"
+    />
 
     <!-- Main Content -->
     <main class="main-content">
@@ -80,44 +33,8 @@
             <p>{{ currentPageDesc }}</p>
           </div>
           <div class="header-actions">
-            <!-- Theme Switcher -->
-            <div class="theme-switcher">
-              <div class="theme-slider" :class="themeMode"></div>
-              <button 
-                class="theme-btn" 
-                :class="{ active: themeMode === 'light' }"
-                @click="setTheme('light')"
-                title="亮色模式"
-              >
-                <span v-html="icons.sun"></span>
-              </button>
-              <button 
-                class="theme-btn" 
-                :class="{ active: themeMode === 'dark' }"
-                @click="setTheme('dark')"
-                title="暗色模式"
-              >
-                <span v-html="icons.moon"></span>
-              </button>
-              <button 
-                class="theme-btn" 
-                :class="{ active: themeMode === 'geek' }"
-                @click="setTheme('geek')"
-                title="极客模式"
-              >
-                <span v-html="icons.terminal"></span>
-              </button>
-              <button 
-                class="theme-btn" 
-                :class="{ active: themeMode === 'system' }"
-                @click="setTheme('system')"
-                title="跟随系统"
-              >
-                <span v-html="icons.monitor"></span>
-              </button>
-            </div>
-
-            <!-- Refresh -->
+            <ThemeSwitcher v-model="themeMode" />
+            
             <button class="btn btn-secondary btn-refresh" @click="refresh" :disabled="loading">
               <span v-html="icons.refresh" style="width: 16px; height: 16px;"></span>
               <span>{{ loading ? '刷新中...' : '刷新数据' }}</span>
@@ -152,20 +69,20 @@
       <span v-html="icons.plus"></span>
     </button>
 
-    <!-- Toast Notification -->
-    <Transition name="toast">
-      <div v-if="toast.show" class="toast" :class="toast.type">
-        <span v-html="toast.type === 'success' ? icons.check : icons.alert" style="width: 18px; height: 18px;"></span>
-        <span>{{ toast.message }}</span>
-      </div>
-    </Transition>
+    <!-- Toast -->
+    <AppToast :show="toast.show" :message="toast.message" :type="toast.type" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 
-// Components
+// Layout Components
+import AppSidebar from "./components/layout/AppSidebar.vue";
+import ThemeSwitcher from "./components/layout/ThemeSwitcher.vue";
+import AppToast from "./components/common/AppToast.vue";
+
+// Tab Components
 import OverviewTab from "./components/tabs/OverviewTab.vue";
 import SpendingTab from "./components/tabs/SpendingTab.vue";
 import TrendsTab from "./components/tabs/TrendsTab.vue";
@@ -175,7 +92,7 @@ import BudgetCard from "./components/BudgetCard.vue";
 
 // Composables
 import { formatDateTime } from "./composables/useFormatters";
-import { icons, navItems } from "./composables/icons";
+import { icons } from "./composables/icons";
 
 // State
 const analytics = ref(null);
@@ -183,18 +100,16 @@ const loading = ref(false);
 const error = ref(null);
 const activeTab = ref('overview');
 
-// Toast notification
+// Toast
 const toast = ref({ show: false, message: '', type: 'success' });
 
 function showToast(message, type = 'success', duration = 3000) {
   toast.value = { show: true, message, type };
-  setTimeout(() => {
-    toast.value.show = false;
-  }, duration);
+  setTimeout(() => { toast.value.show = false; }, duration);
 }
 
 // Theme
-const themeMode = ref('system'); // 'light' | 'dark' | 'system'
+const themeMode = ref('system');
 
 const themeClass = computed(() => {
   if (themeMode.value === 'system') {
@@ -203,7 +118,6 @@ const themeClass = computed(() => {
   return `theme-${themeMode.value}`;
 });
 
-// Apply theme to document root
 function applyTheme() {
   const html = document.documentElement;
   html.classList.remove('theme-light', 'theme-dark', 'theme-geek');
@@ -211,56 +125,22 @@ function applyTheme() {
 }
 
 watch(themeClass, applyTheme, { immediate: true });
-
-function setTheme(mode) {
-  themeMode.value = mode;
-  localStorage.setItem('neve-theme', mode);
-}
-
-// Initialize theme
-onMounted(() => {
-  const saved = localStorage.getItem('neve-theme');
-  if (saved && ['light', 'dark', 'geek', 'system'].includes(saved)) {
-    themeMode.value = saved;
-  }
-  applyTheme();
-  
-  // Listen for system theme changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (themeMode.value === 'system') {
-      applyTheme();
-    }
-  });
-});
+watch(themeMode, (mode) => localStorage.setItem('neve-theme', mode));
 
 // Page info
-const currentPageTitle = computed(() => {
-  const titles = {
-    overview: '概览',
-    spending: '收支分析',
-    trends: '趋势图表',
-    accounts: '账户管理',
-    budget: '预算管理',
-    transactions: '交易明细',
-    settings: '设置',
-  };
-  return titles[activeTab.value] || '概览';
-});
+const pageMeta = {
+  overview: { title: '概览', desc: '欢迎回来，这是您的财务概况' },
+  spending: { title: '收支分析', desc: '查看收入与支出的详细分析' },
+  trends: { title: '趋势图表', desc: '了解您的财务变化趋势' },
+  accounts: { title: '账户管理', desc: '管理您的所有账户' },
+  budget: { title: '预算管理', desc: '设置并跟踪您的预算目标' },
+  transactions: { title: '交易明细', desc: '查看所有交易记录' }
+};
 
-const currentPageDesc = computed(() => {
-  const descs = {
-    overview: '欢迎回来，这是您的财务概况',
-    spending: '查看收入与支出的详细分析',
-    trends: '了解您的财务变化趋势',
-    accounts: '管理您的所有账户',
-    budget: '设置并跟踪您的预算目标',
-    transactions: '查看所有交易记录',
-    settings: '自定义您的偏好设置',
-  };
-  return descs[activeTab.value] || '';
-});
+const currentPageTitle = computed(() => pageMeta[activeTab.value]?.title || '概览');
+const currentPageDesc = computed(() => pageMeta[activeTab.value]?.desc || '');
 
-// Categories for budget
+// Categories
 const allCategories = computed(() => {
   if (!analytics.value?.expenseByCategory) return [];
   return analytics.value.expenseByCategory.map(e => e.category);
@@ -289,25 +169,29 @@ async function refresh() {
 }
 
 // Stats
-const totalTransactionCount = computed(() => {
-  return analytics.value?.recentTransactions?.length || 0;
-});
+const totalTransactionCount = computed(() => analytics.value?.recentTransactions?.length || 0);
 
 const trackingDays = computed(() => {
   if (!analytics.value?.recentTransactions?.length) return 0;
-  
   const dates = analytics.value.recentTransactions.map(t => new Date(t.date).getTime());
   if (dates.length === 0) return 0;
-  
   const minDate = Math.min(...dates);
-  const now = new Date().getTime();
-  const diffTime = Math.abs(now - minDate);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-  return diffDays || 1;
+  const diffTime = Math.abs(new Date().getTime() - minDate);
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
 });
 
-// Initial load
+// Init
 onMounted(async () => {
+  const saved = localStorage.getItem('neve-theme');
+  if (saved && ['light', 'dark', 'geek', 'system'].includes(saved)) {
+    themeMode.value = saved;
+  }
+  applyTheme();
+  
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (themeMode.value === 'system') applyTheme();
+  });
+
   loading.value = true;
   try {
     analytics.value = await fetchAnalytics();
@@ -396,62 +280,5 @@ onMounted(async () => {
   font-size: 10px;
   color: var(--text-secondary);
   margin-top: 2px;
-}
-
-/* Toast Notification */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 9999;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.toast.success {
-  background: linear-gradient(135deg, #6B9B7A 0%, #5a8a69 100%);
-  color: white;
-}
-
-.toast.error {
-  background: linear-gradient(135deg, #C27B7B 0%, #b06a6a 100%);
-  color: white;
-}
-
-.toast-enter-active {
-  animation: toast-in 0.3s ease;
-}
-
-.toast-leave-active {
-  animation: toast-out 0.3s ease;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-@keyframes toast-out {
-  from {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
 }
 </style>

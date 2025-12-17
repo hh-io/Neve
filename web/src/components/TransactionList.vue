@@ -38,7 +38,12 @@
 
 <script setup>
 import { computed } from 'vue';
-import { icons } from '../composables/icons';
+import { 
+  getCategoryLabel, 
+  getCategoryIcon, 
+  processTransaction, 
+  formatTransactionDate 
+} from '../composables/useCategories';
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -46,84 +51,13 @@ const props = defineProps({
   showAccount: { type: Boolean, default: true }
 });
 
-// Category label mapping
-const categoryLabels = {
-  Food: '餐饮', Shopping: '购物', Transport: '交通', Entertainment: '娱乐',
-  Gift: '红包/礼物', Financial: '金融', Communication: '通讯', Lodging: '住宿',
-  Digital: '数码', Health: '健康', Education: '教育', Income: '收入', Other: '其他'
-};
-
-function getCategoryLabel(cat) {
-  return categoryLabels[cat] || cat || '其他';
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${month}-${day}`;
-}
-
-// Process transactions to extract amount and category from postings
+// Process transactions using shared utility
 const displayedTransactions = computed(() => {
-  return props.transactions.map(tx => {
-    // If already processed, return as-is
-    if (tx.isIncome !== undefined && tx.amount !== undefined) {
-      return tx;
-    }
-    
-    let amount = 0;
-    let category = 'Other';
-    let isIncome = false;
-    let accountShort = '';
-    
-    if (tx.postings && tx.postings.length > 0) {
-      for (const posting of tx.postings) {
-        const account = posting.account || '';
-        
-        if (account.startsWith('Expenses:')) {
-          amount = posting.amount;
-          isIncome = false;
-          const parts = account.split(':');
-          category = parts.length > 1 ? parts[1] : 'Other';
-        } else if (account.startsWith('Income:')) {
-          amount = Math.abs(posting.amount);
-          isIncome = true;
-          const parts = account.split(':');
-          category = parts.length > 1 ? parts[1] : 'Income';
-        }
-        
-        if (account.startsWith('Assets:') || account.startsWith('Liabilities:')) {
-          const parts = account.split(':');
-          accountShort = parts.length > 2 ? parts[2] : (parts.length > 1 ? parts[1] : account);
-        }
-      }
-    }
-    
-    return {
-      ...tx,
-      amount,
-      category,
-      isIncome,
-      accountShort
-    };
-  });
+  return props.transactions.map(processTransaction);
 });
 
-function getCategoryIcon(category) {
-  const iconMap = {
-    Food: icons.food,
-    Shopping: icons.shopping,
-    Transport: icons.transfer,
-    Gift: icons.gift,
-    Entertainment: icons.entertainment,
-    Financial: icons.wallet,
-    Income: icons.arrowDown,
-    Health: icons.heart,
-  };
-  return iconMap[category] || icons.creditCard;
-}
+// Expose formatDate for template
+const formatDate = formatTransactionDate;
 </script>
 
 <style scoped>
