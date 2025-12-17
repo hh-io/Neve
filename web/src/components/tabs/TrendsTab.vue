@@ -57,6 +57,22 @@
       </div>
     </div>
 
+    <!-- Expense Heatmap -->
+    <div class="card-static section-mb" style="padding: var(--space-6);">
+      <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+        <div class="stat-icon bg-warning-light" style="width: 40px; height: 40px;">
+          <span v-html="icons.calendar" style="stroke: var(--warning); width: 20px; height: 20px;"></span>
+        </div>
+        <span style="font-weight: 600; color: var(--text-primary);">消费日历热力图</span>
+      </div>
+      <div style="height: 180px;">
+        <v-chart v-if="heatmapOption" :option="heatmapOption" autoresize />
+        <div v-else style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
+          暂无足够数据生成热力图
+        </div>
+      </div>
+    </div>
+
     <!-- Weekday Distribution -->
     <div class="grid-1-1 section-mb">
       <div class="card-static" style="padding: var(--space-6);">
@@ -86,6 +102,53 @@
         </div>
       </div>
     </div>
+
+    <!-- Annual Report Style Rankings -->
+    <div class="grid-1-1 section-mb">
+      <!-- Top Payees -->
+      <div class="card-static" style="padding: var(--space-6);">
+        <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+          <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
+            <span v-html="icons.trophy" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+          </div>
+          <span style="font-weight: 600; color: var(--text-primary);">年度“剁手”商户 Top 5</span>
+        </div>
+        <div v-if="topPayees.length > 0">
+          <div v-for="item in topPayees" :key="item.name" style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-light);">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <span :style="{ color: getRankColor(item.rank), fontWeight: 'bold', minWidth: '20px' }">#{{ item.rank }}</span>
+              <span style="color: var(--text-primary); font-weight: 500;">{{ item.name }}</span>
+            </div>
+            <span style="font-weight: 600; color: var(--text-primary);">¥{{ Number(item.amount).toFixed(2) }}</span>
+          </div>
+        </div>
+        <div v-else style="padding: var(--space-4); text-align: center; color: var(--text-tertiary);">
+          暂无商户排行数据
+        </div>
+      </div>
+
+      <!-- Top Tags -->
+      <div class="card-static" style="padding: var(--space-6);">
+        <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+          <div class="stat-icon bg-info-light" style="width: 40px; height: 40px;">
+            <span v-html="icons.tags" style="stroke: var(--info); width: 20px; height: 20px;"></span>
+          </div>
+          <span style="font-weight: 600; color: var(--text-primary);">高频生活标签 Top 5</span>
+        </div>
+        <div v-if="topTags.length > 0">
+          <div v-for="item in topTags" :key="item.name" style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-light);">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <span :style="{ color: getRankColor(item.rank), fontWeight: 'bold', minWidth: '20px' }">#{{ item.rank }}</span>
+              <span style="color: var(--text-primary); font-weight: 500;">#{{ item.name }}</span>
+            </div>
+            <span style="font-weight: 600; color: var(--text-primary);">{{ item.value }}</span>
+          </div>
+        </div>
+        <div v-else style="padding: var(--space-4); text-align: center; color: var(--text-tertiary);">
+          暂无标签排行数据
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -93,14 +156,14 @@
 import { ref, computed } from 'vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
-import { LineChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+import { LineChart, HeatmapChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
 import { icons } from '../../composables/icons';
 
-use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+use([LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
 
 const props = defineProps({
   analytics: { type: Object, required: true }
@@ -132,6 +195,7 @@ const trendData = computed(() => {
     case 'week':
       return props.analytics.weeklyTrend || [];
     case 'month':
+      return props.analytics.monthlyTrend || [];
     default:
       return props.analytics.monthlyTrend || [];
   }
@@ -140,13 +204,10 @@ const trendData = computed(() => {
 // Format x-axis label based on period
 const formatLabel = (item) => {
   if (selectedPeriod.value === 'day') {
-    // Show date as MM-DD
     return item.date?.slice(5) || '';
   } else if (selectedPeriod.value === 'week') {
-    // Show week as W prefix
     return item.week?.split('-W')[1] || '';
   } else {
-    // Show month as MM
     return item.month?.slice(5) || '';
   }
 };
@@ -203,5 +264,128 @@ const trendChartOption = computed(() => {
     ]
   };
 });
+
+// Heatmap Logic
+const heatmapOption = computed(() => {
+  const data = props.analytics.dailyTrend || [];
+  // Map to [date, expense]
+  const heatmapData = data.map(d => [d.date, Math.abs(d.expense)]);
+  
+  if (heatmapData.length === 0) return null;
+  
+  const maxExpense = Math.max(...heatmapData.map(d => d[1]));
+
+  return {
+    tooltip: {
+      formatter: (p) => {
+        return `${p.data[0]}: ¥${p.data[1].toFixed(2)}`;
+      },
+      backgroundColor: 'var(--bg-secondary)',
+      borderColor: 'var(--border)',
+      textStyle: { color: 'var(--text-primary)' }
+    },
+    visualMap: {
+      min: 0,
+      max: maxExpense,
+      type: 'continuous',
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      inRange: {
+        color: ['#ebedf0', '#c6e48b', '#7bc96f', '#239a3b', '#196127'] // GitHub-like green
+        // Or Expense focused:
+        // color: ['#ebedf0', '#f2d0d0', '#e3a1a1', '#c27b7b', '#a65959']
+      },
+      text: ['High', 'Low'],
+      calculable: false,
+      show: false // hide legend to save space
+    },
+    calendar: {
+      top: 30,
+      left: 30,
+      right: 30,
+      cellSize: ['auto', 16],
+      range: new Date().getFullYear(), // Current Year
+      itemStyle: {
+        borderWidth: 0.5
+      },
+      yearLabel: { show: false },
+      dayLabel: { nameMap: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], color: 'var(--text-tertiary)' },
+      monthLabel: { nameMap: 'en', color: 'var(--text-secondary)' },
+      splitLine: { show: false }
+    },
+    series: {
+      type: 'heatmap',
+      coordinateSystem: 'calendar',
+      data: heatmapData,
+      itemStyle: {
+        borderRadius: 2
+      }
+    }
+  };
+});
+
+// Ranking Logic
+// 1. Top Payees
+const topPayees = computed(() => {
+  const txs = props.analytics.recentTransactions || [];
+  const payeeMap = {};
+  
+  txs.forEach(tx => {
+    let isExpense = false;
+    let amount = 0;
+
+    // Try to get data from pre-calculated fields if they exist
+    if (typeof tx.isIncome === 'boolean' && tx.amount !== undefined) {
+      if (!tx.isIncome) {
+        isExpense = true;
+        amount = Math.abs(tx.amount);
+      }
+    } 
+    // Fallback to postings logic (checking for Expenses account)
+    else if (tx.postings && tx.postings.length) {
+      for (const p of tx.postings) {
+        if (p.account && p.account.startsWith('Expenses:')) {
+          isExpense = true;
+          amount += Math.abs(p.amount);
+        }
+      }
+    }
+
+    if (isExpense && tx.payee && amount > 0) {
+      payeeMap[tx.payee] = (payeeMap[tx.payee] || 0) + amount;
+    }
+  });
+  
+  return Object.entries(payeeMap)
+    .sort((a, b) => b[1] - a[1]) // Sort by amount descending
+    .slice(0, 5) // Top 5
+    .map(([name, amount], index) => ({ rank: index + 1, name, amount }));
+});
+
+// 2. Top Tags
+const topTags = computed(() => {
+  const txs = props.analytics.recentTransactions || [];
+  const tagMap = {};
+  txs.forEach(tx => {
+    if (tx.tags && tx.tags.length) {
+      tx.tags.forEach(tag => {
+        tagMap[tag] = (tagMap[tag] || 0) + 1; // Count frequency
+      });
+    }
+  });
+
+  return Object.entries(tagMap)
+    .sort((a, b) => b[1] - a[1]) // Sort by frequency descending
+    .slice(0, 5) // Top 5
+    .map(([name, count], index) => ({ rank: index + 1, name, value: `${count}次` }));
+});
+
+function getRankColor(rank) {
+  if (rank === 1) return '#FFD700'; // Gold
+  if (rank === 2) return '#C0C0C0'; // Silver
+  if (rank === 3) return '#CD7F32'; // Bronze
+  return 'var(--text-tertiary)';
+}
 </script>
 
