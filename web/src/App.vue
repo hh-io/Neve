@@ -348,6 +348,16 @@ onMounted(async () => {
 .stats-icon {
   width: 20px;
   height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 2;
+  stroke: currentColor;
 }
 
 .stats-content {

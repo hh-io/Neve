@@ -232,6 +232,12 @@ body {
   transition: all var(--transition-slow);
 }
 
+.logo-icon-new span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Light Theme Logo - Purple gradient */
 .theme-light .logo-icon-new,
 :root:not(.theme-dark) .logo-icon-new {
@@ -373,6 +379,12 @@ body {
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base);
+}
+
+.nav-icon span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-item.active .nav-icon,
@@ -523,6 +535,12 @@ body {
   height: 16px;
 }
 
+.theme-btn span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ========== Cards ========== */
 .card {
   background-color: var(--bg-secondary);
@@ -566,6 +584,12 @@ body {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -619,6 +643,12 @@ body {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transaction-icon span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -748,6 +778,12 @@ body {
   box-shadow: 0 4px 16px rgba(91, 154, 154, 0.4);
   transition: all var(--transition-slow);
   z-index: 50;
+}
+
+.fab span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fab:hover {
