@@ -118,7 +118,7 @@
             </div>
 
             <!-- Refresh -->
-            <button class="btn btn-secondary" @click="refresh" :disabled="loading">
+            <button class="btn btn-secondary btn-refresh" @click="refresh" :disabled="loading">
               <span v-html="icons.refresh" style="width: 16px; height: 16px;"></span>
               <span>{{ loading ? '刷新中...' : '刷新数据' }}</span>
             </button>

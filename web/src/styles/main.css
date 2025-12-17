@@ -894,24 +894,43 @@ body {
 }
 
 /* Geek Theme Refresh Button - Match d.html Add Transaction */
-.theme-geek .btn-secondary {
-  background-color: #6366F1;
-  /* Brand Default */
-  border: none;
-  color: white;
-  border-radius: var(--radius-lg);
-  padding: 8px 16px;
-  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3), 0 4px 6px -2px rgba(99, 102, 241, 0.15);
+/* Global Refresh Button - Match d.html Add Transaction Style */
+/* Global Refresh Button - Match d.html Add Transaction Style 1:1 */
+.btn-refresh {
+  background-color: #6366F1 !important;
+  background-image: none !important;
+  border: 0 !important;
+  outline: none !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  /* rounded-lg */
+  padding: 0.5rem 1rem !important;
+  /* py-2 px-4 */
+  /* shadow-lg shadow-brand-light/30 */
+  box-shadow:
+    0 10px 15px -3px rgba(129, 140, 248, 0.3),
+    0 4px 6px -2px rgba(129, 140, 248, 0.15) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
 }
 
-.theme-geek .btn-secondary:hover {
-  background-color: #4F46E5;
-  /* Brand Dark */
-  transform: scale(1.05);
-  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4), 0 10px 10px -5px rgba(99, 102, 241, 0.2);
-  color: white;
+.btn-refresh:hover {
+  background-color: #4F46E5 !important;
+  /* hover:bg-brand-dark */
+  transform: scale(1.05) !important;
+  /* hover:scale-105 */
+  /* Re-apply shadow on hover to ensure it persists or intensifies */
+  box-shadow:
+    0 20px 25px -5px rgba(129, 140, 248, 0.4),
+    0 10px 10px -5px rgba(129, 140, 248, 0.2) !important;
+}
+
+.btn-refresh:active {
+  transform: scale(0.95) !important;
+  /* active:scale-95 */
 }
 
 .theme-geek .btn-secondary:active {
