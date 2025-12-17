@@ -11,7 +11,7 @@
     >
       <!-- Icon -->
       <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-        <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '16px', height: '16px' }"></span>
+        <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '18px', height: '18px' }"></span>
       </div>
       
       <!-- Main Info -->
@@ -164,13 +164,28 @@ function getCategoryIcon(category) {
 }
 
 .tx-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.tx-icon span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tx-icon span :deep(svg) {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 .tx-main {
