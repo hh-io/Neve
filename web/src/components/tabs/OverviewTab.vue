@@ -128,8 +128,8 @@ const props = defineProps({
 
 // Computed values
 const netWorth = computed(() => props.analytics.summary?.netWorth || 0);
-const monthlyIncome = computed(() => props.analytics.summary?.totalIncome || 0);
-const monthlyExpense = computed(() => Math.abs(props.analytics.summary?.totalExpense || 0));
+const monthlyIncome = computed(() => props.analytics.summary?.monthIncome || 0);
+const monthlyExpense = computed(() => Math.abs(props.analytics.summary?.monthExpense || 0));
 const monthlySavings = computed(() => monthlyIncome.value - monthlyExpense.value);
 
 const balanceChange = computed(() => {
