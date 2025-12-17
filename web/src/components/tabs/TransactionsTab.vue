@@ -39,8 +39,8 @@
       <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">
         <div style="display: flex; align-items: center; gap: var(--space-2);">
-          <div class="stat-icon bg-brand-light" style="width: 32px; height: 32px;">
-            <span v-html="icons.transactions" style="stroke: var(--brand-primary); width: 16px; height: 16px;"></span>
+          <div class="stat-icon bg-brand-light" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+            <span v-html="icons.transactions" style="stroke: var(--brand-primary); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;"></span>
           </div>
           <span style="font-weight: 600; color: var(--text-primary); font-size: var(--font-size-base);">交易明细</span>
         </div>
@@ -59,22 +59,30 @@
           :key="`${tx.date}-${index}`"
           class="transaction-row"
         >
-          <!-- Icon -->
-          <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-            <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '16px', height: '16px' }"></span>
-          </div>
-          
-          <!-- Main Info -->
-          <div class="tx-main">
-            <div class="tx-title">{{ tx.payee || tx.narration || '未知交易' }}</div>
-            <div class="tx-meta">
-              <span class="tx-category">{{ getCategoryLabel(tx.category) }}</span>
-              <span class="tx-date">{{ formatDate(tx.date) }}</span>
+          <!-- Icon Column -->
+          <div class="tx-col-icon">
+            <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
+              <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '18px', height: '18px' }"></span>
             </div>
           </div>
           
-          <!-- Amount & Account -->
-          <div class="tx-right">
+          <!-- Payee Column -->
+          <div class="tx-col-payee">
+            <div class="tx-title">{{ tx.payee || tx.narration || '未知交易' }}</div>
+            <div v-if="tx.payee && tx.narration" class="tx-narration">{{ tx.narration }}</div>
+          </div>
+          
+          <!-- Category & Tags Column -->
+          <div class="tx-col-tags">
+            <span class="tx-category">{{ getCategoryLabel(tx.category) }}</span>
+            <span v-for="tag in (tx.tags || [])" :key="tag" class="tx-tag">#{{ tag }}</span>
+          </div>
+          
+          <!-- Date Column -->
+          <div class="tx-col-date">{{ formatDate(tx.date) }}</div>
+          
+          <!-- Amount Column -->
+          <div class="tx-col-amount">
             <div :class="['tx-amount', tx.isIncome ? 'text-income' : 'text-expense']">
               {{ tx.isIncome ? '+' : '-' }}¥{{ Math.abs(tx.amount).toFixed(2) }}
             </div>
@@ -307,10 +315,11 @@ function getCategoryIcon(category) {
 }
 
 .transaction-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 50px 2fr 1.2fr 80px 120px;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   transition: background var(--transition-base);
 }
@@ -323,53 +332,78 @@ function getCategoryIcon(category) {
   border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.05));
 }
 
+.tx-col-icon {
+  display: flex;
+  justify-content: center;
+}
+
 .tx-icon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.tx-main {
-  flex: 1;
+.tx-col-payee {
   min-width: 0;
 }
 
 .tx-title {
   font-weight: 500;
   color: var(--text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tx-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: 2px;
+.tx-narration {
   font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-col-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
 }
 
 .tx-category {
-  padding: 1px 6px;
+  padding: 2px 8px;
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
 }
 
-.tx-right {
+.tx-tag {
+  padding: 2px 6px;
+  background: var(--brand-light);
+  color: var(--brand-primary);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}
+
+.tx-col-date {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.tx-col-amount {
   text-align: right;
-  flex-shrink: 0;
 }
 
 .tx-amount {
   font-weight: 600;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-feature-settings: 'tnum';
 }
 

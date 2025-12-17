@@ -184,27 +184,15 @@
             </div>
             <span style="font-weight: 600; color: var(--text-primary);">最近交易</span>
           </div>
-          <span style="font-size: var(--font-size-xs); color: var(--text-tertiary);">近10条</span>
+          <span style="font-size: var(--font-size-xs); color: var(--text-tertiary);">
+            共 {{ (analytics.recentTransactions || []).length }} 条
+          </span>
         </div>
-        <div v-if="recentTransactions.length > 0" class="recent-tx-list">
-          <div v-for="(tx, index) in recentTransactions" :key="index" class="recent-tx-item">
-            <div :class="['recent-tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-              <span :style="{ color: tx.isIncome ? 'var(--income)' : 'var(--expense)', fontSize: '12px' }">
-                {{ tx.isIncome ? '↓' : '↑' }}
-              </span>
-            </div>
-            <div class="recent-tx-info">
-              <div class="recent-tx-title">{{ tx.payee || tx.narration || '未知交易' }}</div>
-              <div class="recent-tx-date">{{ formatTxDate(tx.date) }}</div>
-            </div>
-            <div :class="['recent-tx-amount', tx.isIncome ? 'text-income' : 'text-expense']">
-              {{ tx.isIncome ? '+' : '-' }}¥{{ Math.abs(tx.amount).toFixed(2) }}
-            </div>
-          </div>
-        </div>
-        <div v-else style="height: 200px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
-          暂无交易记录
-        </div>
+        <TransactionList 
+          :transactions="analytics.recentTransactions || []" 
+          max-height="350px"
+          :show-account="false"
+        />
       </div>
     </div>
   </div>
@@ -219,6 +207,7 @@ import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
 import { formatMoney } from '../../composables/useFormatters';
 import { icons } from '../../composables/icons';
+import TransactionList from '../TransactionList.vue';
 
 use([PieChart, TitleComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
@@ -371,100 +360,4 @@ const expensePieOption = computed(() => {
     }]
   };
 });
-
-// Recent Transactions (processed from raw data)
-const recentTransactions = computed(() => {
-  const rawTx = props.analytics.recentTransactions || [];
-  return rawTx.slice(0, 10).map(tx => {
-    let amount = 0;
-    let isIncome = false;
-    
-    if (tx.postings && tx.postings.length > 0) {
-      for (const posting of tx.postings) {
-        const account = posting.account || '';
-        if (account.startsWith('Expenses:')) {
-          amount = posting.amount;
-          isIncome = false;
-          break;
-        } else if (account.startsWith('Income:')) {
-          amount = Math.abs(posting.amount);
-          isIncome = true;
-          break;
-        }
-      }
-    }
-    
-    return {
-      ...tx,
-      amount,
-      isIncome
-    };
-  });
-});
-
-function formatTxDate(dateStr) {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${month}-${day}`;
-}
 </script>
-
-<style scoped>
-.recent-tx-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.recent-tx-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-base);
-}
-
-.recent-tx-item:hover {
-  background: var(--bg-tertiary);
-}
-
-.recent-tx-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.recent-tx-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.recent-tx-title {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.recent-tx-date {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-}
-
-.recent-tx-amount {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  flex-shrink: 0;
-}
-</style>
