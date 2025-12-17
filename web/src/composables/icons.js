@@ -210,6 +210,15 @@ export const icons = {
     <polyline points="7 10 12 15 17 10"/>
     <line x1="12" y1="15" x2="12" y2="3"/>
   </svg>`,
+
+  trophy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 21h8"/>
+    <path d="M12 17v4"/>
+    <path d="M7 4h10"/>
+    <path d="M17 4v8a5 5 0 0 1-10 0V4"/>
+    <path d="M5 4v5a3 3 0 0 0 3 3"/>
+    <path d="M19 4v5a3 3 0 0 1-3 3"/>
+  </svg>`,
 };
 
 // Helper to get icon by name

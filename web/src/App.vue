@@ -41,13 +41,16 @@
         </button>
       </nav>
 
-      <!-- User Section -->
-      <div class="user-section">
-        <div class="user-card">
-          <div class="user-avatar">N</div>
-          <div class="user-info">
-            <div class="user-name">Neve 用户</div>
-            <div class="user-email">neve@example.com</div>
+      <!-- Stats Section -->
+      <div v-if="analytics" class="user-section animate-fade-in-up" style="animation-delay: 0.2s;">
+        <div class="stats-card">
+          <div class="stats-icon-wrapper">
+            <span v-html="icons.trophy" class="stats-icon"></span>
+          </div>
+          <div class="stats-content">
+            <div class="stats-label">已记录交易</div>
+            <div class="stats-value">{{ totalTransactionCount }} <span class="stats-unit">笔</span></div>
+            <div class="stats-subtitle">坚持记账 {{ trackingDays }} 天</div>
           </div>
         </div>
       </div>
@@ -277,6 +280,24 @@ async function refresh() {
   }
 }
 
+// Stats
+const totalTransactionCount = computed(() => {
+  return analytics.value?.recentTransactions?.length || 0;
+});
+
+const trackingDays = computed(() => {
+  if (!analytics.value?.recentTransactions?.length) return 0;
+  
+  const dates = analytics.value.recentTransactions.map(t => new Date(t.date).getTime());
+  if (dates.length === 0) return 0;
+  
+  const minDate = Math.min(...dates);
+  const now = new Date().getTime();
+  const diffTime = Math.abs(now - minDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+  return diffDays || 1;
+});
+
 // Initial load
 onMounted(async () => {
   loading.value = true;
@@ -293,6 +314,70 @@ onMounted(async () => {
 <style>
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Stats Card in Sidebar */
+.stats-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--border);
+  transition: all var(--transition-base);
+}
+
+.stats-card:hover {
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.stats-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: var(--brand-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+  flex-shrink: 0;
+}
+
+.stats-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.stats-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stats-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+
+.stats-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stats-unit {
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+  color: var(--text-secondary);
+}
+
+.stats-subtitle {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 /* Toast Notification */
