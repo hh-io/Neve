@@ -893,44 +893,95 @@ body {
   transform: scale(1.05);
 }
 
-/* Geek Theme Refresh Button - Match d.html Add Transaction */
-/* Global Refresh Button - Match d.html Add Transaction Style */
-/* Global Refresh Button - Match d.html Add Transaction Style 1:1 */
+/* Refresh Button - 1:1 Match d.html Add Transaction Style */
+/* Dark background with edge glow (left, right, bottom only - NO TOP) */
 .btn-refresh {
-  background-color: #6366F1 !important;
+  background-color: #0a0c10 !important;
   background-image: none !important;
-  border: 0 !important;
+  border: none !important;
   outline: none !important;
-  color: white !important;
-  border-radius: 0.5rem !important;
-  /* rounded-lg */
-  padding: 0.5rem 1rem !important;
-  /* py-2 px-4 */
-  /* shadow-lg shadow-brand-light/30 */
-  box-shadow:
-    0 10px 15px -3px rgba(129, 140, 248, 0.3),
-    0 4px 6px -2px rgba(129, 140, 248, 0.15) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 10px !important;
+  padding: 10px 18px !important;
   font-weight: 500;
+  font-size: 0.875rem;
   display: flex !important;
   align-items: center !important;
   gap: 0.5rem !important;
+  position: relative;
+  z-index: 1;
+  transition: all 0.25s ease;
+  box-shadow: none !important;
+}
+
+/* Glow layer behind button */
+.btn-refresh::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 10px;
+  z-index: -1;
+  /* Create glow on left, right, bottom - mask out top */
+  box-shadow:
+    /* Left side glow */
+    -4px 2px 12px 0 rgba(99, 102, 241, 0.35),
+    /* Right side glow */
+    4px 2px 12px 0 rgba(99, 102, 241, 0.35),
+    /* Bottom glow - strongest */
+    0 6px 16px -2px rgba(99, 102, 241, 0.5);
+  transition: all 0.25s ease;
 }
 
 .btn-refresh:hover {
-  background-color: #4F46E5 !important;
-  /* hover:bg-brand-dark */
-  transform: scale(1.05) !important;
-  /* hover:scale-105 */
-  /* Re-apply shadow on hover to ensure it persists or intensifies */
+  background-color: #12151d !important;
+  transform: translateY(-1px);
+}
+
+.btn-refresh:hover::before {
   box-shadow:
-    0 20px 25px -5px rgba(129, 140, 248, 0.4),
-    0 10px 10px -5px rgba(129, 140, 248, 0.2) !important;
+    -6px 3px 18px 0 rgba(99, 102, 241, 0.45),
+    6px 3px 18px 0 rgba(99, 102, 241, 0.45),
+    0 10px 24px -2px rgba(99, 102, 241, 0.6);
 }
 
 .btn-refresh:active {
-  transform: scale(0.95) !important;
-  /* active:scale-95 */
+  transform: scale(0.98) translateY(0);
+}
+
+.btn-refresh:active::before {
+  box-shadow:
+    -3px 1px 8px 0 rgba(99, 102, 241, 0.3),
+    3px 1px 8px 0 rgba(99, 102, 241, 0.3),
+    0 4px 10px -2px rgba(99, 102, 241, 0.4);
+}
+
+/* Light Theme - Clean, minimal style matching the theme */
+.theme-light .btn-refresh,
+:root:not(.theme-dark):not(.theme-geek) .btn-refresh {
+  background-color: var(--light-brand-primary) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(91, 154, 154, 0.25) !important;
+}
+
+.theme-light .btn-refresh::before,
+:root:not(.theme-dark):not(.theme-geek) .btn-refresh::before {
+  box-shadow: none;
+}
+
+.theme-light .btn-refresh:hover,
+:root:not(.theme-dark):not(.theme-geek) .btn-refresh:hover {
+  background-color: var(--light-brand-secondary) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(91, 154, 154, 0.35) !important;
+}
+
+.theme-light .btn-refresh:active,
+:root:not(.theme-dark):not(.theme-geek) .btn-refresh:active {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 0 1px 4px rgba(91, 154, 154, 0.2) !important;
 }
 
 .theme-geek .btn-secondary:active {
