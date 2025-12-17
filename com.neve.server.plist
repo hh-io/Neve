@@ -2,28 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- 服务标识符 (唯一标识，用于 launchctl 命令) -->
+    <!-- 服务标识符 -->
     <key>Label</key>
     <string>com.neve.server</string>
     
-    <!-- 执行程序路径 (请修改为你的实际路径) -->
+    <!-- 执行程序路径 -->
     <key>ProgramArguments</key>
     <array>
         <string>/Users/hh/Workspace/Neve/neve</string>
     </array>
     
-    <!-- 工作目录 (程序运行时的当前目录，用于相对路径解析) -->
+    <!-- 工作目录 -->
     <key>WorkingDirectory</key>
     <string>/Users/hh/Workspace/Neve</string>
     
     <!-- 环境变量配置 -->
     <key>EnvironmentVariables</key>
     <dict>
-        <!-- Beancount 数据目录路径 -->
         <key>NEVE_DATA_DIR</key>
         <string>/Users/hh/Workspace/Neve/data</string>
-        
-        <!-- HTTP 服务端口 (修改此值更换端口) -->
         <key>NEVE_PORT</key>
         <string>9999</string>
     </dict>
@@ -35,7 +32,6 @@
     <!-- 保持运行 (崩溃后自动重启) -->
     <key>KeepAlive</key>
     <dict>
-        <!-- 只在成功退出时不重启 -->
         <key>SuccessfulExit</key>
         <false/>
     </dict>
@@ -43,6 +39,26 @@
     <!-- 重启间隔 (秒) -->
     <key>ThrottleInterval</key>
     <integer>30</integer>
+    
+    <!-- ========== 生产环境优化 ========== -->
+    
+    <!-- 进程类型: Background (后台服务，系统可优化调度) -->
+    <key>ProcessType</key>
+    <string>Background</string>
+    
+    <!-- Nice 优先级: 10 (低于默认0，不抢占前台资源) -->
+    <key>Nice</key>
+    <integer>10</integer>
+    
+    <!-- 软资源限制 -->
+    <key>SoftResourceLimits</key>
+    <dict>
+        <!-- 最大打开文件数 -->
+        <key>NumberOfFiles</key>
+        <integer>1024</integer>
+    </dict>
+    
+    <!-- ========== 日志配置 ========== -->
     
     <!-- 标准输出日志路径 -->
     <key>StandardOutPath</key>
