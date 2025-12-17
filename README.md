@@ -1,212 +1,200 @@
-# Neve - 个人记账系统
+<p align="center">
+  <img src="https://img.shields.io/badge/vue-3.5-4FC08D?style=flat-square&logo=vue.js" alt="Vue 3">
+  <img src="https://img.shields.io/badge/go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/vite-5.x-646CFF?style=flat-square&logo=vite" alt="Vite">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
+</p>
 
-基于 Beancount 复式记账格式的个人/家庭财务管理系统。采用 **Go 后端 + Vue 3 前端** 架构，提供精美的 Dashboard 可视化界面。
+<h1 align="center">❄️ Neve</h1>
 
-## 核心特性
+<p align="center">
+  <strong>基于 Beancount 复式记账的现代个人财务管理系统</strong>
+</p>
 
-- 📊 Apple 风格 + 玻璃拟态设计的 Dashboard
-- 📱 响应式布局，支持手机/平板/桌面
-- 💰 净资产、收支统计、分类分析
-- 📈 月度趋势图表 (ECharts)
-- 🔄 手动刷新数据
-- 🔒 支持 Cloudflare Access 认证
+<p align="center">
+  一键启动 • 玻璃拟态设计 • 数据即文件
+</p>
 
-## 系统架构
+---
+
+## ✨ 项目概述
+
+**Neve** 是一个轻量级的个人/家庭财务可视化系统，围绕 [Beancount](https://beancount.github.io/) 纯文本账本格式构建。
+
+### 🎯 解决的问题
+
+- 📱 **iOS 快捷指令无缝记账** → 写入 iCloud Drive 的 `.bean` 文件
+- 📊 **优雅的数据可视化** → Apple 风格 Dashboard，随时掌握财务状况
+- 🔒 **数据所有权** → 纯文本格式，永远不会被平台锁定
+
+### 💎 核心亮点
+
+| 特性 | 描述 |
+|------|------|
+| 🎨 **Apple 设计语言** | 玻璃拟态 + 精心调校的亮/暗双主题 |
+| 📈 **丰富的图表分析** | 收支趋势、分类占比、周消费分布、商户排行 |
+| 🚀 **单文件部署** | 前端嵌入二进制，一个 `./neve` 即刻运行 |
+| ☁️ **iCloud 原生集成** | 与 iOS 快捷指令配合，实现移动端无应用记账 |
+
+---
+
+## 🛠️ 技术栈概览
 
 ```
-iOS 快捷指令 → iCloud Drive (inbox.bean) → macOS Go 后端 → Vue 3 Dashboard
-                                                ↓
-                                        Cloudflared Tunnel → 公网
+┌─────────────────────────────────────────────────────────┐
+│                       Frontend                          │
+│   Vue 3  •  Vite  •  ECharts  •  Glassmorphism CSS     │
+├─────────────────────────────────────────────────────────┤
+│                       Backend                           │
+│   Go  •  Gin  •  embed (静态文件嵌入)                   │
+├─────────────────────────────────────────────────────────┤
+│                        Data                             │
+│   Beancount (.bean 纯文本复式记账格式)                  │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 快速开始
+## 🚀 快速开始
 
-### 环境要求
+### 📋 前置环境 (Prerequisites)
 
-- **Go** >= 1.21
-- **Node.js** >= 18
-- **pnpm** >= 8
+| 工具 | 版本要求 | 安装指南 |
+|------|----------|----------|
+| **Go** | >= 1.21 | [golang.org/dl](https://golang.org/dl/) |
+| **Node.js** | >= 18 | [nodejs.org](https://nodejs.org/) |
+| **pnpm** | >= 8 | `npm install -g pnpm` |
 
-### 安装依赖
+### ⚙️ 环境变量配置
+
+创建 `.env` 文件或直接 export 环境变量：
 
 ```bash
-# 安装前端依赖
-cd web && pnpm install
+# .env.example
+NEVE_DATA_DIR=/path/to/your/beancount/data   # Beancount 数据目录 (默认: ./data)
+NEVE_PORT=8080                                # HTTP 服务端口 (默认: 8080)
 ```
 
-### 环境变量
-
-| 变量            | 说明                   | 默认值   |
-| --------------- | ---------------------- | -------- |
-| `NEVE_DATA_DIR` | Beancount 数据目录路径 | `./data` |
-| `NEVE_PORT`     | HTTP 服务端口          | `8080`   |
-
-### 构建与运行
+### 📦 安装依赖
 
 ```bash
-# 方式一：使用 Makefile
-make build    # 构建前端 + 后端
-./neve        # 运行
+# 克隆仓库
+git clone https://github.com/your-username/neve.git
+cd neve
 
-# 方式二：分步执行
-cd web && pnpm run build    # 构建前端
-cd server && go build -o ../neve .  # 构建后端
+# 安装所有依赖（前端 + 后端）
+make deps
+```
+
+### ▶️ 开发模式
+
+```bash
+# 终端 1：启动后端服务
+make dev-server
+
+# 终端 2：启动前端热重载 (http://localhost:5173)
+make dev
+```
+
+### 📦 生产构建
+
+```bash
+# 一键构建：前端 → 后端（嵌入静态文件）
+make build
+
+# 运行生产版本
 ./neve
-
-# 方式三：指定数据目录运行
-NEVE_DATA_DIR=/path/to/data ./neve
 ```
 
-### 开发模式
-
-```bash
-# 前端热重载 (需要后端同时运行)
-cd web && pnpm run dev
-
-# 后端开发
-cd server && go run .
-```
+访问 http://localhost:8080 即可使用 🎉
 
 ---
 
-## 目录结构
+## 📂 项目架构
 
 ```
 Neve/
-├── neve                    # 编译后的可执行文件 (12MB ARM64)
-├── Makefile                # 构建脚本
-├── README.md               # 项目说明
-├── AGENTS.md               # AI Agent 专用文档
+├── 📄 neve                      # 编译后的单文件可执行程序
+├── 📄 Makefile                  # 构建自动化脚本
 │
-├── data/                   # Beancount 数据目录 (iCloud 同步)
-│   ├── main.bean          # 入口文件 (账户定义 + include)
-│   ├── inbox.bean         # 待整理流水 (iOS 快捷指令写入)
-│   ├── balance.bean       # 初始余额 + 余额断言
-│   └── 2025.bean          # 年度归档交易
+├── 📁 data/                     # Beancount 数据目录 (可 iCloud 同步)
+│   ├── main.bean               # 入口文件 (账户定义 + include)
+│   ├── inbox.bean              # 待整理流水 (iOS 快捷指令写入)
+│   └── 2025.bean               # 年度归档交易
 │
-├── server/                 # Go 后端
-│   ├── main.go            # 入口 + HTTP 服务 + 静态文件
-│   ├── go.mod
-│   ├── parser/            # Beancount 解析器
-│   │   ├── parser.go      # 文件解析 (open/transaction/balance)
-│   │   └── analytics.go   # 数据分析 (净资产/分类/趋势)
+├── 📁 server/                   # 🔧 Go 后端
+│   ├── main.go                 # 入口 + HTTP 服务 + 静态文件 embed
 │   ├── api/
-│   │   └── handler.go     # REST API 处理器
-│   └── static/            # 构建后的前端文件 (自动生成)
+│   │   └── handler.go          # REST API 处理器
+│   └── parser/
+│       ├── parser.go           # Beancount 文件解析器
+│       └── analytics.go        # 数据分析 (净资产/分类/趋势)
 │
-└── web/                    # Vue 3 前端
-    ├── package.json
-    ├── vite.config.js     # Vite 配置 (输出到 server/static)
-    ├── index.html
+└── 📁 web/                      # 🎨 Vue 3 前端
     └── src/
-        ├── main.js        # 入口
-        ├── App.vue        # 主 Dashboard 组件
+        ├── App.vue             # 主应用组件
+        ├── components/
+        │   ├── tabs/           # 页面标签组件
+        │   │   ├── OverviewTab.vue      # 概览
+        │   │   ├── SpendingTab.vue      # 支出分析
+        │   │   ├── TrendsTab.vue        # 趋势图表
+        │   │   ├── TransactionsTab.vue  # 交易列表
+        │   │   └── AccountsTab.vue      # 账户管理
+        │   ├── CategoryTrendChart.vue   # 分类趋势图
+        │   ├── WeekdayChart.vue         # 周分布图
+        │   └── TransactionList.vue      # 交易列表组件
+        ├── composables/
+        │   ├── icons.js        # SVG 图标库
+        │   └── useFormatters.js # 格式化工具
         └── styles/
-            └── main.css   # 设计系统 (Apple Minimal + Glassmorphism)
+            └── main.css        # 设计系统 (玻璃拟态 + 主题)
 ```
 
 ---
 
-## API 接口
+## 🖼️ 演示截图
 
-### 基础信息
+<!-- 
+请将截图放置在此处，建议包含：
+- Dashboard 概览页（亮/暗主题各一张）
+- 支出分类饼图
+- 趋势分析图表
+-->
 
-- **Base URL**: `http://localhost:8080`
-- **Content-Type**: `application/json`
+> [演示截图 - Dashboard 亮色主题]
 
-### 接口列表
+> [演示截图 - Dashboard 暗色主题]
 
-| 方法 | 路径                | 说明                           |
-| ---- | ------------------- | ------------------------------ |
-| GET  | `/api/summary`      | 获取财务摘要 (净资产/本月收支) |
-| GET  | `/api/analytics`    | 获取完整分析数据 (图表/列表)   |
-| GET  | `/api/transactions` | 获取交易列表 (最近 100 条)     |
-| GET  | `/api/accounts`     | 获取账户列表                   |
-| POST | `/api/refresh`      | 刷新数据 (重新解析 .bean 文件) |
+> [Gif Demo - 主题切换动画]
 
-### 响应示例
+---
 
-```json
-// GET /api/summary
-{
-  "netWorth": -26205.56,
-  "totalAssets": 22431,
-  "totalLiabilities": 48636.56,
-  "monthIncome": 199,
-  "monthExpense": 210,
-  "monthBalance": -11,
-  "lastUpdated": "2025-12-12T03:15:38+08:00"
-}
+## 📖 API 接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/summary` | 财务摘要 (净资产/本月收支) |
+| `GET` | `/api/analytics` | 完整分析数据 (图表/列表) |
+| `GET` | `/api/transactions` | 获取交易列表 |
+| `GET` | `/api/accounts` | 获取账户列表 |
+| `POST` | `/api/refresh` | 刷新数据缓存 |
+
+---
+
+## 🚢 部署指南
+
+### macOS 后台服务 (launchd)
+
+```bash
+# 安装服务
+cp com.neve.server.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.neve.server.plist
+
+# 查看日志
+tail -f ~/Library/Logs/neve.log
 ```
 
----
-
-## 页面路由
-
-| 路径 | 说明                          |
-| ---- | ----------------------------- |
-| `/`  | Dashboard 主页 (SPA 单页应用) |
-
-> 注：当前为单页应用，所有路由由 Vue Router 在前端处理
-
----
-
-## 技术栈
-
-### 后端
-
-| 技术  | 版本  | 用途         |
-| ----- | ----- | ------------ |
-| Go    | 1.21+ | 后端语言     |
-| Gin   | 1.9.x | HTTP 框架    |
-| embed | -     | 嵌入静态文件 |
-
-### 前端
-
-| 技术        | 版本  | 用途     |
-| ----------- | ----- | -------- |
-| Vue         | 3.4.x | 前端框架 |
-| Vite        | 5.x   | 构建工具 |
-| ECharts     | 5.5.x | 图表库   |
-| vue-echarts | 6.6.x | Vue 封装 |
-
-### 数据格式
-
-| 格式      | 说明                       |
-| --------- | -------------------------- |
-| Beancount | 纯文本复式记账格式 (.bean) |
-
----
-
-## Beancount 数据说明
-
-### 文件职责
-
-| 文件           | 职责                                  |
-| -------------- | ------------------------------------- |
-| `main.bean`    | 账户定义 (`open` 指令) + 引入其他文件 |
-| `inbox.bean`   | iOS 快捷指令写入的待整理交易          |
-| `balance.bean` | 初始余额 + 定期余额断言               |
-| `2025.bean`    | 年度归档的已核对交易                  |
-
-### 账户命名规范
-
-```
-Assets:Bank:CMBC           # 资产 - 银行 - 招商
-Assets:Cash:WeChat         # 资产 - 现金 - 微信
-Liabilities:CreditCard:CMBC # 负债 - 信用卡 - 招商
-Income:Salary              # 收入 - 工资
-Expenses:Food:Coffee       # 支出 - 餐饮 - 咖啡
-Equity:Opening-Balances    # 权益 - 初始余额
-```
-
----
-
-## 部署
-
-### Cloudflared Tunnel 配置
+### Cloudflare Tunnel (可选)
 
 ```yaml
 # ~/.cloudflared/config.yml
@@ -216,87 +204,14 @@ ingress:
   - service: http_status:404
 ```
 
-### macOS 后台服务 (launchd)
+---
 
-#### 1. 安装服务
+## 🤝 贡献指南
 
-```bash
-# 复制 plist 到 LaunchAgents
-cp com.neve.server.plist ~/Library/LaunchAgents/
-
-# 加载服务 (立即启动 + 开机自启)
-launchctl load ~/Library/LaunchAgents/com.neve.server.plist
-```
-
-#### 2. 修改端口
-
-编辑 `com.neve.server.plist` 中的环境变量：
-
-```xml
-<key>NEVE_PORT</key>
-<string>9090</string>  <!-- 修改为你想要的端口 -->
-```
-
-然后重载服务 (见下方)。
-
-#### 3. 代码修改后重载
-
-```bash
-# 停止服务
-launchctl unload ~/Library/LaunchAgents/com.neve.server.plist
-
-# 重新构建
-make build
-
-# 启动服务
-launchctl load ~/Library/LaunchAgents/com.neve.server.plist
-```
-
-#### 4. 常用命令
-
-```bash
-# 查看服务状态
-launchctl list | grep neve
-
-# 查看日志
-tail -f ~/Library/Logs/neve.log
-tail -f ~/Library/Logs/neve.error.log
-
-# 停止服务
-launchctl unload ~/Library/LaunchAgents/com.neve.server.plist
-
-# 启动服务
-launchctl load ~/Library/LaunchAgents/com.neve.server.plist
-
-# 卸载服务 (删除开机自启)
-launchctl unload ~/Library/LaunchAgents/com.neve.server.plist
-rm ~/Library/LaunchAgents/com.neve.server.plist
-```
-
-#### 5. plist 配置说明
-
-| 配置项              | 说明                    |
-| ------------------- | ----------------------- |
-| `RunAtLoad`         | 加载时立即运行          |
-| `KeepAlive`         | 崩溃后自动重启          |
-| `WorkingDirectory`  | 工作目录 (用于相对路径) |
-| `StandardOutPath`   | 标准输出日志路径        |
-| `StandardErrorPath` | 错误日志路径            |
+欢迎提交 Issue 和 Pull Request！
 
 ---
 
-## 常见问题
+## 📄 开源协议
 
-### Q: 页面白屏？
-
-检查浏览器控制台是否有 JS 错误，确保已运行 `pnpm run build` 构建前端。
-
-### Q: 数据不显示？
-
-1. 确认 `NEVE_DATA_DIR` 指向正确的 data 目录
-2. 检查 `main.bean` 语法是否正确
-3. 调用 `POST /api/refresh` 刷新数据
-
-### Q: 如何添加交易？
-
-在 `inbox.bean` 中按 Beancount 格式添加交易，然后点击"刷新数据"按钮。
+[MIT License](LICENSE)
