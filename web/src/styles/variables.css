@@ -1,0 +1,200 @@
+/* ========================================
+   Neve Design System - Variables
+   Color Tokens & Theme Configuration
+   ======================================== */
+
+/* ========== Color Tokens ========== */
+:root {
+    /* Light Theme */
+    --light-bg-primary: #F8F9FC;
+    --light-bg-secondary: #FFFFFF;
+    --light-bg-tertiary: #F1F3F8;
+    --light-text-primary: #2D3142;
+    --light-text-secondary: #6B7280;
+    --light-text-tertiary: #9CA3AF;
+    --light-border: #E5E7EB;
+    --light-border-hover: #D1D5DB;
+
+    /* Brand - Low Saturation Teal */
+    --light-brand-primary: #5B9A9A;
+    --light-brand-secondary: #7AB5B5;
+    --light-brand-light: #E8F4F4;
+
+    /* Semantic Colors */
+    --light-income: #6B9B7A;
+    --light-income-light: #E8F5EC;
+    --light-expense: #C27B7B;
+    --light-expense-light: #FBEAEA;
+    --light-warning: #C9A856;
+    --light-warning-light: #FDF8E8;
+    --light-info: #7B9BC2;
+    --light-info-light: #EAF0FB;
+
+    --light-shadow: rgba(45, 49, 66, 0.08);
+    --light-shadow-lg: rgba(45, 49, 66, 0.12);
+
+    /* Dark Theme */
+    --dark-bg-primary: #1A1D26;
+    --dark-bg-secondary: #242834;
+    --dark-bg-tertiary: #2E3342;
+    --dark-text-primary: #F9FAFB;
+    --dark-text-secondary: #D1D5DB;
+    --dark-text-tertiary: #9CA3AF;
+    --dark-border: #3A3F4F;
+    --dark-border-hover: #4A5060;
+
+    /* Brand - Dark */
+    --dark-brand-primary: #81C7C7;
+    --dark-brand-secondary: #6FB3B3;
+    --dark-brand-light: rgba(129, 199, 199, 0.15);
+
+    /* Semantic - Dark */
+    --dark-income: #8BDBA5;
+    --dark-income-light: rgba(139, 219, 165, 0.15);
+    --dark-expense: #F29B9B;
+    --dark-expense-light: rgba(242, 155, 155, 0.15);
+    --dark-warning: #ECD076;
+    --dark-warning-light: rgba(236, 208, 118, 0.15);
+    --dark-info: #9BBDF2;
+    --dark-info-light: rgba(155, 189, 242, 0.15);
+
+    --dark-shadow: rgba(0, 0, 0, 0.25);
+    --dark-shadow-lg: rgba(0, 0, 0, 0.4);
+
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.5rem;
+    --font-size-2xl: 2rem;
+
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Sidebar */
+    --sidebar-width: 256px;
+
+    /* Geek Theme (Slate/Indigo) */
+    --geek-bg-primary: #0F172A;
+    --geek-bg-secondary: #1E293B;
+    --geek-bg-tertiary: #334155;
+    --geek-text-primary: #F1F5F9;
+    --geek-text-secondary: #94A3B8;
+    --geek-text-tertiary: #64748B;
+    --geek-border: #334155;
+    --geek-border-hover: #475569;
+
+    /* Brand - Indigo */
+    --geek-brand-primary: #6366F1;
+    --geek-brand-secondary: #818CF8;
+    --geek-brand-light: rgba(99, 102, 241, 0.15);
+
+    /* Semantic - Geek */
+    --geek-income: #34D399;
+    --geek-income-light: rgba(52, 211, 153, 0.15);
+    --geek-expense: #F87171;
+    --geek-expense-light: rgba(248, 113, 113, 0.15);
+    --geek-warning: #FBBF24;
+    --geek-warning-light: rgba(251, 191, 36, 0.15);
+    --geek-info: #60A5FA;
+    --geek-info-light: rgba(96, 165, 250, 0.15);
+
+    --geek-shadow: rgba(0, 0, 0, 0.3);
+    --geek-shadow-lg: rgba(0, 0, 0, 0.5);
+}
+
+/* ========== Theme Classes ========== */
+.theme-light,
+:root:not(.theme-dark):not(.theme-geek) {
+    --bg-primary: var(--light-bg-primary);
+    --bg-secondary: var(--light-bg-secondary);
+    --bg-tertiary: var(--light-bg-tertiary);
+    --text-primary: var(--light-text-primary);
+    --text-secondary: var(--light-text-secondary);
+    --text-tertiary: var(--light-text-tertiary);
+    --border: var(--light-border);
+    --border-hover: var(--light-border-hover);
+    --brand-primary: var(--light-brand-primary);
+    --brand-secondary: var(--light-brand-secondary);
+    --brand-light: var(--light-brand-light);
+    --income: var(--light-income);
+    --income-light: var(--light-income-light);
+    --expense: var(--light-expense);
+    --expense-light: var(--light-expense-light);
+    --warning: var(--light-warning);
+    --warning-light: var(--light-warning-light);
+    --info: var(--light-info);
+    --info-light: var(--light-info-light);
+    --shadow: var(--light-shadow);
+    --shadow-lg: var(--light-shadow-lg);
+}
+
+.theme-dark {
+    --bg-primary: var(--dark-bg-primary);
+    --bg-secondary: var(--dark-bg-secondary);
+    --bg-tertiary: var(--dark-bg-tertiary);
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --text-tertiary: var(--dark-text-tertiary);
+    --border: var(--dark-border);
+    --border-hover: var(--dark-border-hover);
+    --brand-primary: var(--dark-brand-primary);
+    --brand-secondary: var(--dark-brand-secondary);
+    --brand-light: var(--dark-brand-light);
+    --income: var(--dark-income);
+    --income-light: var(--dark-income-light);
+    --expense: var(--dark-expense);
+    --expense-light: var(--dark-expense-light);
+    --warning: var(--dark-warning);
+    --warning-light: var(--dark-warning-light);
+    --info: var(--dark-info);
+    --info-light: var(--dark-info-light);
+    --shadow: var(--dark-shadow);
+    --shadow-lg: var(--dark-shadow-lg);
+}
+
+.theme-geek {
+    --bg-primary: var(--geek-bg-primary);
+    --bg-secondary: var(--geek-bg-secondary);
+    --bg-tertiary: var(--geek-bg-tertiary);
+    --text-primary: var(--geek-text-primary);
+    --text-secondary: var(--geek-text-secondary);
+    --text-tertiary: var(--geek-text-tertiary);
+    --border: var(--geek-border);
+    --border-hover: var(--geek-border-hover);
+    --brand-primary: var(--geek-brand-primary);
+    --brand-secondary: var(--geek-brand-secondary);
+    --brand-light: var(--geek-brand-light);
+    --income: var(--geek-income);
+    --income-light: var(--geek-income-light);
+    --expense: var(--geek-expense);
+    --expense-light: var(--geek-expense-light);
+    --warning: var(--geek-warning);
+    --warning-light: var(--geek-warning-light);
+    --info: var(--geek-info);
+    --info-light: var(--geek-info-light);
+    --shadow: var(--geek-shadow);
+    --shadow-lg: var(--geek-shadow-lg);
+}

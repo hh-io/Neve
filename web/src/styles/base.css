@@ -1,0 +1,99 @@
+/* ========================================
+   Neve Design System - Base
+   Reset, Typography, Scrollbar
+   ======================================== */
+
+/* ========== Reset & Base ========== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+    transition: background-color var(--transition-slow), color var(--transition-slow);
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-tertiary);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* ========== Utility Classes ========== */
+.text-income {
+    color: var(--income);
+}
+
+.text-expense {
+    color: var(--expense);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-info {
+    color: var(--info);
+}
+
+.text-brand {
+    color: var(--brand-primary);
+}
+
+.bg-income-light {
+    background-color: var(--income-light);
+}
+
+.bg-expense-light {
+    background-color: var(--expense-light);
+}
+
+.bg-warning-light {
+    background-color: var(--warning-light);
+}
+
+.bg-info-light {
+    background-color: var(--info-light);
+}
+
+.bg-brand-light {
+    background-color: var(--brand-light);
+}
+
+/* ========== Section Spacing ========== */
+.section-mb {
+    margin-bottom: var(--space-8);
+}
+
+/* ========== Chart Container ========== */
+.chart-container {
+    position: relative;
+    width: 100%;
+}
