@@ -33,11 +33,11 @@
 
         <div class="nav-divider"></div>
 
-        <button class="nav-item" @click="activeTab = 'settings'">
+        <button class="nav-item" :class="{ active: activeTab === 'budget' }" @click="activeTab = 'budget'">
           <div class="nav-icon">
-            <span v-html="icons.settings"></span>
+            <span v-html="icons.budget"></span>
           </div>
-          <span>设置</span>
+          <span>预算</span>
         </button>
       </nav>
 

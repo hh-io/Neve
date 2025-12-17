@@ -35,7 +35,7 @@
     </div>
 
     <!-- Transaction List -->
-    <div class="card-static" style="padding: var(--space-4);">
+    <div class="card-static" style="padding: var(--space-4); height: calc(100vh - 220px); min-height: 500px; display: flex; flex-direction: column;">
       <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">
         <div style="display: flex; align-items: center; gap: var(--space-2);">
@@ -48,45 +48,62 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="processedTransactions.length === 0" style="text-align: center; padding: var(--space-8); color: var(--text-tertiary);">
+      <div v-if="processedTransactions.length === 0" style="text-align: center; padding: var(--space-8); color: var(--text-tertiary); flex: 1; display: flex; align-items: center; justify-content: center;">
         暂无匹配的交易记录
       </div>
 
       <!-- Scrollable Transaction List -->
       <div v-else class="transaction-scroll-container">
-        <div
-          v-for="(tx, index) in paginatedTransactions"
-          :key="`${tx.date}-${index}`"
-          class="transaction-row"
-        >
-          <!-- Icon Column -->
-          <div class="tx-col-icon">
+        <div v-for="group in groupedTransactions" :key="group.dateLabel" class="tx-group">
+          <!-- Date Header -->
+          <div class="tx-date-header">
+            <span class="date-label">{{ group.dateLabel }}</span>
+            <span class="date-total">
+              <span v-if="group.income > 0" class="date-income-text">+¥{{ group.income.toFixed(2) }}</span>
+              <span v-if="group.expense > 0" class="date-expense-text ml-2">-¥{{ group.expense.toFixed(2) }}</span>
+            </span>
+          </div>
+
+          <!-- Transactions in Group -->
+          <div
+            v-for="(tx, index) in group.items"
+            :key="`${tx.date}-${index}`"
+            class="transaction-row"
+          >
+            <!-- Icon -->
             <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-              <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '18px', height: '18px' }"></span>
+              <span v-html="getCategoryIcon(tx.category)" :style="{ stroke: tx.isIncome ? 'var(--income)' : 'var(--expense)', width: '20px', height: '20px' }"></span>
             </div>
-          </div>
-          
-          <!-- Payee Column -->
-          <div class="tx-col-payee">
-            <div class="tx-title">{{ tx.payee || tx.narration || '未知交易' }}</div>
-            <div v-if="tx.payee && tx.narration" class="tx-narration">{{ tx.narration }}</div>
-          </div>
-          
-          <!-- Category & Tags Column -->
-          <div class="tx-col-tags">
-            <span class="tx-category">{{ getCategoryLabel(tx.category) }}</span>
-            <span v-for="tag in (tx.tags || [])" :key="tag" class="tx-tag">#{{ tag }}</span>
-          </div>
-          
-          <!-- Date Column -->
-          <div class="tx-col-date">{{ formatDate(tx.date) }}</div>
-          
-          <!-- Amount Column -->
-          <div class="tx-col-amount">
-            <div :class="['tx-amount', tx.isIncome ? 'text-income' : 'text-expense']">
-              {{ tx.isIncome ? '+' : '-' }}¥{{ Math.abs(tx.amount).toFixed(2) }}
+            
+            <!-- Main Content -->
+            <div class="tx-content">
+              <!-- Top Row: Payee & Tags -->
+              <div class="tx-top">
+                <span class="tx-payee">{{ tx.payee || '未知交易' }}</span>
+                <div class="tx-tags">
+                  <span 
+                    v-for="tag in (tx.tags || [])" 
+                    :key="tag" 
+                    class="tx-tag"
+                    :style="{ backgroundColor: getTagColor(tag), color: 'var(--text-secondary)' }"
+                  >#{{ tag }}</span>
+                </div>
+              </div>
+              
+              <!-- Bottom Row: Category, Narration -->
+              <div class="tx-bottom">
+                <span class="tx-category-badge">{{ getCategoryLabel(tx.category) }}</span>
+                <span v-if="tx.narration" class="tx-narration">{{ tx.narration }}</span>
+              </div>
             </div>
-            <div class="tx-account">{{ tx.accountShort }}</div>
+            
+            <!-- Amount & Account (Right Side) -->
+            <div class="tx-amount-col">
+              <div :class="['tx-amount', tx.isIncome ? 'text-income' : 'text-expense']">
+                {{ tx.isIncome ? '+' : '-' }}¥{{ Math.abs(tx.amount).toFixed(2) }}
+              </div>
+              <div class="tx-account">{{ tx.accountShort }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -122,7 +139,7 @@ const searchQuery = ref('');
 const categoryFilter = ref('');
 const typeFilter = ref('');
 const currentPage = ref(1);
-const pageSize = 15;
+const pageSize = 20; // Increased slightly for better density
 
 // Category label mapping
 const categoryLabels = {
@@ -135,12 +152,41 @@ function getCategoryLabel(cat) {
   return categoryLabels[cat] || cat || '其他';
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
+function getRelativeDateLabel(dateStr) {
   const date = new Date(dateStr);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${month}-${day}`;
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  // Reset hours to compare just dates
+  date.setHours(0,0,0,0);
+  today.setHours(0,0,0,0);
+  yesterday.setHours(0,0,0,0);
+
+  if (date.getTime() === today.getTime()) {
+    return '今天';
+  } else if (date.getTime() === yesterday.getTime()) {
+    return '昨天';
+  } else {
+    // Format: MM月DD日 Weekday
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekday = weekdays[date.getDay()];
+    return `${month}月${day}日 ${weekday}`;
+  }
+}
+
+// Low saturation pastel colors for tags
+function getTagColor(tag) {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // High lightness, low saturation for pastel background
+  const h = hash % 360;
+  return `hsl(${h}, 30%, 90%)`;
 }
 
 // Process transactions to extract amount and category from postings
@@ -234,6 +280,36 @@ const paginatedTransactions = computed(() => {
   return filteredTransactions.value.slice(start, start + pageSize);
 });
 
+// Group paginated transactions by date
+const groupedTransactions = computed(() => {
+  const groups = {};
+  
+  paginatedTransactions.value.forEach(tx => {
+    const dateStr = tx.date;
+    if (!groups[dateStr]) {
+      groups[dateStr] = {
+        dateStr,
+        dateLabel: getRelativeDateLabel(dateStr),
+        items: [],
+        income: 0,
+        expense: 0
+      };
+    }
+    groups[dateStr].items.push(tx);
+    // Calculate total for header (only for visible items on this page)
+    if (tx.isIncome) {
+      groups[dateStr].income += Math.abs(tx.amount);
+    } else {
+      groups[dateStr].expense += Math.abs(tx.amount);
+    }
+  });
+
+  // Sort groups by date descending
+  return Object.values(groups).sort((a, b) => {
+    return new Date(b.dateStr) - new Date(a.dateStr);
+  });
+});
+
 watch([searchQuery, categoryFilter, typeFilter], () => {
   currentPage.value = 1;
 });
@@ -291,9 +367,11 @@ function getCategoryIcon(category) {
 }
 
 .transaction-scroll-container {
-  max-height: 500px;
   overflow-y: auto;
   padding-right: var(--space-2);
+  flex: 1;
+  /* Ensure a minimum height if flex content is small, but flex:1 usually handles it */
+  min-height: 0; 
 }
 
 .transaction-scroll-container::-webkit-scrollbar {
@@ -314,27 +392,52 @@ function getCategoryIcon(category) {
   background: var(--text-tertiary);
 }
 
-.transaction-row {
-  display: grid;
-  grid-template-columns: 50px 2fr 1.2fr 80px 120px;
+/* Group & Headers */
+.tx-group {
+  margin-bottom: var(--space-4);
+}
+
+.tx-date-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-secondary);
+  z-index: 10;
+  padding: var(--space-2) var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
+}
+
+.date-total {
+  font-size: 11px;
+}
+
+.date-income-text {
+  color: rgba(107, 155, 122, 0.8); /* Low saturation income */
+}
+
+.date-expense-text {
+  color: rgba(194, 123, 123, 0.8); /* Low saturation expense */
+}
+
+.ml-2 { margin-left: 8px; }
+
+/* Transaction Row */
+.transaction-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border-radius: var(--radius-md);
   transition: background var(--transition-base);
+  margin-bottom: 2px;
 }
 
 .transaction-row:hover {
   background: var(--bg-tertiary);
-}
-
-.transaction-row:not(:last-child) {
-  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.05));
-}
-
-.tx-col-icon {
-  display: flex;
-  justify-content: center;
 }
 
 .tx-icon {
@@ -344,13 +447,24 @@ function getCategoryIcon(category) {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.tx-col-payee {
+.tx-content {
+  flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.tx-title {
+.tx-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tx-payee {
   font-weight: 500;
   color: var(--text-primary);
   font-size: var(--font-size-base);
@@ -359,58 +473,66 @@ function getCategoryIcon(category) {
   text-overflow: ellipsis;
 }
 
-.tx-narration {
+.tx-tags {
+  display: flex;
+  gap: 4px;
+}
+
+.tx-tag {
+  padding: 0px 4px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.tx-bottom {
+  display: flex;
+  align-items: center;
   font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  margin-top: 2px;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tx-col-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  align-items: center;
-}
-
-.tx-category {
-  padding: 2px 8px;
-  background: var(--bg-tertiary);
+.tx-category-badge {
+  padding: 1px 6px;
+  background: var(--bg-tertiary); /* User requested background */
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
   color: var(--text-secondary);
+  margin-right: 6px;
+  font-size: 11px;
 }
 
-.tx-tag {
-  padding: 2px 6px;
-  background: var(--brand-light);
-  color: var(--brand-primary);
-  border-radius: var(--radius-sm);
-  font-size: 10px;
+.tx-narration {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tx-col-date {
-  font-size: var(--font-size-sm);
+.tx-dot {
+  margin: 0 4px;
+  color: var(--border);
+}
+
+.tx-account {
+  font-size: 11px;
   color: var(--text-tertiary);
-  text-align: center;
+  margin-top: 2px;
 }
 
-.tx-col-amount {
+.tx-amount-col {
   text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Align amount and account to right */
 }
 
 .tx-amount {
   font-weight: 600;
   font-size: var(--font-size-base);
   font-feature-settings: 'tnum';
-}
-
-.tx-account {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  margin-top: 2px;
 }
 
 .text-income {
@@ -429,6 +551,7 @@ function getCategoryIcon(category) {
   background: var(--expense-light, rgba(194, 123, 123, 0.15));
 }
 
+/* Pagination */
 .pagination {
   display: flex;
   align-items: center;
