@@ -42,7 +42,10 @@
         </div>
       </div>
       <div style="height: 320px;">
-        <v-chart v-if="analytics.monthlyTrend" :option="trendChartOption" autoresize />
+        <v-chart v-if="analytics.monthlyTrend && analytics.monthlyTrend.length > 0" :option="trendChartOption" autoresize />
+        <div v-else style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
+          暂无趋势数据
+        </div>
       </div>
     </div>
 
@@ -55,7 +58,10 @@
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">周消费分布</span>
         </div>
-        <WeekdayChart v-if="analytics.weekdayStats" :data="analytics.weekdayStats" />
+        <WeekdayChart v-if="analytics.weekdayDistribution && analytics.weekdayDistribution.length > 0" :data="analytics.weekdayDistribution" />
+        <div v-else style="height: 200px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
+          暂无周消费数据
+        </div>
       </div>
 
       <!-- Category Trend -->
@@ -66,7 +72,10 @@
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">分类消费环比</span>
         </div>
-        <CategoryTrend v-if="analytics.categoryTrends" :data="analytics.categoryTrends" />
+        <CategoryTrend v-if="analytics.categoryTrends && analytics.categoryTrends.length > 0" :data="analytics.categoryTrends" />
+        <div v-else style="height: 200px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
+          暂无分类趋势数据
+        </div>
       </div>
     </div>
   </div>
@@ -94,7 +103,7 @@ const periods = [
   { value: 'week', label: '周' },
   { value: 'month', label: '月' },
 ];
-const selectedPeriod = ref('month');
+const selectedPeriod = ref('day');
 
 const trendChartOption = computed(() => {
   const data = props.analytics.monthlyTrend || [];

@@ -212,17 +212,17 @@ func Analyze(ledger *Ledger) *Analytics {
 		return analytics.AccountBalances[i].Balance > analytics.AccountBalances[j].Balance
 	})
 
-	// Build monthly trend (last 12 months)
-	var months []string
-	for month := range monthlyData {
-		months = append(months, month)
+	// Build monthly trend (last 6 months, always include even if empty)
+	var last6Months []string
+	for i := 5; i >= 0; i-- {
+		m := now.AddDate(0, -i, 0)
+		last6Months = append(last6Months, m.Format("2006-01"))
 	}
-	sort.Strings(months)
-	if len(months) > 12 {
-		months = months[len(months)-12:]
-	}
-	for _, month := range months {
+	for _, month := range last6Months {
 		data := monthlyData[month]
+		if data == nil {
+			data = &MonthlyData{Month: month}
+		}
 		data.Balance = data.Income - data.Expense
 		analytics.MonthlyTrend = append(analytics.MonthlyTrend, *data)
 	}
@@ -384,17 +384,17 @@ func Analyze(ledger *Ledger) *Analytics {
 		}
 	}
 
-	// Get last 6 months
-	var last6Months []string
+	// Get last 6 months for category trends
+	var catLast6Months []string
 	for i := 5; i >= 0; i-- {
 		m := now.AddDate(0, -i, 0)
-		last6Months = append(last6Months, m.Format("2006-01"))
+		catLast6Months = append(catLast6Months, m.Format("2006-01"))
 	}
 
 	for _, category := range topCategories {
 		trend := CategoryTrend{Category: category}
 		monthData := categoryMonthly[category]
-		for _, month := range last6Months {
+		for _, month := range catLast6Months {
 			trend.Data = append(trend.Data, MonthlyAmount{
 				Month:  month,
 				Amount: monthData[month],
