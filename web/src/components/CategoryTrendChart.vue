@@ -231,7 +231,7 @@ const chartOption = computed(() => {
     legend: compareMode.value && compareCategory.value ? {
       data: [getCategoryLabel(selectedCategory.value), getCategoryLabel(compareCategory.value)],
       bottom: 0,
-      textStyle: { color: 'var(--text-secondary)', fontSize: 11 }
+      textStyle: { color: '#9CA3AF', fontSize: 11 }
     } : undefined,
     grid: {
       left: 10,
@@ -244,14 +244,14 @@ const chartOption = computed(() => {
       type: 'category',
       data: labels,
       axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
+      axisLabel: { color: '#9CA3AF', fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
       axisLabel: {
-        color: 'var(--text-secondary)',
+        color: '#9CA3AF',
         formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },

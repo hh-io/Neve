@@ -37,29 +37,38 @@
   --dark-bg-primary: #1A1D26;
   --dark-bg-secondary: #242834;
   --dark-bg-tertiary: #2E3342;
-  --dark-text-primary: #E8EAED;
-  --dark-text-secondary: #9BA1B0;
-  --dark-text-tertiary: #6B7280;
+  --dark-text-primary: #F9FAFB;
+  /* Brighter White */
+  --dark-text-secondary: #D1D5DB;
+  /* Lighter Grey for better readability */
+  --dark-text-tertiary: #9CA3AF;
+  /* Lighter Tertiary */
   --dark-border: #3A3F4F;
   --dark-border-hover: #4A5060;
 
   /* Brand - Dark */
-  --dark-brand-primary: #6BAAAA;
-  --dark-brand-secondary: #5B9A9A;
-  --dark-brand-light: #2A3A3A;
+  --dark-brand-primary: #81C7C7;
+  /* Brighter Teal for Icons */
+  --dark-brand-secondary: #6FB3B3;
+  --dark-brand-light: rgba(129, 199, 199, 0.15);
+  /* Translucent Brand Color for Menu Selection */
 
   /* Semantic - Dark */
-  --dark-income: #7BAB8A;
-  --dark-income-light: #2A3A2E;
-  --dark-expense: #C28B8B;
-  --dark-expense-light: #3A2A2A;
-  --dark-warning: #D9B866;
-  --dark-warning-light: #3A3528;
-  --dark-info: #8BABD2;
-  --dark-info-light: #2A3040;
+  --dark-income: #8BDBA5;
+  /* Brighter Green */
+  --dark-income-light: rgba(139, 219, 165, 0.15);
+  --dark-expense: #F29B9B;
+  /* Brighter Red */
+  --dark-expense-light: rgba(242, 155, 155, 0.15);
+  --dark-warning: #ECD076;
+  /* Brighter Yellow */
+  --dark-warning-light: rgba(236, 208, 118, 0.15);
+  --dark-info: #9BBDF2;
+  /* Brighter Blue */
+  --dark-info-light: rgba(155, 189, 242, 0.15);
 
-  --dark-shadow: rgba(0, 0, 0, 0.2);
-  --dark-shadow-lg: rgba(0, 0, 0, 0.3);
+  --dark-shadow: rgba(0, 0, 0, 0.25);
+  --dark-shadow-lg: rgba(0, 0, 0, 0.4);
 
   /* Spacing */
   --space-1: 0.25rem;

@@ -227,7 +227,7 @@ const trendChartOption = computed(() => {
       data: data.map(d => formatLabel(d)),
       axisLine: { lineStyle: { color: 'var(--border)' } },
       axisLabel: { 
-        color: 'var(--text-secondary)',
+        color: '#9CA3AF',
         rotate: selectedPeriod.value === 'day' ? 45 : 0,
         fontSize: selectedPeriod.value === 'day' ? 10 : 12
       }
@@ -236,7 +236,7 @@ const trendChartOption = computed(() => {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
-      axisLabel: { color: 'var(--text-secondary)', formatter: v => v >= 1000 ? `¥${(v/1000).toFixed(0)}k` : `¥${v}` }
+      axisLabel: { color: '#9CA3AF', formatter: v => v >= 1000 ? `¥${(v/1000).toFixed(0)}k` : `¥${v}` }
     },
     series: [
       {
@@ -307,11 +307,13 @@ const heatmapOption = computed(() => {
       cellSize: ['auto', 16],
       range: new Date().getFullYear(), // Current Year
       itemStyle: {
-        borderWidth: 0.5
+        color: 'transparent',
+        borderColor: 'var(--border)',
+        borderWidth: 1
       },
       yearLabel: { show: false },
-      dayLabel: { nameMap: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], color: 'var(--text-tertiary)' },
-      monthLabel: { nameMap: 'en', color: 'var(--text-secondary)' },
+      dayLabel: { nameMap: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], color: '#9CA3AF' },
+      monthLabel: { nameMap: 'en', color: '#9CA3AF' },
       splitLine: { show: false }
     },
     series: {
@@ -319,7 +321,9 @@ const heatmapOption = computed(() => {
       coordinateSystem: 'calendar',
       data: heatmapData,
       itemStyle: {
-        borderRadius: 2
+        borderRadius: 2,
+        borderColor: 'var(--bg-secondary)', // Gap color
+        borderWidth: 1
       }
     }
   };

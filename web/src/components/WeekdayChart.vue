@@ -82,14 +82,14 @@ const chartOption = computed(() => {
       type: 'category',
       data: orderedData.map(d => d.name),
       axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
+      axisLabel: { color: '#9CA3AF', fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
       axisLabel: {
-        color: 'var(--text-secondary)',
+        color: '#9CA3AF',
         formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },
@@ -98,7 +98,6 @@ const chartOption = computed(() => {
       data: orderedData.map(d => d.amount),
       itemStyle: {
         color: (params) => {
-          // Weekend highlight with warning color
           const name = orderedData[params.dataIndex]?.name;
           return (name === '周六' || name === '周日') ? '#C9A856' : '#5B9A9A';
         },
