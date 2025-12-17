@@ -41,7 +41,31 @@ const chartOption = computed(() => {
       trigger: 'axis',
       formatter: (params) => {
         const d = params[0];
-        return `${d.name}<br/>消费: ¥${d.value.toFixed(2)}<br/>笔数: ${orderedData[d.dataIndex]?.count || 0}`;
+        const weekdayData = orderedData[d.dataIndex];
+        const dates = weekdayData?.dates || [];
+        
+        // Build title: 周五(12-12, 12-19)
+        const datesInTitle = dates.slice(0, 3).join(', ') + (dates.length > 3 ? `...` : '');
+        const title = dates.length > 0 ? `${d.name}(${datesInTitle})` : d.name;
+        
+        // Build category breakdown string
+        const categories = weekdayData?.categoryBreakdown || [];
+        const categoryLabels = {
+          Shopping: '购物', Food: '餐饮', Transport: '交通', Entertainment: '娱乐',
+          Gift: '红包/礼物', Financial: '金融', Communication: '通讯', Lodging: '住宿',
+          Digital: '数码', Unknown: '其他'
+        };
+        const catStr = categories.slice(0, 4).map(c => 
+          `${categoryLabels[c.category] || c.category}: ${c.count}笔`
+        ).join('<br/>');
+        
+        let result = `<strong>${title}</strong><br/>`;
+        result += `消费: ¥${d.value.toFixed(2)}<br/>`;
+        result += `共 ${weekdayData?.count || 0} 笔`;
+        if (catStr) {
+          result += `<br/><span style="color:#888;font-size:11px;">─────</span><br/>${catStr}`;
+        }
+        return result;
       },
       backgroundColor: 'var(--bg-secondary)',
       borderColor: 'var(--border)',

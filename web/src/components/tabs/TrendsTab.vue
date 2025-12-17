@@ -31,18 +31,26 @@
           <span style="font-weight: 600; color: var(--text-primary);">收支趋势</span>
         </div>
         <div style="display: flex; gap: var(--space-4); font-size: var(--font-size-sm);">
-          <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <button 
+            @click="toggleSeries('income')" 
+            style="display: flex; align-items: center; gap: var(--space-2); background: none; border: none; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); transition: all 0.2s ease;"
+            :style="{ opacity: seriesVisible.income ? 1 : 0.4, background: seriesVisible.income ? 'var(--bg-tertiary)' : 'transparent' }"
+          >
             <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--income);"></span>
             <span style="color: var(--text-secondary);">收入</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: var(--space-2);">
+          </button>
+          <button 
+            @click="toggleSeries('expense')" 
+            style="display: flex; align-items: center; gap: var(--space-2); background: none; border: none; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); transition: all 0.2s ease;"
+            :style="{ opacity: seriesVisible.expense ? 1 : 0.4, background: seriesVisible.expense ? 'var(--bg-tertiary)' : 'transparent' }"
+          >
             <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--expense);"></span>
             <span style="color: var(--text-secondary);">支出</span>
-          </div>
+          </button>
         </div>
       </div>
       <div style="height: 320px;">
-        <v-chart v-if="analytics.monthlyTrend && analytics.monthlyTrend.length > 0" :option="trendChartOption" autoresize />
+        <v-chart v-if="trendData && trendData.length > 0" :option="trendChartOption" autoresize />
         <div v-else style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
           暂无趋势数据
         </div>
@@ -105,8 +113,46 @@ const periods = [
 ];
 const selectedPeriod = ref('day');
 
+// Series visibility state
+const seriesVisible = ref({
+  income: true,
+  expense: true
+});
+
+// Toggle series visibility
+const toggleSeries = (series) => {
+  seriesVisible.value[series] = !seriesVisible.value[series];
+};
+
+// Get the appropriate trend data based on selected period
+const trendData = computed(() => {
+  switch (selectedPeriod.value) {
+    case 'day':
+      return props.analytics.dailyTrend || [];
+    case 'week':
+      return props.analytics.weeklyTrend || [];
+    case 'month':
+    default:
+      return props.analytics.monthlyTrend || [];
+  }
+});
+
+// Format x-axis label based on period
+const formatLabel = (item) => {
+  if (selectedPeriod.value === 'day') {
+    // Show date as MM-DD
+    return item.date?.slice(5) || '';
+  } else if (selectedPeriod.value === 'week') {
+    // Show week as W prefix
+    return item.week?.split('-W')[1] || '';
+  } else {
+    // Show month as MM
+    return item.month?.slice(5) || '';
+  }
+};
+
 const trendChartOption = computed(() => {
-  const data = props.analytics.monthlyTrend || [];
+  const data = trendData.value;
   return {
     tooltip: {
       trigger: 'axis',
@@ -117,15 +163,19 @@ const trendChartOption = computed(() => {
     grid: { left: 50, right: 20, top: 20, bottom: 30 },
     xAxis: {
       type: 'category',
-      data: data.map(d => d.month?.slice(5) || d.date?.slice(5)),
+      data: data.map(d => formatLabel(d)),
       axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: 'var(--text-secondary)' }
+      axisLabel: { 
+        color: 'var(--text-secondary)',
+        rotate: selectedPeriod.value === 'day' ? 45 : 0,
+        fontSize: selectedPeriod.value === 'day' ? 10 : 12
+      }
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
-      axisLabel: { color: 'var(--text-secondary)', formatter: v => `¥${(v/1000).toFixed(0)}k` }
+      axisLabel: { color: 'var(--text-secondary)', formatter: v => v >= 1000 ? `¥${(v/1000).toFixed(0)}k` : `¥${v}` }
     },
     series: [
       {
@@ -133,24 +183,25 @@ const trendChartOption = computed(() => {
         type: 'line',
         smooth: true,
         symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { color: '#6B9B7A', width: 2 },
-        itemStyle: { color: '#6B9B7A' },
-        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(107,155,122,0.3)' }, { offset: 1, color: 'rgba(107,155,122,0)' }] } },
-        data: data.map(d => d.income)
+        symbolSize: selectedPeriod.value === 'day' ? 4 : 6,
+        lineStyle: { color: '#6B9B7A', width: 2, opacity: seriesVisible.value.income ? 1 : 0 },
+        itemStyle: { color: '#6B9B7A', opacity: seriesVisible.value.income ? 1 : 0 },
+        areaStyle: seriesVisible.value.income ? { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(107,155,122,0.3)' }, { offset: 1, color: 'rgba(107,155,122,0)' }] } } : { opacity: 0 },
+        data: seriesVisible.value.income ? data.map(d => d.income) : data.map(() => null)
       },
       {
         name: '支出',
         type: 'line',
         smooth: true,
         symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { color: '#C27B7B', width: 2 },
-        itemStyle: { color: '#C27B7B' },
-        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(194,123,123,0.3)' }, { offset: 1, color: 'rgba(194,123,123,0)' }] } },
-        data: data.map(d => Math.abs(d.expense))
+        symbolSize: selectedPeriod.value === 'day' ? 4 : 6,
+        lineStyle: { color: '#C27B7B', width: 2, opacity: seriesVisible.value.expense ? 1 : 0 },
+        itemStyle: { color: '#C27B7B', opacity: seriesVisible.value.expense ? 1 : 0 },
+        areaStyle: seriesVisible.value.expense ? { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(194,123,123,0.3)' }, { offset: 1, color: 'rgba(194,123,123,0)' }] } } : { opacity: 0 },
+        data: seriesVisible.value.expense ? data.map(d => Math.abs(d.expense)) : data.map(() => null)
       }
     ]
   };
 });
 </script>
+

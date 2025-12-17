@@ -39,6 +39,22 @@ type MonthlyData struct {
 	Balance float64 `json:"balance"`
 }
 
+// DailyData represents daily income/expense
+type DailyData struct {
+	Date    string  `json:"date"`
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
+	Balance float64 `json:"balance"`
+}
+
+// WeeklyData represents weekly income/expense
+type WeeklyData struct {
+	Week    string  `json:"week"` // format: 2006-W01
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
+	Balance float64 `json:"balance"`
+}
+
 // TagStats represents spending by tag (platform)
 type TagStats struct {
 	Tag     string  `json:"tag"`
@@ -54,12 +70,21 @@ type PayeeStats struct {
 	Count  int     `json:"count"`
 }
 
+// WeekdayCategoryCount represents count per category for a weekday
+type WeekdayCategoryCount struct {
+	Category string  `json:"category"`
+	Count    int     `json:"count"`
+	Amount   float64 `json:"amount"`
+}
+
 // WeekdayStats represents spending by day of week
 type WeekdayStats struct {
-	Weekday int     `json:"weekday"` // 0=Sunday, 1=Monday, ...
-	Name    string  `json:"name"`
-	Amount  float64 `json:"amount"`
-	Count   int     `json:"count"`
+	Weekday           int                    `json:"weekday"` // 0=Sunday, 1=Monday, ...
+	Name              string                 `json:"name"`
+	Amount            float64                `json:"amount"`
+	Count             int                    `json:"count"`
+	Dates             []string               `json:"dates"`             // List of dates (MM-DD format) with expenses
+	CategoryBreakdown []WeekdayCategoryCount `json:"categoryBreakdown"` // Spending breakdown by category
 }
 
 // MonthlyAmount for category trends
@@ -95,6 +120,8 @@ type Analytics struct {
 	ExpenseByCategory  []CategoryAmount `json:"expenseByCategory"`
 	AccountBalances    []AccountBalance `json:"accountBalances"`
 	MonthlyTrend       []MonthlyData    `json:"monthlyTrend"`
+	DailyTrend         []DailyData      `json:"dailyTrend"`
+	WeeklyTrend        []WeeklyData     `json:"weeklyTrend"`
 	RecentTransactions []Transaction    `json:"recentTransactions"`
 	// New analytics
 	DailyAverage        float64          `json:"dailyAverage"`
@@ -124,14 +151,30 @@ func Analyze(ledger *Ledger) *Analytics {
 	// Calculate account balances from transactions
 	accountBalances := make(map[string]float64)
 	monthlyData := make(map[string]*MonthlyData)
+	dailyData := make(map[string]*DailyData)
+	weeklyData := make(map[string]*WeeklyData)
 	categoryExpense := make(map[string]float64)
 
 	for _, tx := range ledger.Transactions {
 		txMonth := tx.Date.Format("2006-01")
+		txDate := tx.Date.Format("2006-01-02")
+		txYear, txWeek := tx.Date.ISOWeek()
+		txWeekStr := time.Date(txYear, 1, 1, 0, 0, 0, 0, time.Local).AddDate(0, 0, (txWeek-1)*7).Format("01-02")
 
 		// Initialize monthly data if needed
 		if _, ok := monthlyData[txMonth]; !ok {
 			monthlyData[txMonth] = &MonthlyData{Month: txMonth}
+		}
+
+		// Initialize daily data if needed
+		if _, ok := dailyData[txDate]; !ok {
+			dailyData[txDate] = &DailyData{Date: txDate}
+		}
+
+		// Initialize weekly data if needed (use year-week as key)
+		weekKey := tx.Date.Format("2006") + "-W" + txWeekStr
+		if _, ok := weeklyData[weekKey]; !ok {
+			weeklyData[weekKey] = &WeeklyData{Week: weekKey}
 		}
 
 		for _, posting := range tx.Postings {
@@ -158,8 +201,12 @@ func Analyze(ledger *Ledger) *Analytics {
 			// Monthly trend
 			if isExpenseAccount(posting.Account) && posting.Amount > 0 {
 				monthlyData[txMonth].Expense += posting.Amount
+				dailyData[txDate].Expense += posting.Amount
+				weeklyData[weekKey].Expense += posting.Amount
 			} else if isIncomeAccount(posting.Account) && posting.Amount < 0 {
 				monthlyData[txMonth].Income += -posting.Amount
+				dailyData[txDate].Income += -posting.Amount
+				weeklyData[weekKey].Income += -posting.Amount
 			}
 		}
 	}
@@ -227,6 +274,48 @@ func Analyze(ledger *Ledger) *Analytics {
 		analytics.MonthlyTrend = append(analytics.MonthlyTrend, *data)
 	}
 
+	// Build daily trend (last 30 days)
+	var last30Days []string
+	for i := 29; i >= 0; i-- {
+		d := now.AddDate(0, 0, -i)
+		last30Days = append(last30Days, d.Format("2006-01-02"))
+	}
+	for _, day := range last30Days {
+		data := dailyData[day]
+		if data == nil {
+			data = &DailyData{Date: day}
+		}
+		data.Balance = data.Income - data.Expense
+		analytics.DailyTrend = append(analytics.DailyTrend, *data)
+	}
+
+	// Build weekly trend (last 8 weeks)
+	var last8Weeks []string
+	for i := 7; i >= 0; i-- {
+		d := now.AddDate(0, 0, -i*7)
+		year, week := d.ISOWeek()
+		weekStart := time.Date(year, 1, 1, 0, 0, 0, 0, time.Local).AddDate(0, 0, (week-1)*7)
+		weekKey := d.Format("2006") + "-W" + weekStart.Format("01-02")
+		last8Weeks = append(last8Weeks, weekKey)
+	}
+	// Remove duplicates and keep order
+	seen := make(map[string]bool)
+	var uniqueWeeks []string
+	for _, w := range last8Weeks {
+		if !seen[w] {
+			seen[w] = true
+			uniqueWeeks = append(uniqueWeeks, w)
+		}
+	}
+	for _, week := range uniqueWeeks {
+		data := weeklyData[week]
+		if data == nil {
+			data = &WeeklyData{Week: week}
+		}
+		data.Balance = data.Income - data.Expense
+		analytics.WeeklyTrend = append(analytics.WeeklyTrend, *data)
+	}
+
 	// Recent transactions (last 100 for filtering, excluding opening balance)
 	var recentTxs []Transaction
 	for _, tx := range ledger.Transactions {
@@ -254,8 +343,13 @@ func Analyze(ledger *Ledger) *Analytics {
 	})
 	// Weekday distribution
 	weekdaySpending := make(map[int]struct {
-		amount float64
-		count  int
+		amount     float64
+		count      int
+		dates      []string
+		categories map[string]struct {
+			count  int
+			amount float64
+		}
 	})
 	// Category monthly trends
 	categoryMonthly := make(map[string]map[string]float64)
@@ -270,6 +364,8 @@ func Analyze(ledger *Ledger) *Analytics {
 		}
 
 		var txExpenseAmount float64
+		var txCategories = make(map[string]float64) // Track categories for this transaction
+
 		for _, posting := range tx.Postings {
 			if isExpenseAccount(posting.Account) && posting.Amount > 0 {
 				txExpenseAmount += posting.Amount
@@ -281,6 +377,9 @@ func Analyze(ledger *Ledger) *Analytics {
 					categoryMonthly[category] = make(map[string]float64)
 				}
 				categoryMonthly[category][txMonth] += posting.Amount
+
+				// Track category for weekday breakdown
+				txCategories[category] += posting.Amount
 			}
 
 			// Income breakdown
@@ -299,6 +398,35 @@ func Analyze(ledger *Ledger) *Analytics {
 			ws := weekdaySpending[weekday]
 			ws.amount += txExpenseAmount
 			ws.count++
+
+			// Initialize categories map if nil
+			if ws.categories == nil {
+				ws.categories = make(map[string]struct {
+					count  int
+					amount float64
+				})
+			}
+
+			// Add category counts for this transaction
+			for cat, amt := range txCategories {
+				catData := ws.categories[cat]
+				catData.count++
+				catData.amount += amt
+				ws.categories[cat] = catData
+			}
+
+			// Add date if not already in the list (using MM-DD format)
+			dateStr := tx.Date.Format("01-02")
+			found := false
+			for _, d := range ws.dates {
+				if d == dateStr {
+					found = true
+					break
+				}
+			}
+			if !found {
+				ws.dates = append(ws.dates, dateStr)
+			}
 			weekdaySpending[weekday] = ws
 
 			// Tags (platform)
@@ -367,11 +495,28 @@ func Analyze(ledger *Ledger) *Analytics {
 	weekdayNames := []string{"周日", "周一", "周二", "周三", "周四", "周五", "周六"}
 	for i := 0; i < 7; i++ {
 		ws := weekdaySpending[i]
+
+		// Build category breakdown
+		var catBreakdown []WeekdayCategoryCount
+		for cat, data := range ws.categories {
+			catBreakdown = append(catBreakdown, WeekdayCategoryCount{
+				Category: cat,
+				Count:    data.count,
+				Amount:   data.amount,
+			})
+		}
+		// Sort by count descending
+		sort.Slice(catBreakdown, func(a, b int) bool {
+			return catBreakdown[a].Count > catBreakdown[b].Count
+		})
+
 		analytics.WeekdayDistribution = append(analytics.WeekdayDistribution, WeekdayStats{
-			Weekday: i,
-			Name:    weekdayNames[i],
-			Amount:  ws.amount,
-			Count:   ws.count,
+			Weekday:           i,
+			Name:              weekdayNames[i],
+			Amount:            ws.amount,
+			Count:             ws.count,
+			Dates:             ws.dates,
+			CategoryBreakdown: catBreakdown,
 		})
 	}
 

@@ -140,6 +140,14 @@
     <button class="fab" title="新增交易">
       <span v-html="icons.plus"></span>
     </button>
+
+    <!-- Toast Notification -->
+    <Transition name="toast">
+      <div v-if="toast.show" class="toast" :class="toast.type">
+        <span v-html="toast.type === 'success' ? icons.check : icons.alert" style="width: 18px; height: 18px;"></span>
+        <span>{{ toast.message }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -163,6 +171,16 @@ const analytics = ref(null);
 const loading = ref(false);
 const error = ref(null);
 const activeTab = ref('overview');
+
+// Toast notification
+const toast = ref({ show: false, message: '', type: 'success' });
+
+function showToast(message, type = 'success', duration = 3000) {
+  toast.value = { show: true, message, type };
+  setTimeout(() => {
+    toast.value.show = false;
+  }, duration);
+}
 
 // Theme
 const themeMode = ref('system'); // 'light' | 'dark' | 'system'
@@ -250,8 +268,10 @@ async function refresh() {
   try {
     await fetch("/api/refresh", { method: "POST" });
     analytics.value = await fetchAnalytics();
+    showToast('数据刷新成功', 'success');
   } catch (e) {
     error.value = e.message;
+    showToast('刷新失败: ' + e.message, 'error');
   } finally {
     loading.value = false;
   }
@@ -273,5 +293,62 @@ onMounted(async () => {
 <style>
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.toast.success {
+  background: linear-gradient(135deg, #6B9B7A 0%, #5a8a69 100%);
+  color: white;
+}
+
+.toast.error {
+  background: linear-gradient(135deg, #C27B7B 0%, #b06a6a 100%);
+  color: white;
+}
+
+.toast-enter-active {
+  animation: toast-in 0.3s ease;
+}
+
+.toast-leave-active {
+  animation: toast-out 0.3s ease;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
 }
 </style>
