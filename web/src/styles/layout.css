@@ -463,6 +463,12 @@
     gap: var(--space-6);
 }
 
+.grid-7-3 {
+    display: grid;
+    grid-template-columns: 7fr 3fr;
+    gap: var(--space-6);
+}
+
 /* ========== Mobile Responsive ========== */
 @media (max-width: 1024px) {
     .stats-grid {
@@ -470,7 +476,8 @@
     }
 
     .grid-2-1,
-    .grid-1-1 {
+    .grid-1-1,
+    .grid-7-3 {
         grid-template-columns: 1fr;
     }
 }

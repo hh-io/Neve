@@ -21,39 +21,53 @@
       </div>
     </div>
 
-    <!-- Main Trend Chart -->
-    <div class="card-static section-mb" style="padding: var(--space-6);">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
-        <div style="display: flex; align-items: center; gap: var(--space-3);">
-          <div class="stat-icon bg-info-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.trends" style="stroke: var(--info); width: 20px; height: 20px;"></span>
+    <!-- Main Trend Chart + Transaction Calendar (Side by Side) -->
+    <div class="grid-7-3 section-mb">
+      <!-- Main Trend Chart -->
+      <div class="card-static" style="padding: var(--space-6);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div class="stat-icon bg-info-light" style="width: 40px; height: 40px;">
+              <span v-html="icons.trends" style="stroke: var(--info); width: 20px; height: 20px;"></span>
+            </div>
+            <span style="font-weight: 600; color: var(--text-primary);">收支趋势</span>
           </div>
-          <span style="font-weight: 600; color: var(--text-primary);">收支趋势</span>
+          <div style="display: flex; gap: var(--space-4); font-size: var(--font-size-sm);">
+            <button 
+              @click="toggleSeries('income')" 
+              style="display: flex; align-items: center; gap: var(--space-2); background: none; border: none; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); transition: all 0.2s ease;"
+              :style="{ opacity: seriesVisible.income ? 1 : 0.4, background: seriesVisible.income ? 'var(--bg-tertiary)' : 'transparent' }"
+            >
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--income);"></span>
+              <span style="color: var(--text-secondary);">收入</span>
+            </button>
+            <button 
+              @click="toggleSeries('expense')" 
+              style="display: flex; align-items: center; gap: var(--space-2); background: none; border: none; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); transition: all 0.2s ease;"
+              :style="{ opacity: seriesVisible.expense ? 1 : 0.4, background: seriesVisible.expense ? 'var(--bg-tertiary)' : 'transparent' }"
+            >
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--expense);"></span>
+              <span style="color: var(--text-secondary);">支出</span>
+            </button>
+          </div>
         </div>
-        <div style="display: flex; gap: var(--space-4); font-size: var(--font-size-sm);">
-          <button 
-            @click="toggleSeries('income')" 
-            style="display: flex; align-items: center; gap: var(--space-2); background: none; border: none; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); transition: all 0.2s ease;"
-            :style="{ opacity: seriesVisible.income ? 1 : 0.4, background: seriesVisible.income ? 'var(--bg-tertiary)' : 'transparent' }"
-          >
-            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--income);"></span>
-            <span style="color: var(--text-secondary);">收入</span>
-          </button>
-          <button 
-            @click="toggleSeries('expense')" 
-            style="display: flex; align-items: center; gap: var(--space-2); background: none; border: none; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-md); transition: all 0.2s ease;"
-            :style="{ opacity: seriesVisible.expense ? 1 : 0.4, background: seriesVisible.expense ? 'var(--bg-tertiary)' : 'transparent' }"
-          >
-            <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--expense);"></span>
-            <span style="color: var(--text-secondary);">支出</span>
-          </button>
+        <div style="height: 380px;">
+          <v-chart v-if="trendData && trendData.length > 0" :option="trendChartOption" autoresize />
+          <div v-else style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
+            暂无趋势数据
+          </div>
         </div>
       </div>
-      <div style="height: 320px;">
-        <v-chart v-if="trendData && trendData.length > 0" :option="trendChartOption" autoresize />
-        <div v-else style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
-          暂无趋势数据
+
+      <!-- Transaction Calendar -->
+      <div class="card-static" style="padding: var(--space-6);">
+        <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+          <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
+            <span v-html="icons.calendar" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+          </div>
+          <span style="font-weight: 600; color: var(--text-primary);">交易日历</span>
         </div>
+        <TransactionCalendar :dailyData="analytics.dailyTrend || []" />
       </div>
     </div>
 
@@ -161,6 +175,7 @@ import { GridComponent, TooltipComponent, LegendComponent, CalendarComponent, Vi
 import { CanvasRenderer } from 'echarts/renderers';
 import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
+import TransactionCalendar from '../TransactionCalendar.vue';
 import { icons } from '../../composables/icons';
 
 use([LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
