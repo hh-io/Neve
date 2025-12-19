@@ -14,7 +14,7 @@
         <div class="rank-bar-wrap">
           <div 
             class="rank-bar" 
-            :style="{ width: (item.amount / maxAmount * 100) + '%' }"
+            :style="{ width: (item.amount / maxAmount * 100) + '%', opacity: getBarOpacity(index) }"
           ></div>
         </div>
         <div class="rank-stats">
@@ -47,6 +47,11 @@ function getRankClass(index) {
 
 function formatAmount(amount) {
   return amount >= 1000 ? (amount / 1000).toFixed(1) + 'k' : amount.toFixed(0);
+}
+
+function getBarOpacity(index) {
+  // 第一名 1.0，之后每名递减 0.08，最低 0.35
+  return Math.max(0.35, 1 - index * 0.08);
 }
 </script>
 
