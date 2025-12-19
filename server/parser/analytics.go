@@ -21,6 +21,7 @@ type CategoryAmount struct {
 	Category string  `json:"category"`
 	Amount   float64 `json:"amount"`
 	Percent  float64 `json:"percent"`
+	Count    int     `json:"count"`
 }
 
 // AccountBalance represents an account's balance
@@ -112,6 +113,7 @@ type IncomeSource struct {
 	Source  string  `json:"source"`
 	Amount  float64 `json:"amount"`
 	Percent float64 `json:"percent"`
+	Count   int     `json:"count"`
 }
 
 // Analytics holds all analytical data
@@ -153,7 +155,10 @@ func Analyze(ledger *Ledger) *Analytics {
 	monthlyData := make(map[string]*MonthlyData)
 	dailyData := make(map[string]*DailyData)
 	weeklyData := make(map[string]*WeeklyData)
-	categoryExpense := make(map[string]float64)
+	categoryExpense := make(map[string]struct {
+		amount float64
+		count  int
+	})
 
 	for _, tx := range ledger.Transactions {
 		txMonth := tx.Date.Format("2006-01")
@@ -194,7 +199,10 @@ func Analyze(ledger *Ledger) *Analytics {
 			if tx.Date.After(currentMonth) || tx.Date.Equal(currentMonth) {
 				if isExpenseAccount(posting.Account) && posting.Amount > 0 {
 					category := getExpenseCategory(posting.Account)
-					categoryExpense[category] += posting.Amount
+					ce := categoryExpense[category]
+					ce.amount += posting.Amount
+					ce.count++
+					categoryExpense[category] = ce
 				}
 			}
 
@@ -224,18 +232,19 @@ func Analyze(ledger *Ledger) *Analytics {
 
 	// Build expense by category
 	var totalExpense float64
-	for _, amount := range categoryExpense {
-		totalExpense += amount
+	for _, ce := range categoryExpense {
+		totalExpense += ce.amount
 	}
-	for category, amount := range categoryExpense {
+	for category, ce := range categoryExpense {
 		percent := 0.0
 		if totalExpense > 0 {
-			percent = (amount / totalExpense) * 100
+			percent = (ce.amount / totalExpense) * 100
 		}
 		analytics.ExpenseByCategory = append(analytics.ExpenseByCategory, CategoryAmount{
 			Category: category,
-			Amount:   amount,
+			Amount:   ce.amount,
 			Percent:  percent,
+			Count:    ce.count,
 		})
 	}
 	// Sort by amount descending
@@ -354,7 +363,10 @@ func Analyze(ledger *Ledger) *Analytics {
 	// Category monthly trends
 	categoryMonthly := make(map[string]map[string]float64)
 	// Income by source
-	incomeBySource := make(map[string]float64)
+	incomeBySource := make(map[string]struct {
+		amount float64
+		count  int
+	})
 	// Track days with expenses for daily average
 	expenseDays := make(map[string]bool)
 
@@ -385,7 +397,10 @@ func Analyze(ledger *Ledger) *Analytics {
 			// Income breakdown
 			if isIncomeAccount(posting.Account) && posting.Amount < 0 {
 				source := getIncomeSource(posting.Account)
-				incomeBySource[source] += -posting.Amount
+				is := incomeBySource[source]
+				is.amount += -posting.Amount
+				is.count++
+				incomeBySource[source] = is
 			}
 		}
 
@@ -565,18 +580,19 @@ func Analyze(ledger *Ledger) *Analytics {
 
 	// Income breakdown
 	var totalIncome float64
-	for _, amount := range incomeBySource {
-		totalIncome += amount
+	for _, is := range incomeBySource {
+		totalIncome += is.amount
 	}
-	for source, amount := range incomeBySource {
+	for source, is := range incomeBySource {
 		percent := 0.0
 		if totalIncome > 0 {
-			percent = (amount / totalIncome) * 100
+			percent = (is.amount / totalIncome) * 100
 		}
 		analytics.IncomeBreakdown = append(analytics.IncomeBreakdown, IncomeSource{
 			Source:  source,
-			Amount:  amount,
+			Amount:  is.amount,
 			Percent: percent,
+			Count:   is.count,
 		})
 	}
 	sort.Slice(analytics.IncomeBreakdown, func(i, j int) bool {
