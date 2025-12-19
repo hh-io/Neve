@@ -19,17 +19,23 @@
 
       <!-- Income Chart -->
       <div class="card-static" style="padding: var(--space-6);">
-        <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <div class="stat-icon bg-income-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.pieChart" style="stroke: var(--income); width: 20px; height: 20px;"></span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div class="stat-icon bg-income-light" style="width: 40px; height: 40px;">
+              <span v-html="icons.pieChart" style="stroke: var(--income); width: 20px; height: 20px;"></span>
+            </div>
+            <span style="font-weight: 600; color: var(--text-primary);">收入来源</span>
           </div>
-          <span style="font-weight: 600; color: var(--text-primary);">收入来源</span>
+          <span style="font-size: var(--font-size-sm); color: var(--text-secondary);">本月</span>
         </div>
-        <IncomeChart v-if="analytics.incomeBreakdown" :data="analytics.incomeBreakdown" />
-        <div v-else style="height: 200px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
+        <div v-if="analytics.incomeBreakdown?.length > 0" style="height: 280px;">
+          <v-chart :option="incomePieOption" autoresize />
+        </div>
+        <div v-else style="height: 280px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">
           暂无收入数据
         </div>
       </div>
+
     </div>
 
     <!-- Funds Flow Sankey (Full Width) -->
@@ -83,7 +89,6 @@ import { use } from 'echarts/core';
 import { PieChart, SankeyChart } from 'echarts/charts';
 import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import IncomeChart from '../IncomeChart.vue';
 import PlatformRanking from '../PlatformRanking.vue';
 import MerchantRanking from '../MerchantRanking.vue';
 import { icons } from '../../composables/icons';
@@ -233,6 +238,40 @@ const expensePieOption = computed(() => ({
     },
     data: props.analytics.expenseByCategory?.slice(0, 6).map(item => ({
       name: item.category,
+      value: Math.abs(item.amount)
+    })) || []
+  }]
+}));
+
+// 收入来源饼图 - 与支出分类保持一致的样式
+const incomePieOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: '{b}: ¥{c} ({d}%)',
+    backgroundColor: 'var(--bg-secondary)',
+    borderColor: 'var(--border)',
+    textStyle: { color: 'var(--text-primary)' }
+  },
+  legend: {
+    orient: 'vertical',
+    right: 10,
+    top: 'center',
+    textStyle: { color: 'var(--text-secondary)', fontSize: 12 }
+  },
+  color: ['#6B9B7A', '#5B9A9A', '#7BC27B', '#9BC27B', '#7B9BC2', '#A6C27B'],
+  series: [{
+    type: 'pie',
+    radius: ['45%', '70%'],
+    center: ['35%', '50%'],
+    avoidLabelOverlap: true,
+    itemStyle: { borderRadius: 8, borderColor: 'var(--bg-secondary)', borderWidth: 2 },
+    label: { show: false },
+    emphasis: {
+      label: { show: true, fontSize: 14, fontWeight: 'bold' },
+      itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
+    },
+    data: props.analytics.incomeBreakdown?.slice(0, 6).map(item => ({
+      name: item.source,
       value: Math.abs(item.amount)
     })) || []
   }]
