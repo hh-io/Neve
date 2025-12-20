@@ -54,6 +54,7 @@ export function processTransaction(tx) {
     let category = 'Other';
     let isIncome = false;
     let accountShort = '';
+    let isTransfer = false;
 
     if (tx.postings && tx.postings.length > 0) {
         for (const posting of tx.postings) {
@@ -76,6 +77,29 @@ export function processTransaction(tx) {
                 accountShort = parts.length > 2 ? parts[2] : (parts.length > 1 ? parts[1] : account);
             }
         }
+
+        // 内部转账处理：仅涉及 Assets/Liabilities 的交易（如还款、转账）
+        if (amount === 0 && tx.postings.length >= 2) {
+            const hasExpenseOrIncome = tx.postings.some(p => 
+                p.account?.startsWith('Expenses:') || p.account?.startsWith('Income:')
+            );
+            
+            if (!hasExpenseOrIncome) {
+                isTransfer = true;
+                category = 'Financial';
+                // 取正值金额作为转账金额
+                for (const posting of tx.postings) {
+                    if (posting.amount > 0) {
+                        amount = posting.amount;
+                        // Liabilities 正值表示还款
+                        if (posting.account?.startsWith('Liabilities:')) {
+                            isIncome = false; // 还款视为支出方向
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     return {
@@ -83,6 +107,7 @@ export function processTransaction(tx) {
         amount,
         category,
         isIncome,
+        isTransfer,
         accountShort,
         payee: tx.payee || '',
         narration: tx.narration || ''

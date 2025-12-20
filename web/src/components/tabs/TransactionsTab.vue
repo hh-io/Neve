@@ -35,7 +35,7 @@
     </div>
 
     <!-- Transaction List -->
-    <div class="card-static" style="padding: var(--space-4); height: calc(100vh - 220px); min-height: 500px; display: flex; flex-direction: column;">
+    <div class="card-static" style="padding: var(--space-4); height: calc(100vh - 340px); min-height: 350px; display: flex; flex-direction: column;">
       <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">
         <div style="display: flex; align-items: center; gap: var(--space-2);">
