@@ -11,9 +11,9 @@
 | Phase 1 工具链与类型契约 | ✅ 已完成 | commit `bdd4289`;见下方"Phase 1 落地记录" |
 | Phase 2 设计系统重建 | ✅ 已完成 | 新 token 体系 + legacy 别名共存;三主题目检通过 |
 | Phase 3 基础设施重构 | ✅ 已完成 | lucide 图标统一 + 数据/主题/Toast 单例;prop 移除见落地记录 |
-| Phase 4 组件逐个重写 | ⬜ 未开始 | |
+| Phase 4 组件逐个重写 | ✅ 已完成 | 6 批逐组件重写 + 收尾;见下方"Phase 4 落地记录" |
 | Phase 5 后端小清理 | ✅ 已完成 | commit `e661ed1`;顺带清理了只写不读的 `s.ledger` 字段 |
-| Phase 6 文档同步 | ⬜ 未开始 | |
+| Phase 6 文档同步 | ✅ 已完成 | CLAUDE.md/README.md 同步技术栈、数据流、API 表、目录树、内联样式约定 |
 
 ### Phase 1 落地记录(与原计划的偏差,下个会话必读)
 
@@ -226,6 +226,35 @@
 `pnpm run lint && pnpm run typecheck` 绿。
 **提交**:按组件分批,`refactor: XXX 组件 TS 化并接入新设计系统`
 
+### Phase 4 落地记录(Phase 6 / 后续会话必读)
+
+- **6 批逐组件重写全部完成**(每批一 commit):①布局层 `c642a6f` ②交易列表/交易 Tab `0492367`
+  ③OverviewTab `8c1a2ab` ④SpendingTab+排行 `661c6fe` ⑤TrendsTab+图表三件套 `7511e14`
+  ⑥AccountsTab+BudgetCard `0ec2095`;收尾 `3202471`。
+- **静态内联 `style="..."` 已清零**:全项目仅剩数据驱动的 `:style`(进度条宽度、tag 运行时色、
+  排行条宽、名次色、animationDelay 交错动画),符合计划"仅运行时值可用 :style"的约定。
+  唯一残留的 `style=` 字面量在 `WeekdayChart` 的 ECharts tooltip **HTML 字符串**里,非组件内联样式。
+- **各 Tab 已改用 `useAnalytics()` 取数**,App.vue 不再向任何 Tab 传 `:analytics`/`:transactions`/
+  `:expenseByCategory` prop(prop 钻透彻底移除);App.vue 也删掉了 `allCategories` computed。
+- **新增两个共享类**(`components.css`):`.panel`/`.panel-head`/`.panel-icon`/`.panel-title`/
+  `.panel-sub`(卡片图标标题头,接 `--card-pad`)与 `.filter-pills`/`.filter-pill`
+  (Revolut 式分段药丸;交易页类型筛选、趋势页周期选择复用)。`--card-pad` 已接入。
+- **图表色板全部 token 化**:饼图/柱状/折线/Sankey 的颜色改 `getThemeColor('--chart-1..8'/
+  '--chart-income'/'--chart-expense'/语义色)`,均在 computed 内 `void themeVersion.value` 触发重算。
+  折线面积渐变靠"主题实色 + hex8 alpha"(`color + '4D'/'00'`)拼出。**热力图**是顺序标度,
+  保留 GitHub 绿渐变(不取分类色板),仅结构色(边框/gap)换 token。
+- **新增 `composables/useBudgets.ts`**:模块级单例,`loadBudgets`/`saveBudgets` 复用 refresh 的
+  429/错误处理模式,写失败改 `showToast` 提示(不再 `console.error`)。BudgetCard 改用它 +
+  `useAnalytics()` 派生 `allCategories`,不再收 props。
+- **修复的潜在缺陷**:①`TransactionCalendar`/`AppSidebar` 引用未定义的 `--shadow-sm`(改 token/去除);
+  ②交易标签药丸文字在暗色主题贴浅底不可读(药丸背景恒为浅色,文字改固定深色 `#374151`)。
+- **ESLint 已升级为 `flat/recommended`** 并删除 `vue/block-lang` 覆盖(全组件已 TS 化,含 App.vue)。
+  ⚠️ **刻意关掉 `vue/attribute-hyphenation` 与 `vue/v-on-event-hyphenation`**:本项目模板统一用
+  camelCase 自定义 props/事件,且连字符化会把 `@update:activeTab` 改成 kebab、与 emit 失配断开
+  Tab 切换(Phase 1 早有警告)。其余 recommended 规则(属性顺序等)已 `--fix` 落地。
+- **奖牌/品牌色的取舍**:排行榜金/银/铜(`#FFD700` 等)、年度报告名次色为**领奖台隐喻**,刻意保留硬编码;
+  账户徽章的微信绿/支付宝蓝改为语义 token(`--income`/`--info`),以适配暗色主题。
+
 ---
 
 ## Phase 5:后端小清理(可选,低风险) ✅ 已完成(commit `e661ed1`)
@@ -247,6 +276,25 @@
 2. 更新 `README.md` 对应部分。
 
 **提交**:`docs: 同步重构后的技术栈与约定`
+
+### Phase 6 落地记录
+
+- **CLAUDE.md**:技术栈改"前端 TypeScript + @lucide/vue + composable 单例";数据流由
+  "props 下发"改为"`useAnalytics.ts` 单例消费";常用命令补 `pnpm lint/typecheck`;
+  正确性约定新增"**禁止内联 style,一律走 design token**"一条,并把图表色板 token 写入 ECharts 条;
+  `.js` 引用改 `.ts`,关键文件补 `types/api.ts`/`useAnalytics.ts`/`useThemeColor.ts`/`variables.css`。
+- **README.md**:徽章加 TypeScript、Go 1.21→1.25、Vite 5→8;技术栈框去掉 "Glassmorphism"、
+  改 "Vue 3 + TS / Vite 8 / @lucide / 设计 token / composable 单例";**API 表删除 Phase 5 已移除的
+  `/api/summary`、`/api/transactions`、`/api/accounts`**;前端目录树按现状重写(去 `icons.js`、
+  补 `types/`、`layout/`、排行/日历组件与各 `.ts` composable)。
+
+---
+
+## ✅ 重构完成
+
+六个 Phase(工具链 → 设计系统 → 基础设施 → 组件重写 → 后端清理 → 文档)全部落地。
+后续新增前端代码请遵循:`<script setup lang="ts">` + `types/api.ts` 类型 + design token(禁内联 style)+
+`useAnalytics()` 取数 + ECharts `getThemeColor()`/`themeVersion` 主题机制。
 
 ---
 

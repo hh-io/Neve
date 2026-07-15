@@ -1,7 +1,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/vue-3.5-4FC08D?style=flat-square&logo=vue.js" alt="Vue 3">
-  <img src="https://img.shields.io/badge/go-1.21+-00ADD8?style=flat-square&logo=go" alt="Go">
-  <img src="https://img.shields.io/badge/vite-5.x-646CFF?style=flat-square&logo=vite" alt="Vite">
+  <img src="https://img.shields.io/badge/typescript-5.9-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/go-1.25+-00ADD8?style=flat-square&logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/vite-8.x-646CFF?style=flat-square&logo=vite" alt="Vite">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
 </p>
 
@@ -45,7 +46,8 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                       Frontend                          │
-│   Vue 3  •  Vite  •  ECharts  •  Glassmorphism CSS     │
+│  Vue 3 + TS  •  Vite 8  •  ECharts  •  @lucide/vue      │
+│  设计 token(CSS 变量,三主题)• composable 单例(无 Pinia)│
 ├─────────────────────────────────────────────────────────┤
 │                       Backend                           │
 │   Go  •  Gin  •  embed (静态文件嵌入)                   │
@@ -143,26 +145,26 @@ Neve/
 │       ├── analytics.go        # 数据分析 (净资产/分类/趋势/转账识别)
 │       └── *_test.go           # 单元测试
 │
-└── 📁 web/                      # 🎨 Vue 3 前端
+└── 📁 web/                      # 🎨 Vue 3 + TypeScript 前端
     └── src/
-        ├── App.vue             # 主应用组件
+        ├── App.vue             # 布局壳 + 主题 + Tab 分发
+        ├── types/api.ts        # /api/analytics 契约类型 (对照后端 struct)
         ├── components/
-        │   ├── tabs/           # 页面标签组件
-        │   │   ├── OverviewTab.vue      # 概览
-        │   │   ├── SpendingTab.vue      # 支出分析
-        │   │   ├── TrendsTab.vue        # 趋势图表
-        │   │   ├── TransactionsTab.vue  # 交易列表
-        │   │   └── AccountsTab.vue      # 账户管理
-        │   ├── common/IssuesBanner.vue  # 解析错误/断言失败横幅
-        │   ├── CategoryTrendChart.vue   # 分类趋势图
-        │   ├── WeekdayChart.vue         # 周分布图
-        │   └── TransactionList.vue      # 交易列表组件
-        ├── composables/
-        │   ├── icons.js        # SVG 图标库
-        │   ├── useCategories.js # 分类中文映射 + 交易展示字段
-        │   ├── useFormatters.js # 格式化工具
-        │   └── useThemeColor.js # ECharts 主题取色
-        └── styles/             # 设计系统 (variables/base/layout/components/mobile)
+        │   ├── tabs/           # 页面标签组件 (Overview/Spending/Trends/Transactions/Accounts)
+        │   ├── layout/         # AppSidebar / MobileNav / ThemeSwitcher
+        │   ├── common/         # AppToast / IssuesBanner
+        │   ├── CategoryTrendChart.vue / WeekdayChart.vue / TransactionCalendar.vue  # 图表
+        │   ├── MerchantRanking.vue / PlatformRanking.vue                            # 排行
+        │   ├── TransactionList.vue      # 交易列表 (changelog-row)
+        │   └── BudgetCard.vue           # 预算卡
+        ├── composables/        # 模块级单例 + 工具 (.ts)
+        │   ├── useAnalytics.ts # analytics 单例 fetch/refresh (429 处理)
+        │   ├── useTheme.ts / useToast.ts / useBudgets.ts  # 主题/Toast/预算单例
+        │   ├── useCategories.ts # 分类中文映射 + 交易展示字段
+        │   ├── useCategoryIcon.ts / navItems.ts           # lucide 图标映射
+        │   ├── useFormatters.ts # 格式化工具
+        │   └── useThemeColor.ts # ECharts 主题取色 (getThemeColor + themeVersion)
+        └── styles/             # 设计 token 系统 (variables/base/layout/components/mobile)
 ```
 
 ---
@@ -188,10 +190,7 @@ Neve/
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/summary` | 财务摘要 (净资产/本月收支/记账天数) |
-| `GET` | `/api/analytics` | 完整分析数据 (图表/全量交易/parseIssues/balanceChecks) |
-| `GET` | `/api/transactions` | 获取交易列表 |
-| `GET` | `/api/accounts` | 获取账户列表 |
+| `GET` | `/api/analytics` | 完整分析数据 (摘要/图表/全量交易/parseIssues/balanceChecks),前端一次拉取全量 |
 | `POST` | `/api/refresh` | 重新解析账本并重建缓存 (5 秒限流) |
 | `GET` | `/api/budgets` | 获取预算 |
 | `POST` | `/api/budgets` | 保存预算 (原子写 budgets.json) |
