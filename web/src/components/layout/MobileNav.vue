@@ -15,12 +15,10 @@
   </nav>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { navItems } from '../../composables/navItems';
 
-defineProps({
-  activeTab: { type: String, required: true }
-});
+defineProps<{ activeTab: string }>();
 
-defineEmits(['update:activeTab']);
+defineEmits<{ 'update:activeTab': [id: string] }>();
 </script>

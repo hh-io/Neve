@@ -44,7 +44,7 @@
     </nav>
 
     <!-- Stats Section -->
-    <div v-if="showStats" class="user-section animate-fade-in-up" style="animation-delay: 0.2s;">
+    <div v-if="showStats" class="user-section animate-fade-in-up delay-200">
       <div class="stats-card">
         <div class="stats-icon-wrapper">
           <Trophy :size="20" />
@@ -59,46 +59,46 @@
   </aside>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { PiggyBank, Trophy } from '@lucide/vue';
 import { navItems } from '../../composables/navItems';
 
-defineProps({
-  activeTab: { type: String, required: true },
-  showStats: { type: Boolean, default: false },
-  transactionCount: { type: Number, default: 0 },
-  trackingDays: { type: Number, default: 0 }
-});
+defineProps<{
+  activeTab: string;
+  showStats?: boolean;
+  transactionCount?: number;
+  trackingDays?: number;
+}>();
 
-defineEmits(['update:activeTab']);
+defineEmits<{ 'update:activeTab': [id: string] }>();
 </script>
 
 <style scoped>
 /* Stats Card in Sidebar(自 App.vue 迁入,归位到侧边栏组件) */
 .stats-card {
-  background: var(--bg-secondary);
+  background: var(--surface-1);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  border: 1px solid var(--border);
-  transition: all var(--transition-base);
+  border: 1px solid var(--hairline);
+  transition: border-color var(--transition-base);
 }
 
 .stats-card:hover {
-  border-color: var(--brand-primary);
+  border-color: var(--accent);
 }
 
 .stats-icon-wrapper {
   width: 40px;
   height: 40px;
-  background: var(--brand-light);
+  background: var(--accent-subtle);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--brand-primary);
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -118,6 +118,8 @@ defineEmits(['update:activeTab']);
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
 }
 
 .stats-unit {

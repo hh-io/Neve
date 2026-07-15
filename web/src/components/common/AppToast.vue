@@ -7,7 +7,7 @@
   </Transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { CheckCircle2, AlertCircle } from '@lucide/vue';
 import { useToast } from '../../composables/useToast';
 
@@ -22,24 +22,24 @@ const { toast } = useToast();
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 20px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   z-index: 9999;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .toast.success {
-  background: linear-gradient(135deg, #6B9B7A 0%, #5a8a69 100%);
-  color: white;
+  background: var(--income);
+  color: #fff;
 }
 
 .toast.error {
-  background: linear-gradient(135deg, #C27B7B 0%, #b06a6a 100%);
-  color: white;
+  background: var(--expense);
+  color: #fff;
 }
 
 .toast-enter-active {

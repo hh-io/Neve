@@ -36,12 +36,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Sun, Moon, Terminal, Monitor } from '@lucide/vue';
+import type { ThemeMode } from '../../composables/useTheme';
 
-defineProps({
-  modelValue: { type: String, required: true }
-});
+defineProps<{ modelValue: ThemeMode }>();
 
-defineEmits(['update:modelValue']);
+defineEmits<{ 'update:modelValue': [mode: ThemeMode] }>();
 </script>

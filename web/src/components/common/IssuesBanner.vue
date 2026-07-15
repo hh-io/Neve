@@ -23,12 +23,16 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
+import type { ParseIssue, BalanceCheck } from '../../types/api';
 
-const props = defineProps({
-  issues: { type: Array, default: () => [] },
-  balanceChecks: { type: Array, default: () => [] }
+const props = withDefaults(defineProps<{
+  issues?: ParseIssue[];
+  balanceChecks?: BalanceCheck[];
+}>(), {
+  issues: () => [],
+  balanceChecks: () => []
 });
 
 const expanded = ref(false);
@@ -109,7 +113,7 @@ const hasIssues = computed(() => props.issues.length > 0 || hasErrors.value);
 
 .issues-list {
   padding: var(--space-2) var(--space-4) var(--space-3);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
   max-height: 240px;
   overflow-y: auto;
 }
