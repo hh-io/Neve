@@ -47,7 +47,7 @@
 
         <!-- Tab Contents -->
         <OverviewTab v-show="activeTab === 'overview'" />
-        <SpendingTab v-show="activeTab === 'spending'" :analytics="analytics" />
+        <SpendingTab v-show="activeTab === 'spending'" />
         <TrendsTab v-show="activeTab === 'trends'" :analytics="analytics" />
         <AccountsTab v-show="activeTab === 'accounts'" :analytics="analytics" />
 

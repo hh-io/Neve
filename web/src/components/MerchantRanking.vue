@@ -26,30 +26,33 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
+import type { PayeeStats } from '../types/api';
 
-const props = defineProps({
-  data: { type: Array, default: () => [] }
+const props = withDefaults(defineProps<{
+  data?: PayeeStats[];
+}>(), {
+  data: () => []
 });
 
 const maxAmount = computed(() => {
   return props.data.length ? props.data[0].amount : 1;
 });
 
-function getRankClass(index) {
+function getRankClass(index: number): string {
   if (index === 0) return 'gold';
   if (index === 1) return 'silver';
   if (index === 2) return 'bronze';
   return '';
 }
 
-function formatAmount(amount) {
+function formatAmount(amount: number): string {
   return amount >= 1000 ? (amount / 1000).toFixed(1) + 'k' : amount.toFixed(0);
 }
 
-function getBarOpacity(index) {
-  // 第一名 1.0，之后每名递减 0.08，最低 0.35
+function getBarOpacity(index: number): number {
+  // 第一名 1.0，之后每名递减 0.08,最低 0.35
   return Math.max(0.35, 1 - index * 0.08);
 }
 </script>
@@ -84,7 +87,7 @@ function getBarOpacity(index) {
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   color: var(--text-secondary);
   flex-shrink: 0;
 }
@@ -104,14 +107,14 @@ function getBarOpacity(index) {
 
 .rank-bar-wrap {
   height: 8px;
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .rank-bar {
   height: 100%;
-  background: linear-gradient(90deg, #FF9500, #FF3B30);
+  background: var(--chart-expense);
   border-radius: 4px;
   transition: width 0.5s ease;
 }
@@ -126,6 +129,7 @@ function getBarOpacity(index) {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--expense);
+  font-variant-numeric: tabular-nums;
 }
 
 .rank-count {
