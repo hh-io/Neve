@@ -49,12 +49,24 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
+import type { DailyData } from '../types/api';
 
-const props = defineProps({
-  dailyData: { type: Array, default: () => [] }
+interface CalendarCell {
+  day: number;
+  date: string | null;
+  expense?: number;
+  income?: number;
+  isToday?: boolean;
+  isOtherMonth: boolean;
+}
+
+const props = withDefaults(defineProps<{
+  dailyData?: DailyData[];
+}>(), {
+  dailyData: () => []
 });
 
 const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -85,7 +97,7 @@ function nextMonth() {
 
 // 将数据转换为日期索引的 map
 const dailyMap = computed(() => {
-  const map = {};
+  const map: Record<string, { expense: number; income: number }> = {};
   props.dailyData.forEach(d => {
     if (d.date) {
       map[d.date] = {
@@ -109,8 +121,8 @@ const calendarCells = computed(() => {
   // 上个月有多少天
   const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
   
-  const cells = [];
-  
+  const cells: CalendarCell[] = [];
+
   // 上个月的尾部日期（填充）
   for (let i = firstDay - 1; i >= 0; i--) {
     cells.push({
@@ -147,24 +159,26 @@ const calendarCells = computed(() => {
   return cells;
 });
 
-function isToday(year, month, day) {
+function isToday(year: number, month: number, day: number): boolean {
   const today = new Date();
-  return today.getFullYear() === year && 
-         today.getMonth() + 1 === month && 
+  return today.getFullYear() === year &&
+         today.getMonth() + 1 === month &&
          today.getDate() === day;
 }
 
-function getCellClass(cell) {
-  const classes = [];
+function getCellClass(cell: CalendarCell): string[] {
+  const classes: string[] = [];
   if (cell.isOtherMonth) classes.push('other-month');
   if (cell.isToday) classes.push('today');
-  if (cell.expense > 0 && cell.income > 0) classes.push('mixed');
-  else if (cell.expense > 0) classes.push('has-expense');
-  else if (cell.income > 0) classes.push('has-income');
+  const expense = cell.expense || 0;
+  const income = cell.income || 0;
+  if (expense > 0 && income > 0) classes.push('mixed');
+  else if (expense > 0) classes.push('has-expense');
+  else if (income > 0) classes.push('has-income');
   return classes;
 }
 
-function formatAmount(amount) {
+function formatAmount(amount: number): number | string {
   if (amount >= 1000) {
     return (amount / 1000).toFixed(1) + 'k';
   }
@@ -190,18 +204,18 @@ function formatAmount(amount) {
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: var(--brand-primary);
+  background: var(--accent);
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .nav-btn:hover {
   transform: scale(1.1);
-  box-shadow: var(--shadow-sm);
+  background: var(--accent-hover);
 }
 
 .nav-btn :deep(svg) {
@@ -223,7 +237,7 @@ function formatAmount(amount) {
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
   padding: var(--space-1) 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--hairline);
   margin-bottom: var(--space-1);
 }
 
@@ -248,13 +262,13 @@ function formatAmount(amount) {
   align-items: center;
   justify-content: flex-start;
   gap: 1px;
-  background: var(--bg-tertiary);
-  transition: all 0.15s ease;
+  background: var(--surface-2);
+  transition: background 0.15s ease, border-color 0.15s ease;
   overflow: hidden;
 }
 
 .date-cell:hover:not(.other-month) {
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 0 1px var(--hairline-strong);
 }
 
 .date-cell.other-month {
@@ -263,20 +277,20 @@ function formatAmount(amount) {
 }
 
 .date-cell.today {
-  background: var(--brand-light);
-  border: 1.5px solid var(--brand-primary);
+  background: var(--accent-subtle);
+  border: 1.5px solid var(--accent);
 }
 
 .date-cell.has-expense {
-  background: rgba(194, 123, 123, 0.12);
+  background: color-mix(in srgb, var(--expense) 12%, transparent);
 }
 
 .date-cell.has-income {
-  background: rgba(107, 155, 122, 0.12);
+  background: color-mix(in srgb, var(--income) 12%, transparent);
 }
 
 .date-cell.mixed {
-  background: linear-gradient(135deg, rgba(107, 155, 122, 0.12) 0%, rgba(194, 123, 123, 0.12) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--income) 12%, transparent) 0%, color-mix(in srgb, var(--expense) 12%, transparent) 100%);
 }
 
 .date-num {
@@ -296,6 +310,7 @@ function formatAmount(amount) {
   font-weight: 500;
   color: var(--expense);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .income-amount {
@@ -303,6 +318,7 @@ function formatAmount(amount) {
   font-weight: 500;
   color: var(--income);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .legend {
@@ -311,7 +327,7 @@ function formatAmount(amount) {
   gap: var(--space-4);
   margin-top: var(--space-3);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
 }
 
 .legend-item {
@@ -329,11 +345,11 @@ function formatAmount(amount) {
 }
 
 .legend-dot.expense {
-  background: rgba(194, 123, 123, 0.5);
+  background: color-mix(in srgb, var(--expense) 50%, transparent);
 }
 
 .legend-dot.income {
-  background: rgba(107, 155, 122, 0.5);
+  background: color-mix(in srgb, var(--income) 50%, transparent);
 }
 
 /* 响应式 */

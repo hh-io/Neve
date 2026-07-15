@@ -1,8 +1,8 @@
 <template>
   <div>
     <!-- Header with category selector and stats -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2);">
-      <div style="display: flex; align-items: center; gap: var(--space-2);">
+    <div class="ct-header">
+      <div class="ct-selectors">
         <select v-model="selectedCategory" class="category-select">
           <option v-for="cat in categories" :key="cat" :value="cat">
             {{ getCategoryLabel(cat) }}
@@ -33,7 +33,7 @@
     </div>
     
     <!-- Stats row -->
-    <div style="display: flex; gap: var(--space-4); margin-bottom: var(--space-3); flex-wrap: wrap;">
+    <div class="ct-stats">
       <div class="stat-chip">
         <span class="stat-chip-label">本月</span>
         <span class="stat-chip-value">¥{{ formatNum(currentMonthAmount) }}</span>
@@ -54,20 +54,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, MarkLineComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+import type { CategoryTrend } from '../types/api';
 import { getThemeColor, themeVersion } from '../composables/useThemeColor';
 import { getCategoryLabel } from '../composables/useCategories';
 
 use([LineChart, GridComponent, TooltipComponent, MarkLineComponent, CanvasRenderer]);
 
-const props = defineProps({
-  data: { type: Array, default: () => [] }
+const props = withDefaults(defineProps<{
+  data?: CategoryTrend[];
+}>(), {
+  data: () => []
 });
 
 const categories = computed(() => props.data.map(d => d.category));
@@ -80,7 +83,7 @@ watch(compareCategory, (val) => {
   if (!val) compareMode.value = false;
 });
 
-function formatNum(val) {
+function formatNum(val: number): string {
   if (val >= 1000) return (val / 1000).toFixed(1) + 'k';
   return val.toFixed(0);
 }
@@ -154,23 +157,23 @@ const chartOption = computed(() => {
   const amounts = selectedData.value.map(d => d.amount);
   const avg = avgAmount.value;
 
-  const series = [{
+  const series: Record<string, unknown>[] = [{
     name: getCategoryLabel(selectedCategory.value),
     type: 'line',
     data: amounts,
     smooth: true,
     symbol: 'circle',
-    symbolSize: (value) => value > avg * 2 ? 10 : 6, // Larger symbol for anomalies
-    lineStyle: { width: 2, color: getThemeColor('--expense') || '#F87171' },
-    itemStyle: { 
-      color: (params) => params.value > avg * 2 ? getThemeColor('--expense') || '#F87171' : getThemeColor('--expense') || '#F87171'
+    symbolSize: (value: number) => value > avg * 2 ? 10 : 6, // Larger symbol for anomalies
+    lineStyle: { width: 2, color: getThemeColor('--expense') },
+    itemStyle: {
+      color: getThemeColor('--expense')
     },
     areaStyle: {
       color: {
         type: 'linear',
         x: 0, y: 0, x2: 0, y2: 1,
         colorStops: [
-          { offset: 0, color: getThemeColor('--expense-light') || 'rgba(248, 113, 113, 0.15)' },
+          { offset: 0, color: getThemeColor('--expense-light') },
           { offset: 1, color: 'rgba(0,0,0,0)' }
         ]
       }
@@ -178,8 +181,8 @@ const chartOption = computed(() => {
     markLine: {
       silent: true,
       symbol: 'none',
-      lineStyle: { color: getThemeColor('--text-tertiary') || '#94A3B8', type: 'dashed', width: 1 },
-      data: [{ yAxis: avg, label: { formatter: '均值', position: 'end', fontSize: 10, color: getThemeColor('--text-tertiary') || '#94A3B8' } }]
+      lineStyle: { color: getThemeColor('--text-tertiary'), type: 'dashed', width: 1 },
+      data: [{ yAxis: avg, label: { formatter: '均值', position: 'end', fontSize: 10, color: getThemeColor('--text-tertiary') } }]
     }
   }];
 
@@ -192,14 +195,14 @@ const chartOption = computed(() => {
       smooth: true,
       symbol: 'circle',
       symbolSize: 6,
-      lineStyle: { width: 2, color: getThemeColor('--income') || '#34D399' },
-      itemStyle: { color: getThemeColor('--income') || '#34D399' },
+      lineStyle: { width: 2, color: getThemeColor('--income') },
+      itemStyle: { color: getThemeColor('--income') },
       areaStyle: {
         color: {
           type: 'linear',
           x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: getThemeColor('--income-light') || 'rgba(52, 211, 153, 0.15)' },
+            { offset: 0, color: getThemeColor('--income-light') },
             { offset: 1, color: 'rgba(0,0,0,0)' }
           ]
         }
@@ -210,8 +213,8 @@ const chartOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: getThemeColor('--bg-secondary'),
-      borderColor: getThemeColor('--border'),
+      backgroundColor: getThemeColor('--surface-1'),
+      borderColor: getThemeColor('--hairline'),
       textStyle: { color: getThemeColor('--text-primary') }
     },
     legend: compareMode.value && compareCategory.value ? {
@@ -229,16 +232,16 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'category',
       data: labels,
-      axisLine: { lineStyle: { color: getThemeColor('--border') } },
+      axisLine: { lineStyle: { color: getThemeColor('--hairline') } },
       axisLabel: { color: getThemeColor('--text-secondary'), fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: getThemeColor('--border'), type: 'dashed' } },
+      splitLine: { lineStyle: { color: getThemeColor('--hairline'), type: 'dashed' } },
       axisLabel: {
         color: getThemeColor('--text-secondary'),
-        formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
+        formatter: (val: number) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },
     series,
@@ -247,12 +250,34 @@ const chartOption = computed(() => {
 </script>
 
 <style scoped>
+.ct-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ct-selectors {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ct-stats {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
 .category-select {
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   color: var(--text-primary);
   cursor: pointer;
   outline: none;
@@ -260,16 +285,16 @@ const chartOption = computed(() => {
 }
 
 .category-select:hover {
-  border-color: var(--border-hover);
+  border-color: var(--hairline-strong);
 }
 
 .category-select:focus {
-  border-color: var(--brand-primary);
+  border-color: var(--accent);
 }
 
 .compare-btn {
   padding: var(--space-1) var(--space-2);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--hairline);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
   background: transparent;
@@ -279,8 +304,8 @@ const chartOption = computed(() => {
 }
 
 .compare-btn:hover {
-  border-color: var(--brand-primary);
-  color: var(--brand-primary);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .mom-indicator {
@@ -294,17 +319,21 @@ const chartOption = computed(() => {
 }
 
 .mom-indicator.up {
-  background: rgba(255, 107, 107, 0.1);
-  color: #FF6B6B;
+  background: var(--expense-light);
+  color: var(--expense);
 }
 
 .mom-indicator.down {
-  background: rgba(107, 155, 122, 0.1);
-  color: #6B9B7A;
+  background: var(--income-light);
+  color: var(--income);
 }
 
 .mom-arrow {
   font-weight: 600;
+}
+
+.mom-value {
+  font-variant-numeric: tabular-nums;
 }
 
 .mom-label {
@@ -316,14 +345,14 @@ const chartOption = computed(() => {
   display: flex;
   flex-direction: column;
   padding: var(--space-2) var(--space-3);
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
 }
 
 .stat-chip.anomaly {
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  background: var(--expense-light);
+  border: 1px solid var(--expense);
 }
 
 .stat-chip-label {
@@ -333,6 +362,7 @@ const chartOption = computed(() => {
 .stat-chip-value {
   font-weight: 600;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-container {
