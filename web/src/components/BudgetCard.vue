@@ -11,10 +11,10 @@
     <div v-if="showEdit" class="budget-edit">
       <div v-for="(budget, cat) in budgets" :key="cat" class="budget-edit-row">
         <span class="budget-cat">{{ cat }}</span>
-        <input 
-          type="number" 
+        <input
+          type="number"
           :value="budget"
-          @change="updateBudget(cat, $event.target.value)"
+          @change="updateBudget(cat, ($event.target as HTMLInputElement).value)"
           class="budget-input"
           placeholder="0"
         />
@@ -76,65 +76,41 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { useAnalytics } from '../composables/useAnalytics';
+import { useBudgets } from '../composables/useBudgets';
 
-const props = defineProps({
-  expenseByCategory: { type: Array, default: () => [] },
-  allCategories: { type: Array, default: () => [] }
-});
+const { analytics } = useAnalytics();
+const { budgets, loadBudgets, saveBudgets } = useBudgets();
+
+const expenseByCategory = computed(() => analytics.value?.expenseByCategory || []);
+const allCategories = computed(() => expenseByCategory.value.map(e => e.category));
 
 const showEdit = ref(false);
 const newCategory = ref('');
 
-// Load budgets from server (with localStorage fallback)
-const budgets = ref({});
+onMounted(loadBudgets);
 
-// Fetch budgets from server on mount
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/budgets');
-    if (res.ok) {
-      budgets.value = await res.json();
-    }
-  } catch {
-    // Fallback to localStorage
-    budgets.value = JSON.parse(localStorage.getItem('neve-budgets') || '{}');
-  }
-});
-
-// Save budgets to server when changed
-watch(budgets, async (val) => {
-  // Also save to localStorage as backup
-  localStorage.setItem('neve-budgets', JSON.stringify(val));
-  
-  try {
-    await fetch('/api/budgets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(val)
-    });
-  } catch (e) {
-    console.error('Failed to save budgets to server:', e);
-  }
-}, { deep: true });
+// 预算变更即写回服务端(内部含 429/错误处理)+ localStorage 备份
+watch(budgets, saveBudgets, { deep: true });
 
 const availableCategories = computed(() => {
-  return props.allCategories.filter(cat => !budgets.value[cat]);
+  return allCategories.value.filter(cat => !budgets.value[cat]);
 });
 
-function getSpent(category) {
-  const found = props.expenseByCategory.find(e => e.category === category);
+function getSpent(category: string): number {
+  const found = expenseByCategory.value.find(e => e.category === category);
   return found?.amount || 0;
 }
 
-function getProgress(category) {
+function getProgress(category: string): number {
   const spent = getSpent(category);
   const budget = budgets.value[category] || 1;
   return (spent / budget) * 100;
 }
 
-function updateBudget(category, value) {
+function updateBudget(category: string, value: string) {
   const num = parseFloat(value);
   if (num > 0) {
     budgets.value[category] = num;
@@ -150,7 +126,7 @@ function addBudget() {
   }
 }
 
-function deleteBudget(category) {
+function deleteBudget(category: string) {
   delete budgets.value[category];
 }
 
@@ -170,7 +146,7 @@ const totalProgress = computed(() => {
 <style scoped>
 .budget-card {
   min-height: 200px;
-  padding: var(--space-6);
+  padding: var(--card-pad);
 }
 
 .budget-header {
@@ -190,8 +166,8 @@ const totalProgress = computed(() => {
 .edit-btn {
   padding: var(--space-2) var(--space-3);
   border: none;
-  background: var(--brand-light);
-  color: var(--brand-primary);
+  background: var(--accent-subtle);
+  color: var(--accent);
   font-size: var(--font-size-sm);
   font-weight: 500;
   border-radius: var(--radius-sm);
@@ -224,11 +200,12 @@ const totalProgress = computed(() => {
 .budget-amount {
   font-size: 12px;
   color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 .budget-progress-wrap {
   height: 6px;
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -253,6 +230,7 @@ const totalProgress = computed(() => {
   font-weight: 600;
   text-align: right;
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .budget-percent.over {
@@ -262,7 +240,7 @@ const totalProgress = computed(() => {
 .budget-total {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  border-top: 1px dashed var(--hairline);
 }
 
 .total-row {
@@ -270,6 +248,7 @@ const totalProgress = computed(() => {
   justify-content: space-between;
   margin-bottom: var(--space-2);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Edit Mode */
@@ -293,25 +272,29 @@ const totalProgress = computed(() => {
 .budget-input {
   width: 100px;
   padding: var(--space-2);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   text-align: right;
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
 .budget-select {
   flex: 1;
   padding: var(--space-2);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
 .add-btn {
   width: 32px;
   height: 32px;
   border: none;
-  background: var(--brand-primary);
+  background: var(--accent);
   color: white;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -332,7 +315,7 @@ const totalProgress = computed(() => {
   width: 28px;
   height: 28px;
   border: none;
-  background: rgba(255, 59, 48, 0.1);
+  background: var(--expense-light);
   color: var(--expense);
   border-radius: var(--radius-sm);
   cursor: pointer;

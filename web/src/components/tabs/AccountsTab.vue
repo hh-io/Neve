@@ -1,38 +1,38 @@
 <template>
   <div class="animate-fade-in-up">
     <!-- Net Worth Summary -->
-    <div class="card section-mb" style="padding: var(--space-6); background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border: none;">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
+    <div class="card section-mb networth-card">
+      <div class="networth-top">
         <div>
-          <div style="font-size: var(--font-size-sm); color: rgba(255,255,255,0.8); margin-bottom: var(--space-1);">净资产</div>
-          <div style="font-size: var(--font-size-2xl); font-weight: 700; color: white;">{{ formatMoney(analytics.summary?.netWorth || 0) }}</div>
+          <div class="networth-eyebrow">净资产</div>
+          <div class="networth-value">{{ formatMoney(summary?.netWorth || 0) }}</div>
         </div>
-        <div style="width: 64px; height: 64px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
+        <div class="networth-icon">
           <Wallet :size="32" color="white" />
         </div>
       </div>
-      <div style="display: flex; gap: var(--space-8); margin-top: var(--space-4);">
+      <div class="networth-detail">
         <div>
-          <div style="font-size: var(--font-size-xs); color: rgba(255,255,255,0.7);">总资产</div>
-          <div style="font-size: var(--font-size-lg); color: white; font-weight: 500;">{{ formatMoney(analytics.summary?.totalAssets || 0) }}</div>
+          <div class="networth-sub">总资产</div>
+          <div class="networth-sub-value">{{ formatMoney(summary?.totalAssets || 0) }}</div>
         </div>
         <div>
-          <div style="font-size: var(--font-size-xs); color: rgba(255,255,255,0.7);">总负债</div>
-          <div style="font-size: var(--font-size-lg); color: white; font-weight: 500;">{{ formatMoney(Math.abs(analytics.summary?.totalLiabilities || 0)) }}</div>
+          <div class="networth-sub">总负债</div>
+          <div class="networth-sub-value">{{ formatMoney(Math.abs(summary?.totalLiabilities || 0)) }}</div>
         </div>
       </div>
     </div>
 
     <!-- Account Tree -->
-    <div class="card-static" style="padding: var(--space-6);">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
-        <div style="display: flex; align-items: center; gap: var(--space-3);">
-          <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <Landmark :size="20" color="var(--brand-primary)" />
+    <div class="card-static panel">
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <div class="panel-icon bg-brand-light">
+            <Landmark :size="20" color="var(--accent)" />
           </div>
-          <span style="font-weight: 600; color: var(--text-primary);">账户结构</span>
+          <span class="panel-title">账户结构</span>
         </div>
-        <div style="display: flex; gap: var(--space-2);">
+        <div class="tree-actions">
           <button class="btn btn-ghost" @click="expandAll">展开全部</button>
           <button class="btn btn-ghost" @click="collapseAll">收起全部</button>
         </div>
@@ -107,36 +107,42 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, reactive } from 'vue';
+import type { FunctionalComponent } from 'vue';
+import type { AccountBalance } from '../../types/api';
 import { formatMoney } from '../../composables/useFormatters';
+import { useAnalytics } from '../../composables/useAnalytics';
 import { Wallet, Landmark, ChevronRight, CreditCard, LineChart, ShoppingBag, Utensils, PiggyBank } from '@lucide/vue';
 
-const props = defineProps({
-  analytics: { type: Object, required: true }
-});
+const { analytics } = useAnalytics();
+
+const summary = computed(() => analytics.value?.summary);
+
+// 账户树:Assets/Liabilities → 子类型 → 账户列表
+type AccountTree = Record<string, Record<string, AccountBalance[]>>;
 
 // Expanded state for tree nodes (first level expanded by default)
-const expandedNodes = reactive({
+const expandedNodes = reactive<Record<string, boolean>>({
   Assets: true,
   Liabilities: true
 });
 
 // Build tree structure from flat account list
-const accountTree = computed(() => {
-  const accounts = props.analytics.accountBalances || [];
-  const tree = {};
+const accountTree = computed<AccountTree>(() => {
+  const accounts = analytics.value?.accountBalances || [];
+  const tree: AccountTree = {};
 
   accounts.forEach(acc => {
     const parts = acc.account.split(':');
     if (parts.length < 2) return;
-    
+
     const level1 = parts[0]; // Assets, Liabilities
     const level2 = parts[1]; // Bank, Cash, CreditCard, etc.
-    
+
     // Skip Equity accounts
     if (level1 === 'Equity') return;
-    
+
     // Only show Assets and Liabilities (skip Expenses, Income)
     if (level1 !== 'Assets' && level1 !== 'Liabilities') return;
 
@@ -149,7 +155,7 @@ const accountTree = computed(() => {
 });
 
 // Toggle node expansion
-function toggleNode(key) {
+function toggleNode(key: string) {
   expandedNodes[key] = !expandedNodes[key];
 }
 
@@ -169,32 +175,32 @@ function collapseAll() {
 }
 
 // Group helpers
-function getGroupLabel(key) {
-  const labels = { Assets: '资产', Liabilities: '负债' };
+function getGroupLabel(key: string): string {
+  const labels: Record<string, string> = { Assets: '资产', Liabilities: '负债' };
   return labels[key] || key;
 }
 
-function getGroupIcon(key) {
+function getGroupIcon(key: string): FunctionalComponent {
   return key === 'Assets' ? Wallet : CreditCard;
 }
 
-function getGroupIconClass(key) {
+function getGroupIconClass(key: string): string {
   return key === 'Assets' ? 'icon-positive' : 'icon-negative';
 }
 
-function getGroupTotal(key) {
+function getGroupTotal(key: string): number {
   const group = accountTree.value[key];
   if (!group) return 0;
   return Object.values(group).flat().reduce((sum, acc) => sum + acc.balance, 0);
 }
 
-function getSubGroupTotal(accounts) {
+function getSubGroupTotal(accounts: AccountBalance[]): number {
   return accounts.reduce((sum, acc) => sum + acc.balance, 0);
 }
 
 // Sub-type helpers
-function getSubTypeLabel(key) {
-  const labels = {
+function getSubTypeLabel(key: string): string {
+  const labels: Record<string, string> = {
     Bank: '银行卡',
     Cash: '现金',
     CreditCard: '信用卡',
@@ -206,8 +212,8 @@ function getSubTypeLabel(key) {
   return labels[key] || key;
 }
 
-function getSubTypeIcon(key) {
-  const iconMap = {
+function getSubTypeIcon(key: string): FunctionalComponent {
+  const iconMap: Record<string, FunctionalComponent> = {
     Bank: Landmark,
     Cash: Wallet,
     CreditCard: CreditCard,
@@ -219,8 +225,8 @@ function getSubTypeIcon(key) {
   return iconMap[key] || Wallet;
 }
 
-function getSubTypeIconClass(key) {
-  const classMap = {
+function getSubTypeIconClass(key: string): string {
+  const classMap: Record<string, string> = {
     Bank: 'icon-bank',
     Cash: 'icon-cash',
     CreditCard: 'icon-credit',
@@ -233,12 +239,12 @@ function getSubTypeIconClass(key) {
 }
 
 // Account helpers
-function getAccountName(account) {
+function getAccountName(account: AccountBalance): string {
   const parts = account.account.split(':');
   const name = parts[parts.length - 1];
-  
+
   // Map common account names to Chinese
-  const nameMap = {
+  const nameMap: Record<string, string> = {
     CMBC: '招商银行',
     ICBC: '工商银行',
     PSBC: '邮储银行',
@@ -252,11 +258,11 @@ function getAccountName(account) {
     Fund: '基金',
     Crypto: '加密货币',
   };
-  
+
   return nameMap[name] || name;
 }
 
-function getAccountIcon(account) {
+function getAccountIcon(account: AccountBalance): FunctionalComponent {
   const path = account.account;
   if (path.includes('CreditCard')) return CreditCard;
   if (path.includes('Bank')) return Landmark;
@@ -268,7 +274,7 @@ function getAccountIcon(account) {
   return PiggyBank;
 }
 
-function getAccountTypeLabel(account) {
+function getAccountTypeLabel(account: AccountBalance): string {
   const path = account.account;
   if (path.includes('CreditCard')) return '信用卡';
   if (path.includes('Bank')) return '储蓄卡';
@@ -282,9 +288,9 @@ function getAccountTypeLabel(account) {
   return account.type === 'Liabilities' ? '负债' : '资产';
 }
 
-function getAccountBadgeClass(account) {
+function getAccountBadgeClass(account: AccountBalance): string {
   const label = getAccountTypeLabel(account);
-  const classMap = {
+  const classMap: Record<string, string> = {
     '信用卡': 'badge-credit',
     '储蓄卡': 'badge-bank',
     '微信': 'badge-wechat',
@@ -300,6 +306,65 @@ function getAccountBadgeClass(account) {
 </script>
 
 <style scoped>
+/* 净资产汇总卡(accent 渐变) */
+.networth-card {
+  padding: var(--card-pad);
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  border: none;
+}
+
+.networth-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.networth-eyebrow {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: var(--space-1);
+}
+
+.networth-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.networth-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.networth-detail {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
+}
+
+.networth-sub {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.networth-sub-value {
+  font-size: var(--font-size-lg);
+  color: #fff;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.tree-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
 .account-tree {
   display: flex;
   flex-direction: column;
@@ -311,13 +376,13 @@ function getAccountBadgeClass(account) {
 }
 
 .tree-node.level-1 {
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   padding: var(--space-2);
 }
 
 .tree-node.level-2 {
   margin-left: var(--space-4);
-  background: var(--bg-secondary);
+  background: var(--surface-1);
   border-radius: var(--radius-sm);
   margin-top: var(--space-1);
 }
@@ -337,7 +402,7 @@ function getAccountBadgeClass(account) {
 }
 
 .tree-header:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
 }
 
 .tree-leaf .tree-header {
@@ -411,7 +476,7 @@ function getAccountBadgeClass(account) {
 .icon-bnpl { background: var(--expense-light); }
 .icon-bnpl :deep(svg) { stroke: var(--expense); }
 
-.icon-default { background: var(--bg-tertiary); }
+.icon-default { background: var(--surface-2); }
 .icon-default :deep(svg) { stroke: var(--text-secondary); }
 
 .tree-label {
@@ -425,7 +490,7 @@ function getAccountBadgeClass(account) {
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   padding: 2px 8px;
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: 10px;
 }
 
@@ -434,6 +499,7 @@ function getAccountBadgeClass(account) {
   font-size: var(--font-size-sm);
   min-width: 100px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .tree-badge {
@@ -445,12 +511,12 @@ function getAccountBadgeClass(account) {
 
 .badge-credit { background: var(--expense-light); color: var(--expense); }
 .badge-bank { background: var(--info-light); color: var(--info); }
-.badge-wechat { background: #e8f5e9; color: #4caf50; }
-.badge-alipay { background: #e3f2fd; color: #1976d2; }
+.badge-wechat { background: var(--income-light); color: var(--income); }
+.badge-alipay { background: var(--info-light); color: var(--info); }
 .badge-huabei { background: var(--warning-light); color: var(--warning); }
 .badge-bnpl { background: var(--expense-light); color: var(--expense); }
 .badge-invest { background: var(--warning-light); color: var(--warning); }
-.badge-default { background: var(--bg-tertiary); color: var(--text-secondary); }
+.badge-default { background: var(--surface-2); color: var(--text-secondary); }
 
 .tree-children {
   padding-bottom: var(--space-2);

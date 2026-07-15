@@ -49,13 +49,10 @@
         <OverviewTab v-show="activeTab === 'overview'" />
         <SpendingTab v-show="activeTab === 'spending'" />
         <TrendsTab v-show="activeTab === 'trends'" />
-        <AccountsTab v-show="activeTab === 'accounts'" :analytics="analytics" />
+        <AccountsTab v-show="activeTab === 'accounts'" />
 
         <div v-show="activeTab === 'budget'" class="section-mb">
-          <BudgetCard
-            :expenseByCategory="analytics.expenseByCategory || []"
-            :allCategories="allCategories"
-          />
+          <BudgetCard />
         </div>
 
         <TransactionsTab v-show="activeTab === 'transactions'" />
@@ -116,12 +113,6 @@ const pageMeta = {
 
 const currentPageTitle = computed(() => pageMeta[activeTab.value]?.title || '概览');
 const currentPageDesc = computed(() => pageMeta[activeTab.value]?.desc || '');
-
-// Categories
-const allCategories = computed(() => {
-  if (!analytics.value?.expenseByCategory) return [];
-  return analytics.value.expenseByCategory.map(e => e.category);
-});
 
 // Stats:记账口径由后端统一计算,不再基于交易列表推算
 const totalTransactionCount = computed(() => analytics.value?.summary?.transactionCount || 0);
