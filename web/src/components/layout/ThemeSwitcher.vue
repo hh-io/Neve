@@ -19,14 +19,6 @@
     </button>
     <button
       class="theme-btn"
-      :class="{ active: modelValue === 'geek' }"
-      title="极客模式"
-      @click="$emit('update:modelValue', 'geek')"
-    >
-      <Terminal :size="16" />
-    </button>
-    <button
-      class="theme-btn"
       :class="{ active: modelValue === 'system' }"
       title="跟随系统"
       @click="$emit('update:modelValue', 'system')"
@@ -37,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { Sun, Moon, Terminal, Monitor } from '@lucide/vue';
+import { Sun, Moon, Monitor } from '@lucide/vue';
 import type { ThemeMode } from '../../composables/useTheme';
 
 defineProps<{ modelValue: ThemeMode }>();

@@ -32,7 +32,7 @@ iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
 - 前端 **TypeScript**(`vue-tsc` 校验,契约类型见 `web/src/types/api.ts`),无 UI 库
   (图标用 `@lucide/vue`),无状态管理库(以 composable 模块级单例替代 Pinia:
   `useAnalytics`/`useTheme`/`useToast`/`useBudgets`),手写 CSS 变量设计系统
-  (`web/src/styles/variables.css`,三主题;token 体系见该文件头部注释)。
+  (`web/src/styles/variables.css`,亮/暗双主题;token 体系见该文件头部注释)。
 
 ## 正确性约定(改代码前必读)
 
@@ -75,5 +75,5 @@ iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
 - `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发
-- `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,三主题)
+- `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,亮/暗双主题)
 - `shortcut/shortcut_to_call_ai_prompt.md` — iOS 快捷指令的 AI 识别提示词(记账入口)

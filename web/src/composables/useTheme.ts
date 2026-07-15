@@ -1,10 +1,10 @@
 import { ref, computed, watch } from 'vue'
 import { bumpThemeVersion } from './useThemeColor'
 
-export type ThemeMode = 'light' | 'dark' | 'geek' | 'system'
+export type ThemeMode = 'light' | 'dark' | 'system'
 
 const THEME_KEY = 'neve-theme'
-const VALID: ThemeMode[] = ['light', 'dark', 'geek', 'system']
+const VALID: ThemeMode[] = ['light', 'dark', 'system']
 
 // 模块级单例:全局唯一主题状态
 const themeMode = ref<ThemeMode>('system')
@@ -21,7 +21,7 @@ const themeClass = computed(() => {
 
 function applyTheme(): void {
   const html = document.documentElement
-  html.classList.remove('theme-light', 'theme-dark', 'theme-geek')
+  html.classList.remove('theme-light', 'theme-dark')
   html.classList.add(themeClass.value)
   // canvas 不解析 CSS 变量,通知 ECharts 图表重新取实际颜色值(见 useThemeColor)
   bumpThemeVersion()

@@ -102,12 +102,8 @@
         left: calc(2px + 32px);
     }
 
-    .theme-slider.geek {
-        left: calc(2px + 64px);
-    }
-
     .theme-slider.system {
-        left: calc(2px + 96px);
+        left: calc(2px + 64px);
     }
 
     /* Cards */
@@ -251,16 +247,6 @@
 .mobile-nav-label {
     font-size: 10px;
     font-weight: 500;
-}
-
-/* Geek theme mobile nav */
-.theme-geek .mobile-nav {
-    background-color: #020617;
-    border-top-color: #1E293B;
-}
-
-.theme-geek .mobile-nav-item.active {
-    color: #818CF8;
 }
 
 /* ========== Touch Optimizations ========== */

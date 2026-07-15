@@ -133,46 +133,6 @@
     }
 }
 
-/* Geek Theme Logo */
-.app-layout.theme-geek .logo-icon-new {
-    background: #000000;
-    box-shadow:
-        0 4px 12px rgba(99, 102, 241, 0.3),
-        0 0 20px rgba(99, 102, 241, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.theme-geek .logo-icon-new::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: 13px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), transparent);
-    z-index: -1;
-    filter: blur(8px);
-    animation: logoGlowGeek 3s ease-in-out infinite alternate;
-}
-
-.theme-geek .logo-text h1 {
-    color: #FFFFFF;
-}
-
-.theme-geek .logo-text p {
-    display: none;
-}
-
-@keyframes logoGlowGeek {
-    0% {
-        opacity: 0.4;
-        transform: scale(0.95);
-    }
-
-    100% {
-        opacity: 0.8;
-        transform: scale(1.05);
-    }
-}
-
 .logo-text h1 {
     font-size: var(--font-size-lg);
     font-weight: 600;
@@ -272,31 +232,6 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
-}
-
-/* Geek Theme Navigation */
-.theme-geek .nav-icon {
-    background-color: transparent;
-    width: 24px;
-}
-
-.theme-geek .nav-item:hover {
-    background-color: #0F172A;
-    color: #F1F5F9;
-}
-
-.theme-geek .nav-item.active {
-    background-color: #1E293B;
-    color: #818CF8;
-}
-
-.theme-geek .nav-item.active::before {
-    display: none;
-}
-
-.theme-geek .sidebar {
-    background-color: #020617;
-    border-right-color: #1E293B;
 }
 
 /* ========== User Section ========== */
@@ -405,13 +340,7 @@
 }
 
 .theme-slider.system {
-    left: calc(3px + 108px);
-}
-
-.theme-slider.geek {
     left: calc(3px + 72px);
-    background-color: var(--brand-primary);
-    box-shadow: 0 0 10px var(--brand-light);
 }
 
 .theme-btn {
