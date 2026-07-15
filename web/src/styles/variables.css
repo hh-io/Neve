@@ -235,3 +235,133 @@
     --shadow: var(--dark-shadow);
     --shadow-lg: var(--dark-shadow-lg);
 }
+
+/* ========== Wise Theme (DESIGN.md) ========== */
+.theme-wise {
+    /* new surface ladder */
+    --canvas: #e8ebe6;          /* Canvas Soft - sage page background */
+    --surface-1: #ffffff;       /* Canvas - card background */
+    --surface-2: #f4f6f3;       /* slightly darker sage tint for sub-surfaces */
+    --surface-3: #e0e3de;       /* deep sage tint */
+    --hairline: #d8dcd5;        /* 1px solid border */
+    --hairline-strong: #0e0f0c; /* ink border */
+    
+    /* new accent - Wise Green */
+    --accent: #9fe870;
+    --accent-hover: #cdffad;
+    --accent-subtle: #e2f6d5;
+    
+    /* chart palette */
+    --chart-1: #ffd11a;         /* warning */
+    --chart-2: #38c8ff;         /* accent-cyan */
+    --chart-3: #ffc091;         /* accent-orange */
+    --chart-4: #2ead4b;         /* positive */
+    --chart-5: #d03238;         /* negative */
+    --chart-6: #0e0f0c;         /* ink */
+    --chart-7: #9fe870;         /* brand primary */
+    --chart-8: #868685;         /* mute */
+    
+    --chart-income: #2ead4b;
+    --chart-expense: #d03238;
+
+    /* legacy aliases */
+    --bg-primary: #e8ebe6;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f4f6f3;
+    --text-primary: #0e0f0c;
+    --text-secondary: #454745;
+    --text-tertiary: #868685;
+    --border: #d8dcd5;
+    --border-hover: #0e0f0c;
+    --brand-primary: #9fe870;
+    --brand-secondary: #cdffad;
+    --brand-light: #e2f6d5;
+    --income: #2ead4b;
+    --income-light: #e2f6d5;
+    --expense: #d03238;
+    --expense-light: #320707;
+    --warning: #ffd11a;
+    --warning-light: #ffd11a;
+    --info: #38c8ff;
+    --info-light: rgba(56, 200, 255, 0.1);
+    
+    /* Wise has no shadow, elevation is built on contrast */
+    --shadow: transparent;
+    --shadow-lg: transparent;
+    
+    /* Radius override - canonical Wise rounded-xl style */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 24px;
+    --radius-xl: 24px;
+    
+    /* Typography override */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-numeric: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Specific component overrides for Wise theme to ensure absolute fidelity and premium UI feel */
+.theme-wise .btn-primary {
+    color: #0e0f0c !important; /* contrast on lime green primary button */
+    font-weight: 600 !important;
+}
+
+.theme-wise .btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(159, 232, 112, 0.3) !important;
+}
+
+.theme-wise .theme-btn.active {
+    color: #0e0f0c !important;
+}
+
+.theme-wise h1,
+.theme-wise h2,
+.theme-wise h3,
+.theme-wise .page-title h2 {
+    font-weight: 900 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* Sidebar styling for Wise theme */
+.theme-wise .sidebar {
+    background-color: #ffffff !important; /* white card style */
+    border-right: 1px solid #d8dcd5 !important;
+}
+
+.theme-wise .nav-item.active {
+    color: #0e0f0c !important;
+    background-color: #e2f6d5 !important;
+    font-weight: 600 !important;
+}
+
+.theme-wise .nav-item.active::before {
+    background: #0e0f0c !important; /* solid black active accent */
+}
+
+.theme-wise .nav-item:hover:not(.active) {
+    color: #0e0f0c !important;
+    background-color: #f4f6f3 !important;
+}
+
+.theme-wise .nav-item.active .nav-icon,
+.theme-wise .nav-item:hover .nav-icon {
+    background-color: transparent !important;
+}
+
+.theme-wise .nav-icon {
+    background-color: #f4f6f3 !important;
+}
+
+.theme-wise .user-card {
+    background-color: #f4f6f3 !important;
+}
+
+.theme-wise .user-card:hover {
+    background-color: #e0e3de !important;
+}
+
+.theme-wise .user-avatar {
+    background: linear-gradient(135deg, #0e0f0c, #454745) !important;
+    color: #ffffff !important;
+}
+

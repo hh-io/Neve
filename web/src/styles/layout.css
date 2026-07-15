@@ -343,6 +343,10 @@
     left: calc(3px + 72px);
 }
 
+.theme-slider.wise {
+    left: calc(3px + 108px);
+}
+
 .theme-btn {
     position: relative;
     z-index: 2;
