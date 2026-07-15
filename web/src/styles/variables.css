@@ -365,3 +365,14 @@
     color: #ffffff !important;
 }
 
+/* Logo container customization for Wise theme */
+.theme-wise .logo-icon-new {
+    background: #0e0f0c !important;
+    box-shadow: 0 4px 12px rgba(14, 15, 12, 0.15) !important;
+}
+
+.theme-wise .logo-icon-new::after {
+    display: none !important;
+}
+
+

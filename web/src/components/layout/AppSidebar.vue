@@ -3,7 +3,17 @@
     <!-- Logo -->
     <div class="logo-section animate-fade-in-up">
       <div class="logo-icon-new">
-        <span>N</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 左侧次峰 (半透明白) -->
+          <path d="M3 17L9 7L14 17H3Z" fill="white" fill-opacity="0.3" />
+          <!-- 右侧主峰 (高亮白) -->
+          <path d="M9 17L15 4L21 17H9Z" fill="white" fill-opacity="0.75" />
+          <!-- 雪线山顶 (全白) -->
+          <path d="M15 4L12.5 8.5L15 10.5L17.5 8.5L15 4Z" fill="white" fill-opacity="1" />
+          <path d="M9 7L7.5 9.5L9 10.5L10.5 9.5L9 7Z" fill="white" fill-opacity="0.85" />
+          <!-- 底部地平线 -->
+          <path d="M2 18H22" stroke="white" stroke-width="1.5" stroke-opacity="0.4" stroke-linecap="round" />
+        </svg>
       </div>
       <div class="logo-text">
         <h1>Neve</h1>
