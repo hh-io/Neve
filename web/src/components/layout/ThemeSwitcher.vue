@@ -31,13 +31,13 @@
       title="Stripe 主题"
       @click="$emit('update:modelValue', 'stripe')"
     >
-      <CreditCard :size="16" />
+      <Sparkles :size="16" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Sun, Moon, Monitor, CreditCard } from '@lucide/vue';
+import { Sun, Moon, Monitor, Sparkles } from '@lucide/vue';
 import type { ThemeMode } from '../../composables/useTheme';
 
 defineProps<{ modelValue: ThemeMode }>();

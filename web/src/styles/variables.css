@@ -360,7 +360,7 @@
 
 /* Sidebar Navigation Items in Dark Console mode */
 .theme-stripe .nav-item {
-    color: #b9b9f9 !important;
+    color: rgba(185, 185, 249, 0.5) !important; /* lower contrast for unactive state */
     border-radius: 9999px !important; /* Pill style items */
     margin: 2px 0;
 }
@@ -424,23 +424,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Logo container customization for Stripe theme */
-.theme-stripe .logo-icon-new {
-    background: #533afd !important;
-    box-shadow: 0 4px 16px rgba(83, 58, 253, 0.35) !important;
-    border-radius: 9px !important; /* Slightly tighter logo radius */
-}
 
-.theme-stripe .logo-icon-new::after {
-    content: '' !important;
-    position: absolute !important;
-    inset: -2px !important;
-    border-radius: 11px !important;
-    background: linear-gradient(135deg, rgba(83, 58, 253, 0.4), rgba(6, 182, 212, 0.2)) !important;
-    z-index: -1 !important;
-    filter: blur(8px) !important;
-    display: block !important; /* Enable glow mesh aura */
-}
 
 
 
