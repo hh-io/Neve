@@ -27,17 +27,17 @@
     </button>
     <button
       class="theme-btn"
-      :class="{ active: modelValue === 'wise' }"
-      title="Wise 主题"
-      @click="$emit('update:modelValue', 'wise')"
+      :class="{ active: modelValue === 'stripe' }"
+      title="Stripe 主题"
+      @click="$emit('update:modelValue', 'stripe')"
     >
-      <Sparkles :size="16" />
+      <CreditCard :size="16" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Sun, Moon, Monitor, Sparkles } from '@lucide/vue';
+import { Sun, Moon, Monitor, CreditCard } from '@lucide/vue';
 import type { ThemeMode } from '../../composables/useTheme';
 
 defineProps<{ modelValue: ThemeMode }>();

@@ -236,143 +236,211 @@
     --shadow-lg: var(--dark-shadow-lg);
 }
 
-/* ========== Wise Theme (DESIGN.md) ========== */
-.theme-wise {
+/* ========== Stripe Theme (stripe/DESIGN.md) ========== */
+.theme-stripe {
     /* new surface ladder */
-    --canvas: #e8ebe6;          /* Canvas Soft - sage page background */
+    --canvas: #f6f9fc;          /* Canvas Soft - cool off-white page background */
     --surface-1: #ffffff;       /* Canvas - card background */
-    --surface-2: #f4f6f3;       /* slightly darker sage tint for sub-surfaces */
-    --surface-3: #e0e3de;       /* deep sage tint */
-    --hairline: #d8dcd5;        /* 1px solid border */
-    --hairline-strong: #0e0f0c; /* ink border */
+    --surface-2: #eff3f8;       /* slightly darker cool tint for sub-surfaces */
+    --surface-3: #e3e8ee;       /* hairline gray border-like tint */
+    --hairline: #e3e8ee;        /* 1px solid card/table border */
+    --hairline-strong: #a8c3de; /* input hairline */
     
-    /* new accent - Wise Green */
-    --accent: #9fe870;
-    --accent-hover: #cdffad;
-    --accent-subtle: #e2f6d5;
+    /* new accent - Stripe Electric Indigo */
+    --accent: #533afd;
+    --accent-hover: #4434d4;
+    --accent-subtle: rgba(83, 58, 253, 0.08);
     
-    /* chart palette */
-    --chart-1: #ffd11a;         /* warning */
-    --chart-2: #38c8ff;         /* accent-cyan */
-    --chart-3: #ffc091;         /* accent-orange */
-    --chart-4: #2ead4b;         /* positive */
-    --chart-5: #d03238;         /* negative */
-    --chart-6: #0e0f0c;         /* ink */
-    --chart-7: #9fe870;         /* brand primary */
-    --chart-8: #868685;         /* mute */
+    /* chart palette (Stripe signature energetic tones) */
+    --chart-1: #533afd;         /* electric indigo */
+    --chart-2: #ea2261;         /* ruby pink-red */
+    --chart-3: #f96bee;         /* magenta */
+    --chart-4: #9b6829;         /* lemon/sherbet */
+    --chart-5: #00a3e0;         /* ice cyan */
+    --chart-6: #24b47e;         /* mint green */
+    --chart-7: #1c1e54;         /* deep navy */
+    --chart-8: #64748d;         /* slate gray */
     
-    --chart-income: #2ead4b;
-    --chart-expense: #d03238;
+    --chart-income: #24b47e;    /* mint success green */
+    --chart-expense: #ea2261;   /* ruby pink-red expense */
 
     /* legacy aliases */
-    --bg-primary: #e8ebe6;
+    --bg-primary: #f6f9fc;
     --bg-secondary: #ffffff;
-    --bg-tertiary: #f4f6f3;
-    --text-primary: #0e0f0c;
-    --text-secondary: #454745;
-    --text-tertiary: #868685;
-    --border: #d8dcd5;
-    --border-hover: #0e0f0c;
-    --brand-primary: #9fe870;
-    --brand-secondary: #cdffad;
-    --brand-light: #e2f6d5;
-    --income: #2ead4b;
-    --income-light: #e2f6d5;
-    --expense: #d03238;
-    --expense-light: rgba(208, 50, 56, 0.08);
-    --warning: #ffd11a;
-    --warning-light: rgba(255, 209, 26, 0.1);
-    --info: #38c8ff;
-    --info-light: rgba(56, 200, 255, 0.1);
+    --bg-tertiary: #eff3f8;
+    --text-primary: #0d253d;    /* Stripe Signature Deep Navy */
+    --text-secondary: #273951;  /* ink-secondary */
+    --text-tertiary: #64748d;   /* ink-mute */
+    --border: #e3e8ee;
+    --border-hover: #a8c3de;
+    --brand-primary: #533afd;
+    --brand-secondary: #4434d4;
+    --brand-light: rgba(83, 58, 253, 0.08);
     
-    /* Wise has no shadow, elevation is built on contrast */
-    --shadow: transparent;
-    --shadow-lg: transparent;
+    --income: #24b47e;
+    --income-light: rgba(36, 180, 126, 0.08);
+    --expense: #ea2261;
+    --expense-light: rgba(234, 34, 97, 0.08);
+    --warning: #9b6829;         /* lemon-amber */
+    --warning-light: rgba(155, 104, 41, 0.08);
+    --info: #00a3e0;
+    --info-light: rgba(0, 163, 224, 0.08);
     
-    /* Radius override - canonical Wise rounded-xl style */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 24px;
-    --radius-xl: 24px;
+    /* Stripe shadow system - subtle shadow-blue shadows */
+    --shadow: rgba(0, 55, 112, 0.08) 0 1px 3px;
+    --shadow-lg: rgba(0, 55, 112, 0.08) 0 8px 24px, rgba(0, 55, 112, 0.04) 0 2px 6px;
     
-    /* Typography override */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-numeric: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Radius override - Stripi tight radius geometry */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 12px;          /* card radius */
+    --radius-xl: 9999px;        /* button pill-shape */
+    
+    /* Typography override - Sohne/SF Pro style thin and clean */
+    --font-family: "sohne-var", "SF Pro Display", "Inter", -apple-system, sans-serif;
+    --font-numeric: "sohne-var", "SF Pro Display", "Inter", -apple-system, sans-serif;
 }
 
-/* Specific component overrides for Wise theme to ensure absolute fidelity and premium UI feel */
-.theme-wise .btn-primary {
-    color: #0e0f0c !important; /* contrast on lime green primary button */
-    font-weight: 600 !important;
+/* Specific component overrides for Stripe theme to ensure absolute fidelity and premium UI feel */
+.theme-stripe .btn-primary {
+    background-color: #533afd !important;
+    color: #ffffff !important;
+    border-color: #533afd !important;
+    font-weight: 400 !important;
+    border-radius: 9999px !important; /* Force pill shape for Stripi buttons */
+    box-shadow: 0 1px 3px rgba(0, 55, 112, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
 }
 
-.theme-wise .btn-primary:hover {
-    box-shadow: 0 4px 12px rgba(159, 232, 112, 0.3) !important;
+.theme-stripe .btn-primary:hover {
+    background-color: #4434d4 !important;
+    box-shadow: 0 4px 12px rgba(83, 58, 253, 0.18) !important;
 }
 
-.theme-wise .theme-btn.active {
-    color: #0e0f0c !important;
-}
-
-.theme-wise h1,
-.theme-wise h2,
-.theme-wise h3,
-.theme-wise .page-title h2 {
-    font-weight: 900 !important;
-    letter-spacing: -0.02em !important;
-}
-
-/* Sidebar styling for Wise theme */
-.theme-wise .sidebar {
-    background-color: #ffffff !important; /* white card style */
-    border-right: 1px solid #d8dcd5 !important;
-}
-
-.theme-wise .nav-item.active {
-    color: #0e0f0c !important;
-    background-color: #e2f6d5 !important;
-    font-weight: 600 !important;
-}
-
-.theme-wise .nav-item.active::before {
-    background: #0e0f0c !important; /* solid black active accent */
-}
-
-.theme-wise .nav-item:hover:not(.active) {
-    color: #0e0f0c !important;
-    background-color: #f4f6f3 !important;
-}
-
-.theme-wise .nav-item.active .nav-icon,
-.theme-wise .nav-item:hover .nav-icon {
-    background-color: transparent !important;
-}
-
-.theme-wise .nav-icon {
-    background-color: #f4f6f3 !important;
-}
-
-.theme-wise .user-card {
-    background-color: #f4f6f3 !important;
-}
-
-.theme-wise .user-card:hover {
-    background-color: #e0e3de !important;
-}
-
-.theme-wise .user-avatar {
-    background: linear-gradient(135deg, #0e0f0c, #454745) !important;
+.theme-stripe .theme-btn.active {
     color: #ffffff !important;
 }
 
-/* Logo container customization for Wise theme */
-.theme-wise .logo-icon-new {
-    background: #0e0f0c !important;
-    box-shadow: 0 4px 12px rgba(14, 15, 12, 0.15) !important;
+/* Stripe Editorial-Density Display Typography: Thin weight + Tight Tracking */
+.theme-stripe h1,
+.theme-stripe h2,
+.theme-stripe h3,
+.theme-stripe .page-title h2 {
+    font-weight: 300 !important;
+    letter-spacing: -0.04em !important;
 }
 
-.theme-wise .logo-icon-new::after {
-    display: none !important;
+.theme-stripe .stat-value-hero {
+    font-weight: 300 !important;
+    letter-spacing: -0.03em !important;
 }
+
+/* Tabular Numerics for financial-data signature */
+.theme-stripe .tabular-nums,
+.theme-stripe .stat-value,
+.theme-stripe .transaction-amount {
+    font-feature-settings: "tnum" 1, "ss01" 1 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* Sidebar styling for Stripe theme: Familar Dark-app Shell (Brand Dark 900) */
+.theme-stripe .sidebar {
+    background-color: #1c1e54 !important;
+    border-right: 1px solid rgba(227, 232, 238, 0.05) !important;
+}
+
+.theme-stripe .sidebar .logo-text h1 {
+    color: #ffffff !important;
+    font-weight: 300 !important;
+    letter-spacing: -0.03em !important;
+}
+
+.theme-stripe .sidebar .logo-text p {
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Sidebar Navigation Items in Dark Console mode */
+.theme-stripe .nav-item {
+    color: #b9b9f9 !important;
+    border-radius: 9999px !important; /* Pill style items */
+    margin: 2px 0;
+}
+
+.theme-stripe .nav-item:hover:not(.active) {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.theme-stripe .nav-item.active {
+    color: #ffffff !important;
+    background-color: rgba(83, 58, 253, 0.2) !important;
+    font-weight: 500 !important;
+}
+
+.theme-stripe .nav-item.active::before {
+    background: #533afd !important; /* Indigo indicator */
+    width: 4px !important;
+    height: 16px !important;
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.theme-stripe .nav-item .nav-icon {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 9999px !important; /* Round icon frames */
+}
+
+.theme-stripe .nav-item.active .nav-icon,
+.theme-stripe .nav-item:hover .nav-icon {
+    background-color: transparent !important;
+}
+
+/* User avatar and profile card inside dark sidebar */
+.theme-stripe .user-card {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 8px !important;
+}
+
+.theme-stripe .user-card:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.theme-stripe .user-name {
+    color: #ffffff !important;
+}
+
+.theme-stripe .user-email {
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.theme-stripe .user-avatar {
+    background: #533afd !important;
+    color: #ffffff !important;
+}
+
+.theme-stripe .nav-divider {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.theme-stripe .user-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Logo container customization for Stripe theme */
+.theme-stripe .logo-icon-new {
+    background: #533afd !important;
+    box-shadow: 0 4px 16px rgba(83, 58, 253, 0.35) !important;
+    border-radius: 9px !important; /* Slightly tighter logo radius */
+}
+
+.theme-stripe .logo-icon-new::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: -2px !important;
+    border-radius: 11px !important;
+    background: linear-gradient(135deg, rgba(83, 58, 253, 0.4), rgba(6, 182, 212, 0.2)) !important;
+    z-index: -1 !important;
+    filter: blur(8px) !important;
+    display: block !important; /* Enable glow mesh aura */
+}
+
 
 
