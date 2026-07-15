@@ -11,18 +11,20 @@ export default defineConfigWithVueTs(
     name: 'app/files-to-ignore',
     ignores: ['**/dist/**', '**/node_modules/**'],
   },
-  // 渐进式重构期用 essential(只查正确性,不含模板风格/排序规则),避免对尚未重写的
-  // 遗留 JS 模板做有风险的自动重排(如把 @update:activeTab 误改成 kebab 会断开自定义事件)。
-  // Phase 4 组件全部改为 TS 并统一风格后,再升级为 flat/recommended。
-  pluginVue.configs['flat/essential'],
+  // Phase 4 组件全部改为 <script setup lang="ts"> 后,升级为 recommended
+  // (含模板风格/属性顺序等规则),block-lang 默认强制全量 TS。
+  pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
   skipFormatting,
   {
     name: 'app/rules',
     rules: {
-      // 渐进式 TS 迁移期:现有组件仍为 JS <script setup>。Phase 4 逐个改为 lang="ts" 后,
-      // 再删除此覆盖以强制全量 TS。
-      'vue/block-lang': 'off',
+      // 本项目模板统一用 camelCase 自定义 props/事件(activeTab / dailyData 等)。
+      // 关掉连字符化两条规则:①保持与代码约定一致;②Vue 3 自定义事件名大小写敏感,
+      // 若把 @update:activeTab 改成 @update:active-tab 会与 emit 的 update:activeTab 失配、
+      // 断开 Tab 切换(见 REFACTOR_PLAN Phase 1 落地记录)。
+      'vue/attribute-hyphenation': 'off',
+      'vue/v-on-event-hyphenation': 'off',
     },
   },
 )

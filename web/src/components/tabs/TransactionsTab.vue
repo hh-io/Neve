@@ -6,8 +6,8 @@
       <div class="search-wrap">
         <Search :size="16" color="var(--text-tertiary)" class="search-icon" />
         <input
-          type="text"
           v-model="searchQuery"
+          type="text"
           placeholder="搜索商家、备注..."
           class="search-input"
         />
@@ -486,6 +486,8 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   border-radius: var(--radius-sm);
   font-size: 10px;
   white-space: nowrap;
+  /* 背景为运行时固定浅色药丸(getTagColor),文字用固定深色,保证三主题下均可读 */
+  color: #374151;
 }
 
 .tx-bottom {

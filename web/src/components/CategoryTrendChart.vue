@@ -10,9 +10,9 @@
         </select>
         <button 
           v-if="!compareMode" 
-          @click="compareMode = true" 
-          class="compare-btn"
+          class="compare-btn" 
           title="对比模式"
+          @click="compareMode = true"
         >
           + 对比
         </button>

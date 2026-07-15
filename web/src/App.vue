@@ -35,7 +35,7 @@
           <div class="header-actions">
             <ThemeSwitcher v-model="themeMode" />
 
-            <button class="btn btn-secondary btn-refresh" @click="refresh" :disabled="loading">
+            <button class="btn btn-secondary btn-refresh" :disabled="loading" @click="refresh">
               <RefreshCw :size="16" />
               <span>{{ loading ? '刷新中...' : '刷新数据' }}</span>
             </button>
@@ -72,7 +72,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { RefreshCw } from "@lucide/vue";
 
@@ -102,7 +102,7 @@ const { themeMode, themeClass } = useTheme();
 const activeTab = ref('overview');
 
 // Page info
-const pageMeta = {
+const pageMeta: Record<string, { title: string; desc: string }> = {
   overview: { title: '概览', desc: '欢迎回来，这是您的财务概况' },
   spending: { title: '收支分析', desc: '查看收入与支出的详细分析' },
   trends: { title: '趋势图表', desc: '了解您的财务变化趋势' },

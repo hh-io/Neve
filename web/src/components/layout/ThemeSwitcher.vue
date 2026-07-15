@@ -4,32 +4,32 @@
     <button 
       class="theme-btn" 
       :class="{ active: modelValue === 'light' }"
-      @click="$emit('update:modelValue', 'light')"
       title="亮色模式"
+      @click="$emit('update:modelValue', 'light')"
     >
       <Sun :size="16" />
     </button>
     <button
       class="theme-btn"
       :class="{ active: modelValue === 'dark' }"
-      @click="$emit('update:modelValue', 'dark')"
       title="暗色模式"
+      @click="$emit('update:modelValue', 'dark')"
     >
       <Moon :size="16" />
     </button>
     <button
       class="theme-btn"
       :class="{ active: modelValue === 'geek' }"
-      @click="$emit('update:modelValue', 'geek')"
       title="极客模式"
+      @click="$emit('update:modelValue', 'geek')"
     >
       <Terminal :size="16" />
     </button>
     <button
       class="theme-btn"
       :class="{ active: modelValue === 'system' }"
-      @click="$emit('update:modelValue', 'system')"
       title="跟随系统"
+      @click="$emit('update:modelValue', 'system')"
     >
       <Monitor :size="16" />
     </button>

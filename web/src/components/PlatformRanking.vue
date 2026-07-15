@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="ranking-list" v-if="data?.length">
+    <div v-if="data?.length" class="ranking-list">
       <div 
         v-for="(item, index) in data" 
         :key="item.tag" 

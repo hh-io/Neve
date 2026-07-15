@@ -14,11 +14,11 @@
         <input
           type="number"
           :value="budget"
-          @change="updateBudget(cat, ($event.target as HTMLInputElement).value)"
           class="budget-input"
           placeholder="0"
+          @change="updateBudget(cat, ($event.target as HTMLInputElement).value)"
         />
-        <button @click="deleteBudget(cat)" class="delete-btn" title="删除">×</button>
+        <button class="delete-btn" title="删除" @click="deleteBudget(cat)">×</button>
       </div>
       <div class="budget-edit-row add-row">
         <input 
@@ -30,7 +30,7 @@
         <datalist id="category-suggestions">
           <option v-for="cat in availableCategories" :key="cat" :value="cat" />
         </datalist>
-        <button @click="addBudget" class="add-btn" :disabled="!newCategory">+</button>
+        <button class="add-btn" :disabled="!newCategory" @click="addBudget">+</button>
       </div>
     </div>
 
