@@ -10,7 +10,7 @@
 |---|---|---|
 | Phase 1 工具链与类型契约 | ✅ 已完成 | commit `bdd4289`;见下方"Phase 1 落地记录" |
 | Phase 2 设计系统重建 | ✅ 已完成 | 新 token 体系 + legacy 别名共存;三主题目检通过 |
-| Phase 3 基础设施重构 | ⬜ 未开始 | |
+| Phase 3 基础设施重构 | ✅ 已完成 | lucide 图标统一 + 数据/主题/Toast 单例;prop 移除见落地记录 |
 | Phase 4 组件逐个重写 | ⬜ 未开始 | |
 | Phase 5 后端小清理 | ✅ 已完成 | commit `e661ed1`;顺带清理了只写不读的 `s.ledger` 字段 |
 | Phase 6 文档同步 | ⬜ 未开始 | |
@@ -167,8 +167,37 @@
    `.stats-card` 系列样式移入 `AppSidebar.vue`。
 6. 顺手删除模板里未实现功能的 FAB 按钮(`.fab`,当前无任何点击行为)。
 
-**验收**:功能与重构前一致;`grep -rn 'v-html' web/src` 仅剩 0 处图标用法。
+**验收**:功能与重构前一致;`grep -rn 'v-html' web/src` 仅剩 0 处图标用法。 → ✅ v-html 归零;三主题 × 六 Tab + 刷新 toast 目检通过。
 **提交**:`refactor: 统一图标为 lucide,抽离数据/主题/Toast 组合式函数`
+
+### Phase 3 落地记录(Phase 4 必读)
+
+- **图标包用 `@lucide/vue`(不是 `lucide-vue-next`)**:后者已废弃(`npm view` 显示
+  `Please use @lucide/vue instead`,latest 是占位的 1.0.0)。当前装 `@lucide/vue@1.24.0`。
+  `color` prop → svg 的 `stroke`;`:size` → width/height。与旧 SFC 图标 `:color`/`:size` 同接口,drop-in。
+- **两套旧图标系统已删**:`composables/icons.js`(v-html 字符串)与 `components/icons/`(SFC + IconBase)
+  整个目录删除。`v-html` 图标用法全归零。
+- **图标名冲突要 alias**:多个 tab 从 `echarts/charts` 具名导入 `PieChart`/`LineChart`,
+  与 lucide 同名。lucide 侧统一 alias:`PieChart as PieChartIcon`、`LineChart as LineChartIcon`
+  (见 OverviewTab/SpendingTab/TrendsTab)。新增图标时注意查重。
+- **两个中央映射模块**:
+  - `composables/useCategoryIcon.ts`:分类 → lucide 组件(键对齐 `useCategories.ts` 的 `categoryLabels`);
+    `TransactionList`/`TransactionsTab` 用 `<component :is="getCategoryIcon(cat)">` 渲染。
+  - `composables/navItems.ts`:主导航项(携带 lucide 组件),`AppSidebar`/`MobileNav` 共用。
+- **tree 图标靠 CSS 上色**:`AccountsTab` 的 `.icon-* :deep(svg){stroke:...}` 决定颜色/尺寸,
+  故这些 `<component :is>` **不传** color/size 让 CSS 接管。
+- **三个模块级单例 composable**:`useAnalytics`(fetch/refresh/429/loading/error)、
+  `useTheme`(themeMode/themeClass/系统偏好监听,内部 `initTheme` 幂等)、
+  `useToast`(`showToast` 全局可调,`AppToast` 自订阅、不再收 props)。
+- ⚠️ **偏差:Tab 的 `:analytics` prop 尚未移除**。计划 step 2 要求各 Tab 直接 `useAnalytics()`,
+  但 Phase 4 本就逐个重写每个 Tab 的 `<script setup>` 成 TS,现在切一次、Phase 4 再切一次是双重改动。
+  **决策**:数据层逻辑已全部抽进 `useAnalytics` 单例、App.vue 消费它(达成瘦身/数据层抽离目标);
+  各 Tab 改用 `useAnalytics()` 取数、删掉 `:analytics`/`:transactions`/`:expenseByCategory` prop
+  **并入 Phase 4 的逐组件重写**。`analytics` 单例 ref 与 App.vue 传下去的是同一对象,行为一致。
+- **FAB 已删**:模板按钮 + `components.css`/`mobile.css` 的 `.fab` 死 CSS 一并清除。
+- `.stats-card` 系列样式已从 App.vue 迁入 `AppSidebar.vue` 的 `<style scoped>`;
+  App.vue 现只剩 `@keyframes spin`(加载态用)。顺手修掉了 `.stats-card:hover` 引用未定义
+  `--shadow-sm` 的问题(改为只变 border-color)。
 
 ---
 

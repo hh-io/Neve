@@ -6,7 +6,7 @@
       <div class="card stat-card">
         <div class="stat-header">
           <div class="stat-icon bg-brand-light">
-            <span v-html="icons.wallet" style="stroke: var(--brand-primary);"></span>
+            <Wallet color="var(--brand-primary)" />
           </div>
           <span :class="['stat-badge', netWorth >= 0 ? 'bg-income-light text-income' : 'bg-expense-light text-expense']">
             {{ balanceChange }}
@@ -30,7 +30,7 @@
       <div class="card stat-card delay-100">
         <div class="stat-header">
           <div class="stat-icon bg-income-light">
-            <span v-html="icons.arrowUp" style="stroke: var(--income);"></span>
+            <ArrowUp color="var(--income)" />
           </div>
           <span :class="['stat-badge', incomeChange >= 0 ? 'bg-income-light text-income' : 'bg-expense-light text-expense']">
             {{ incomeChange >= 0 ? '+' : '' }}{{ incomeChange }}%
@@ -54,7 +54,7 @@
       <div class="card stat-card delay-200">
         <div class="stat-header">
           <div class="stat-icon bg-expense-light">
-            <span v-html="icons.arrowDown" style="stroke: var(--expense);"></span>
+            <ArrowDown color="var(--expense)" />
           </div>
           <span :class="['stat-badge', expenseChange <= 0 ? 'bg-income-light text-income' : 'bg-expense-light text-expense']">
             {{ expenseChange >= 0 ? '+' : '' }}{{ expenseChange }}%
@@ -78,7 +78,7 @@
       <div class="card stat-card delay-300">
         <div class="stat-header">
           <div class="stat-icon" :class="savingsRate >= 0 ? 'bg-income-light' : 'bg-expense-light'">
-            <span v-html="icons.target" :style="{ stroke: savingsRate >= 0 ? 'var(--income)' : 'var(--expense)' }"></span>
+            <Target :color="savingsRate >= 0 ? 'var(--income)' : 'var(--expense)'" />
           </div>
           <span :class="['stat-badge', savingsRate >= 20 ? 'bg-income-light text-income' : savingsRate >= 0 ? 'bg-warning-light text-warning' : 'bg-expense-light text-expense']">
             {{ savingsRate }}%
@@ -108,7 +108,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div class="stat-icon bg-info-light" style="width: 40px; height: 40px;">
-              <span v-html="icons.calendar" style="stroke: var(--info); width: 20px; height: 20px;"></span>
+              <Calendar :size="20" color="var(--info)" />
             </div>
             <div>
               <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">日均支出</div>
@@ -133,7 +133,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.pieChart" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+            <PieChartIcon :size="20" color="var(--brand-primary)" />
           </div>
           <div style="font-size: var(--font-size-sm); font-weight: 500; color: var(--text-primary);">财务健康指标</div>
         </div>
@@ -161,7 +161,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div class="stat-icon bg-expense-light" style="width: 40px; height: 40px;">
-              <span v-html="icons.pieChart" style="stroke: var(--expense); width: 20px; height: 20px;"></span>
+              <PieChartIcon :size="20" color="var(--expense)" />
             </div>
             <span style="font-weight: 600; color: var(--text-primary);">支出分类</span>
           </div>
@@ -180,7 +180,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-              <span v-html="icons.transactions" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+              <ArrowRightLeft :size="20" color="var(--brand-primary)" />
             </div>
             <span style="font-weight: 600; color: var(--text-primary);">最近交易</span>
           </div>
@@ -208,7 +208,7 @@ import VChart from 'vue-echarts';
 import { formatMoney } from '../../composables/useFormatters';
 import { getCategoryLabel } from '../../composables/useCategories';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
-import { icons } from '../../composables/icons';
+import { Wallet, ArrowUp, ArrowDown, Target, Calendar, ArrowRightLeft, PieChart as PieChartIcon } from '@lucide/vue';
 import TransactionList from '../TransactionList.vue';
 
 use([PieChart, TitleComponent, TooltipComponent, LegendComponent, CanvasRenderer]);

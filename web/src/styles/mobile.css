@@ -116,11 +116,6 @@
         border-radius: var(--radius-md);
     }
 
-    /* Hide FAB on mobile (use bottom nav instead) */
-    .fab {
-        display: none;
-    }
-
     /* Transaction list optimizations */
     .tx-row,
     .transaction-row {

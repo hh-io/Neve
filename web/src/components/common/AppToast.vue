@@ -1,20 +1,18 @@
 <template>
   <Transition name="toast">
-    <div v-if="show" class="toast" :class="type">
-      <span v-html="type === 'success' ? icons.check : icons.alert" style="width: 18px; height: 18px;"></span>
-      <span>{{ message }}</span>
+    <div v-if="toast.show" class="toast" :class="toast.type">
+      <component :is="toast.type === 'success' ? CheckCircle2 : AlertCircle" :size="18" />
+      <span>{{ toast.message }}</span>
     </div>
   </Transition>
 </template>
 
 <script setup>
-import { icons } from '../../composables/icons';
+import { CheckCircle2, AlertCircle } from '@lucide/vue';
+import { useToast } from '../../composables/useToast';
 
-defineProps({
-  show: { type: Boolean, default: false },
-  message: { type: String, default: '' },
-  type: { type: String, default: 'success' } // 'success' | 'error'
-});
+// 自订阅模块级单例,无需父组件传 props
+const { toast } = useToast();
 </script>
 
 <style scoped>

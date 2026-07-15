@@ -8,7 +8,7 @@
       @click="$emit('update:activeTab', item.id)"
     >
       <div class="mobile-nav-icon">
-        <span v-html="icons[item.icon]"></span>
+        <component :is="item.icon" />
       </div>
       <span class="mobile-nav-label">{{ item.label }}</span>
     </button>
@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { icons, navItems } from '../../composables/icons';
+import { navItems } from '../../composables/navItems';
 
 defineProps({
   activeTab: { type: String, required: true }

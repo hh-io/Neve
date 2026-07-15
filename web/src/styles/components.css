@@ -316,59 +316,6 @@
     transform: scale(0.95);
 }
 
-/* ========== Floating Action Button ========== */
-.fab {
-    position: fixed;
-    bottom: var(--space-8);
-    right: var(--space-8);
-    width: 56px;
-    height: 56px;
-    border-radius: var(--radius-full);
-    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 16px var(--shadow-lg);
-    transition: all var(--transition-slow);
-    z-index: 50;
-}
-
-.fab span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.fab:hover {
-    transform: scale(1.1) rotate(90deg);
-    box-shadow: 0 8px 24px var(--shadow-lg);
-}
-
-.fab svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* Geek Theme FAB */
-.theme-geek .fab {
-    background: #6366F1;
-    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3), 0 4px 6px -2px rgba(99, 102, 241, 0.15);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.theme-geek .fab:hover {
-    transform: scale(1.05) rotate(90deg);
-    background-color: #4F46E5;
-    box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4), 0 10px 10px -5px rgba(99, 102, 241, 0.2);
-}
-
-.theme-geek .fab:active {
-    transform: scale(0.95);
-}
-
 /* ========== Animations ========== */
 @keyframes fadeInUp {
     from {

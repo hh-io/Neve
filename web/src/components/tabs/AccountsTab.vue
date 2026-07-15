@@ -8,7 +8,7 @@
           <div style="font-size: var(--font-size-2xl); font-weight: 700; color: white;">{{ formatMoney(analytics.summary?.netWorth || 0) }}</div>
         </div>
         <div style="width: 64px; height: 64px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
-          <span v-html="icons.wallet" style="stroke: white; width: 32px; height: 32px;"></span>
+          <Wallet :size="32" color="white" />
         </div>
       </div>
       <div style="display: flex; gap: var(--space-8); margin-top: var(--space-4);">
@@ -28,7 +28,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
         <div style="display: flex; align-items: center; gap: var(--space-3);">
           <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.accounts" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+            <Landmark :size="20" color="var(--brand-primary)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">账户结构</span>
         </div>
@@ -45,10 +45,10 @@
           <div class="tree-node level-1">
             <div class="tree-header" @click="toggleNode(groupKey)">
               <span class="tree-toggle" :class="{ expanded: expandedNodes[groupKey] }">
-                <span v-html="icons.chevronRight"></span>
+                <ChevronRight />
               </span>
               <div :class="['tree-icon', getGroupIconClass(groupKey)]">
-                <span v-html="getGroupIcon(groupKey)"></span>
+                <component :is="getGroupIcon(groupKey)" />
               </div>
               <span class="tree-label">{{ getGroupLabel(groupKey) }}</span>
               <span class="tree-count">{{ Object.keys(group).length }} 类</span>
@@ -63,10 +63,10 @@
                 <div class="tree-node level-2">
                   <div class="tree-header" @click="toggleNode(`${groupKey}:${subKey}`)">
                     <span class="tree-toggle" :class="{ expanded: expandedNodes[`${groupKey}:${subKey}`] }">
-                      <span v-html="icons.chevronRight"></span>
+                      <ChevronRight />
                     </span>
                     <div :class="['tree-icon-sm', getSubTypeIconClass(subKey)]">
-                      <span v-html="getSubTypeIcon(subKey)"></span>
+                      <component :is="getSubTypeIcon(subKey)" />
                     </div>
                     <span class="tree-label">{{ getSubTypeLabel(subKey) }}</span>
                     <span class="tree-count">{{ accounts.length }} 个</span>
@@ -85,7 +85,7 @@
                       <div class="tree-header">
                         <span class="tree-indent"></span>
                         <div :class="['tree-icon-sm', account.balance >= 0 ? 'icon-positive' : 'icon-negative']">
-                          <span v-html="getAccountIcon(account)"></span>
+                          <component :is="getAccountIcon(account)" />
                         </div>
                         <span class="tree-label">{{ getAccountName(account) }}</span>
                         <span class="tree-badge" :class="getAccountBadgeClass(account)">
@@ -110,7 +110,7 @@
 <script setup>
 import { computed, reactive } from 'vue';
 import { formatMoney } from '../../composables/useFormatters';
-import { icons } from '../../composables/icons';
+import { Wallet, Landmark, ChevronRight, CreditCard, LineChart, ShoppingBag, Utensils, PiggyBank } from '@lucide/vue';
 
 const props = defineProps({
   analytics: { type: Object, required: true }
@@ -175,7 +175,7 @@ function getGroupLabel(key) {
 }
 
 function getGroupIcon(key) {
-  return key === 'Assets' ? icons.wallet : icons.creditCard;
+  return key === 'Assets' ? Wallet : CreditCard;
 }
 
 function getGroupIconClass(key) {
@@ -208,15 +208,15 @@ function getSubTypeLabel(key) {
 
 function getSubTypeIcon(key) {
   const iconMap = {
-    Bank: icons.bank,
-    Cash: icons.wallet,
-    CreditCard: icons.creditCard,
-    Investment: icons.lineChart,
-    JD: icons.shopping,
-    Meituan: icons.food,
-    Alipay: icons.wallet,
+    Bank: Landmark,
+    Cash: Wallet,
+    CreditCard: CreditCard,
+    Investment: LineChart,
+    JD: ShoppingBag,
+    Meituan: Utensils,
+    Alipay: Wallet,
   };
-  return iconMap[key] || icons.wallet;
+  return iconMap[key] || Wallet;
 }
 
 function getSubTypeIconClass(key) {
@@ -258,14 +258,14 @@ function getAccountName(account) {
 
 function getAccountIcon(account) {
   const path = account.account;
-  if (path.includes('CreditCard')) return icons.creditCard;
-  if (path.includes('Bank')) return icons.bank;
-  if (path.includes('WeChat') || path.includes('Alipay')) return icons.wallet;
-  if (path.includes('Investment')) return icons.lineChart;
-  if (path.includes('Huabei')) return icons.shopping;
-  if (path.includes('BNPL') || path.includes('CLO')) return icons.shopping;
-  if (path.includes('Meituan')) return icons.food;
-  return icons.piggyBank;
+  if (path.includes('CreditCard')) return CreditCard;
+  if (path.includes('Bank')) return Landmark;
+  if (path.includes('WeChat') || path.includes('Alipay')) return Wallet;
+  if (path.includes('Investment')) return LineChart;
+  if (path.includes('Huabei')) return ShoppingBag;
+  if (path.includes('BNPL') || path.includes('CLO')) return ShoppingBag;
+  if (path.includes('Meituan')) return Utensils;
+  return PiggyBank;
 }
 
 function getAccountTypeLabel(account) {

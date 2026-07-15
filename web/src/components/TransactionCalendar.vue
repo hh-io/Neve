@@ -3,11 +3,11 @@
     <!-- 月份导航 -->
     <div class="calendar-header">
       <button class="nav-btn" @click="prevMonth">
-        <span v-html="icons.chevronLeft"></span>
+        <ChevronLeft />
       </button>
       <span class="month-title">{{ currentYear }}年{{ currentMonth }}月</span>
       <button class="nav-btn" @click="nextMonth">
-        <span v-html="icons.chevronRight"></span>
+        <ChevronRight />
       </button>
     </div>
 
@@ -51,7 +51,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { icons } from '../composables/icons';
+import { ChevronLeft, ChevronRight } from '@lucide/vue';
 
 const props = defineProps({
   dailyData: { type: Array, default: () => [] }

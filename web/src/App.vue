@@ -1,8 +1,8 @@
 <template>
   <div class="app-layout" :class="themeClass">
     <!-- Sidebar -->
-    <AppSidebar 
-      :activeTab="activeTab" 
+    <AppSidebar
+      :activeTab="activeTab"
       :showStats="!!analytics"
       :transactionCount="totalTransactionCount"
       :trackingDays="trackingDays"
@@ -34,9 +34,9 @@
           </div>
           <div class="header-actions">
             <ThemeSwitcher v-model="themeMode" />
-            
+
             <button class="btn btn-secondary btn-refresh" @click="refresh" :disabled="loading">
-              <span v-html="icons.refresh" style="width: 16px; height: 16px;"></span>
+              <RefreshCw :size="16" />
               <span>{{ loading ? '刷新中...' : '刷新数据' }}</span>
             </button>
           </div>
@@ -50,14 +50,14 @@
         <SpendingTab v-show="activeTab === 'spending'" :analytics="analytics" />
         <TrendsTab v-show="activeTab === 'trends'" :analytics="analytics" />
         <AccountsTab v-show="activeTab === 'accounts'" :analytics="analytics" />
-        
+
         <div v-show="activeTab === 'budget'" class="section-mb">
-          <BudgetCard 
+          <BudgetCard
             :expenseByCategory="analytics.expenseByCategory || []"
             :allCategories="allCategories"
           />
         </div>
-        
+
         <TransactionsTab v-show="activeTab === 'transactions'" :transactions="analytics.transactions || []" />
 
         <!-- Footer -->
@@ -67,13 +67,8 @@
       </template>
     </main>
 
-    <!-- FAB -->
-    <button class="fab" title="新增交易">
-      <span v-html="icons.plus"></span>
-    </button>
-
-    <!-- Toast -->
-    <AppToast :show="toast.show" :message="toast.message" :type="toast.type" />
+    <!-- Toast(自订阅 useToast 单例) -->
+    <AppToast />
 
     <!-- Mobile Bottom Navigation (visible on mobile only via CSS) -->
     <MobileNav :activeTab="activeTab" @update:activeTab="activeTab = $event" />
@@ -81,7 +76,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { RefreshCw } from "@lucide/vue";
 
 // Layout Components
 import AppSidebar from "./components/layout/AppSidebar.vue";
@@ -98,45 +94,15 @@ import AccountsTab from "./components/tabs/AccountsTab.vue";
 import TransactionsTab from "./components/tabs/TransactionsTab.vue";
 import BudgetCard from "./components/BudgetCard.vue";
 
-// Composables
+// Composables(数据/主题为模块级单例)
 import { formatDateTime } from "./composables/useFormatters";
-import { bumpThemeVersion } from "./composables/useThemeColor";
-import { icons } from "./composables/icons";
+import { useAnalytics } from "./composables/useAnalytics";
+import { useTheme } from "./composables/useTheme";
 
-// State
-const analytics = ref(null);
-const loading = ref(false);
-const error = ref(null);
+const { analytics, loading, error, load, refresh } = useAnalytics();
+const { themeMode, themeClass } = useTheme();
+
 const activeTab = ref('overview');
-
-// Toast
-const toast = ref({ show: false, message: '', type: 'success' });
-
-function showToast(message, type = 'success', duration = 3000) {
-  toast.value = { show: true, message, type };
-  setTimeout(() => { toast.value.show = false; }, duration);
-}
-
-// Theme
-const themeMode = ref('system');
-
-const themeClass = computed(() => {
-  if (themeMode.value === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'theme-dark' : 'theme-light';
-  }
-  return `theme-${themeMode.value}`;
-});
-
-function applyTheme() {
-  const html = document.documentElement;
-  html.classList.remove('theme-light', 'theme-dark', 'theme-geek');
-  html.classList.add(themeClass.value);
-  // 通知 ECharts 图表重新读取 CSS 变量的实际颜色值
-  bumpThemeVersion();
-}
-
-watch(themeClass, applyTheme, { immediate: true });
-watch(themeMode, (mode) => localStorage.setItem('neve-theme', mode));
 
 // Page info
 const pageMeta = {
@@ -157,143 +123,15 @@ const allCategories = computed(() => {
   return analytics.value.expenseByCategory.map(e => e.category);
 });
 
-// API
-async function fetchAnalytics() {
-  const response = await fetch("/api/analytics");
-  if (!response.ok) throw new Error("Failed to fetch analytics");
-  return response.json();
-}
-
-async function refresh() {
-  loading.value = true;
-  error.value = null;
-  try {
-    const response = await fetch("/api/refresh", { method: "POST" });
-    if (response.status === 429) {
-      const body = await response.json().catch(() => null);
-      const wait = Math.ceil(body?.retryAfter ?? 5);
-      showToast(`刷新过于频繁,请 ${wait} 秒后再试`, 'error');
-      // 服务端有缓存数据,仍拉取一次保证页面可用(如初次加载失败后的重试)
-      if (!analytics.value) analytics.value = await fetchAnalytics();
-      return;
-    }
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.error?.message || `HTTP ${response.status}`);
-    }
-    analytics.value = await fetchAnalytics();
-    showToast('数据刷新成功', 'success');
-  } catch (e) {
-    error.value = e.message;
-    showToast('刷新失败: ' + e.message, 'error');
-  } finally {
-    loading.value = false;
-  }
-}
-
 // Stats:记账口径由后端统一计算,不再基于交易列表推算
 const totalTransactionCount = computed(() => analytics.value?.summary?.transactionCount || 0);
 const trackingDays = computed(() => analytics.value?.summary?.trackingDays || 0);
 
-// Init
-onMounted(async () => {
-  const saved = localStorage.getItem('neve-theme');
-  if (saved && ['light', 'dark', 'geek', 'system'].includes(saved)) {
-    themeMode.value = saved;
-  }
-  applyTheme();
-  
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (themeMode.value === 'system') applyTheme();
-  });
-
-  loading.value = true;
-  try {
-    analytics.value = await fetchAnalytics();
-  } catch (e) {
-    error.value = e.message;
-  } finally {
-    loading.value = false;
-  }
-});
+onMounted(load);
 </script>
 
 <style>
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Stats Card in Sidebar */
-.stats-card {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  border: 1px solid var(--border);
-  transition: all var(--transition-base);
-}
-
-.stats-card:hover {
-  border-color: var(--brand-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.stats-icon-wrapper {
-  width: 40px;
-  height: 40px;
-  background: var(--brand-light);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--brand-primary);
-  flex-shrink: 0;
-}
-
-.stats-icon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stats-icon svg {
-  width: 100%;
-  height: 100%;
-  stroke-width: 2;
-  stroke: currentColor;
-}
-
-.stats-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.stats-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  margin-bottom: 2px;
-}
-
-.stats-value {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.stats-unit {
-  font-size: var(--font-size-xs);
-  font-weight: normal;
-  color: var(--text-secondary);
-}
-
-.stats-subtitle {
-  font-size: 10px;
-  color: var(--text-secondary);
-  margin-top: 2px;
 }
 </style>

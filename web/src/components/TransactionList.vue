@@ -12,7 +12,7 @@
       <!-- Icon (using Vue components) -->
       <div :class="['tx-icon', tx.iconClass]">
         <component
-          :is="getCategoryIconComponent(tx.category)"
+          :is="getCategoryIcon(tx.category)"
           :size="18"
           :color="tx.iconColor"
         />
@@ -46,7 +46,7 @@ import {
   processTransaction, 
   formatTransactionDate 
 } from '../composables/useCategories';
-import { getCategoryIconComponent } from './icons';
+import { getCategoryIcon } from '../composables/useCategoryIcon';
 
 const props = defineProps({
   transactions: { type: Array, required: true },

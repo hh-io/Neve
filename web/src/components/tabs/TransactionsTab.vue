@@ -5,7 +5,7 @@
       <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3);">
         <!-- Search -->
         <div style="flex: 1; min-width: 200px; position: relative;">
-          <span v-html="icons.search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--text-tertiary);"></span>
+          <Search :size="16" color="var(--text-tertiary)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);" />
           <input
             type="text"
             v-model="searchQuery"
@@ -41,7 +41,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">
         <div style="display: flex; align-items: center; gap: var(--space-2);">
           <div class="stat-icon bg-brand-light" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-            <span v-html="icons.transactions" style="stroke: var(--brand-primary); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;"></span>
+            <ArrowRightLeft :size="16" color="var(--brand-primary)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary); font-size: var(--font-size-base);">交易明细</span>
         </div>
@@ -74,7 +74,7 @@
             <!-- Icon -->
             <div :class="['tx-icon', tx.iconClass]">
               <component
-                :is="getCategoryIconComponent(tx.category)"
+                :is="getCategoryIcon(tx.category)"
                 :size="20"
                 :color="tx.iconColor"
               />
@@ -132,14 +132,14 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { icons } from '../../composables/icons';
-import { 
-  getCategoryLabel, 
-  processTransaction, 
+import { Search, ArrowRightLeft } from '@lucide/vue';
+import {
+  getCategoryLabel,
+  processTransaction,
   getRelativeDateLabel,
-  getTagColor 
+  getTagColor
 } from '../../composables/useCategories';
-import { getCategoryIconComponent } from '../icons';
+import { getCategoryIcon } from '../../composables/useCategoryIcon';
 
 const props = defineProps({
   transactions: { type: Array, required: true }

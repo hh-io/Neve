@@ -6,7 +6,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div class="stat-icon bg-expense-light" style="width: 40px; height: 40px;">
-              <span v-html="icons.pieChart" style="stroke: var(--expense); width: 20px; height: 20px;"></span>
+              <PieChartIcon :size="20" color="var(--expense)" />
             </div>
             <span style="font-weight: 600; color: var(--text-primary);">支出分类</span>
           </div>
@@ -22,7 +22,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div class="stat-icon bg-income-light" style="width: 40px; height: 40px;">
-              <span v-html="icons.pieChart" style="stroke: var(--income); width: 20px; height: 20px;"></span>
+              <PieChartIcon :size="20" color="var(--income)" />
             </div>
             <span style="font-weight: 600; color: var(--text-primary);">收入来源</span>
           </div>
@@ -43,7 +43,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
         <div style="display: flex; align-items: center; gap: var(--space-3);">
           <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.transfer" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+            <Repeat :size="20" color="var(--brand-primary)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">资金流向 (Sankey)</span>
         </div>
@@ -62,7 +62,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.creditCard" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+            <CreditCard :size="20" color="var(--brand-primary)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">支付平台排行</span>
         </div>
@@ -72,7 +72,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-warning-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.shopping" style="stroke: var(--warning); width: 20px; height: 20px;"></span>
+            <ShoppingBag :size="20" color="var(--warning)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">商户消费排行</span>
         </div>
@@ -93,7 +93,7 @@ import PlatformRanking from '../PlatformRanking.vue';
 import MerchantRanking from '../MerchantRanking.vue';
 import { getCategoryLabel } from '../../composables/useCategories';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
-import { icons } from '../../composables/icons';
+import { PieChart as PieChartIcon, Repeat, CreditCard, ShoppingBag } from '@lucide/vue';
 
 use([PieChart, SankeyChart, TitleComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 

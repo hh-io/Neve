@@ -4,7 +4,7 @@
     <div class="card-static section-mb" style="padding: var(--space-4); display: flex; align-items: center; gap: var(--space-4);">
       <div style="display: flex; align-items: center; gap: var(--space-2);">
         <div class="stat-icon bg-brand-light" style="width: 36px; height: 36px;">
-          <span v-html="icons.lineChart" style="stroke: var(--brand-primary); width: 18px; height: 18px;"></span>
+          <LineChartIcon :size="18" color="var(--brand-primary)" />
         </div>
         <span style="font-weight: 500; color: var(--text-primary);">趋势周期</span>
       </div>
@@ -28,7 +28,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div class="stat-icon bg-info-light" style="width: 40px; height: 40px;">
-              <span v-html="icons.trends" style="stroke: var(--info); width: 20px; height: 20px;"></span>
+              <TrendingUp :size="20" color="var(--info)" />
             </div>
             <span style="font-weight: 600; color: var(--text-primary);">收支趋势</span>
           </div>
@@ -63,7 +63,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.calendar" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+            <Calendar :size="20" color="var(--brand-primary)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">交易日历</span>
         </div>
@@ -75,7 +75,7 @@
     <div class="card-static section-mb" style="padding: var(--space-6);">
       <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
         <div class="stat-icon bg-warning-light" style="width: 40px; height: 40px;">
-          <span v-html="icons.calendar" style="stroke: var(--warning); width: 20px; height: 20px;"></span>
+          <Calendar :size="20" color="var(--warning)" />
         </div>
         <span style="font-weight: 600; color: var(--text-primary);">消费日历热力图</span>
       </div>
@@ -92,7 +92,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-warning-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.calendar" style="stroke: var(--warning); width: 20px; height: 20px;"></span>
+            <Calendar :size="20" color="var(--warning)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">周消费分布</span>
         </div>
@@ -106,7 +106,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-expense-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.tags" style="stroke: var(--expense); width: 20px; height: 20px;"></span>
+            <Tag :size="20" color="var(--expense)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">分类消费环比</span>
         </div>
@@ -123,7 +123,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-brand-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.trophy" style="stroke: var(--brand-primary); width: 20px; height: 20px;"></span>
+            <Trophy :size="20" color="var(--brand-primary)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">年度“剁手”商户 Top 5</span>
         </div>
@@ -145,7 +145,7 @@
       <div class="card-static" style="padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
           <div class="stat-icon bg-info-light" style="width: 40px; height: 40px;">
-            <span v-html="icons.tags" style="stroke: var(--info); width: 20px; height: 20px;"></span>
+            <Tag :size="20" color="var(--info)" />
           </div>
           <span style="font-weight: 600; color: var(--text-primary);">高频生活标签 Top 5</span>
         </div>
@@ -177,7 +177,7 @@ import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
 import TransactionCalendar from '../TransactionCalendar.vue';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
-import { icons } from '../../composables/icons';
+import { LineChart as LineChartIcon, TrendingUp, Calendar, Tag, Trophy } from '@lucide/vue';
 
 use([LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
 

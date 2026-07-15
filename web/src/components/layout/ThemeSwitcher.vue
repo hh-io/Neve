@@ -7,37 +7,37 @@
       @click="$emit('update:modelValue', 'light')"
       title="亮色模式"
     >
-      <span v-html="icons.sun"></span>
+      <Sun :size="16" />
     </button>
-    <button 
-      class="theme-btn" 
+    <button
+      class="theme-btn"
       :class="{ active: modelValue === 'dark' }"
       @click="$emit('update:modelValue', 'dark')"
       title="暗色模式"
     >
-      <span v-html="icons.moon"></span>
+      <Moon :size="16" />
     </button>
-    <button 
-      class="theme-btn" 
+    <button
+      class="theme-btn"
       :class="{ active: modelValue === 'geek' }"
       @click="$emit('update:modelValue', 'geek')"
       title="极客模式"
     >
-      <span v-html="icons.terminal"></span>
+      <Terminal :size="16" />
     </button>
-    <button 
-      class="theme-btn" 
+    <button
+      class="theme-btn"
       :class="{ active: modelValue === 'system' }"
       @click="$emit('update:modelValue', 'system')"
       title="跟随系统"
     >
-      <span v-html="icons.monitor"></span>
+      <Monitor :size="16" />
     </button>
   </div>
 </template>
 
 <script setup>
-import { icons } from '../../composables/icons';
+import { Sun, Moon, Terminal, Monitor } from '@lucide/vue';
 
 defineProps({
   modelValue: { type: String, required: true }
