@@ -12,7 +12,7 @@
 | Phase 2 设计系统重建 | ⬜ 未开始 | |
 | Phase 3 基础设施重构 | ⬜ 未开始 | |
 | Phase 4 组件逐个重写 | ⬜ 未开始 | |
-| Phase 5 后端小清理 | ⬜ 未开始 | |
+| Phase 5 后端小清理 | ✅ 已完成 | commit `e661ed1`;顺带清理了只写不读的 `s.ledger` 字段 |
 | Phase 6 文档同步 | ⬜ 未开始 | |
 
 ### Phase 1 落地记录(与原计划的偏差,下个会话必读)
@@ -179,14 +179,14 @@
 
 ---
 
-## Phase 5:后端小清理(可选,低风险)
+## Phase 5:后端小清理(可选,低风险) ✅ 已完成(commit `e661ed1`)
 
 1. 删除前端从未调用的 `/api/summary`、`/api/transactions`、`/api/accounts` 三个端点及其 handler
    (保留 `/api/analytics`、`/api/refresh`、`/api/budgets` 读写)。
 2. 移除 `main.go` 的 `corsMiddleware`(开发走 Vite 代理、生产同源,均不产生跨域请求)。
 3. `go test -race ./...` 全绿。
 
-**提交**:`chore: 移除未使用的 API 端点与 CORS 中间件`
+**提交**:`chore: 移除未使用的 API 端点与 CORS 中间件` → ✅ 已提交 `e661ed1`
 
 ---
 
