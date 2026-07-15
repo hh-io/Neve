@@ -15,10 +15,15 @@ import (
 
 // Server holds the API server state
 type Server struct {
-	dataDir     string
-	ledger      *parser.Ledger
+	dataDir string
+	// mu 保护 ledger/analytics/lastRefresh;analytics 在 Refresh 时一次算好,
+	// 各端点读同一份缓存,避免每请求重算导致的时间口径不一致
 	mu          sync.RWMutex
+	ledger      *parser.Ledger
+	analytics   *parser.Analytics
 	lastRefresh time.Time
+	// budgets.json 的读写不经过 ledger,单独用一把锁
+	budgetMu sync.Mutex
 }
 
 // NewServer creates a new API server
@@ -28,16 +33,19 @@ func NewServer(dataDir string) *Server {
 	}
 }
 
-// Refresh reloads the ledger data
+// Refresh reloads the ledger data and rebuilds the analytics cache
 func (s *Server) Refresh() error {
 	p := parser.NewParser(s.dataDir)
 	ledger, err := p.Parse()
 	if err != nil {
 		return err
 	}
+	analytics := parser.Analyze(ledger)
 
 	s.mu.Lock()
 	s.ledger = ledger
+	s.analytics = analytics
+	s.lastRefresh = time.Now()
 	s.mu.Unlock()
 
 	return nil
@@ -61,33 +69,26 @@ func (s *Server) handleSummary(c *gin.Context) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	if s.ledger == nil {
+	if s.analytics == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
 		return
 	}
 
-	analytics := parser.Analyze(s.ledger)
-	c.JSON(http.StatusOK, analytics.Summary)
+	c.JSON(http.StatusOK, s.analytics.Summary)
 }
 
 func (s *Server) handleTransactions(c *gin.Context) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	if s.ledger == nil {
+	if s.analytics == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
 		return
 	}
 
-	// Return last 100 transactions
-	count := 100
-	if len(s.ledger.Transactions) < count {
-		count = len(s.ledger.Transactions)
-	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"transactions": s.ledger.Transactions[:count],
-		"total":        len(s.ledger.Transactions),
+		"transactions": s.analytics.Transactions,
+		"total":        len(s.analytics.Transactions),
 	})
 }
 
@@ -95,13 +96,12 @@ func (s *Server) handleAnalytics(c *gin.Context) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	if s.ledger == nil {
+	if s.analytics == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
 		return
 	}
 
-	analytics := parser.Analyze(s.ledger)
-	c.JSON(http.StatusOK, analytics)
+	c.JSON(http.StatusOK, s.analytics)
 }
 
 func (s *Server) handleAccounts(c *gin.Context) {
@@ -133,6 +133,7 @@ func (s *Server) handleRefresh(c *gin.Context) {
 		return
 	}
 
+	// 解析中的脏数据是软失败(体现在 parseIssues),只有账本完全无法加载才算刷新失败
 	if err := s.Refresh(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": NewAPIError("REFRESH_FAILED", err.Error()),
@@ -140,18 +141,20 @@ func (s *Server) handleRefresh(c *gin.Context) {
 		return
 	}
 
-	s.mu.Lock()
-	s.lastRefresh = time.Now()
-	s.mu.Unlock()
-
-	analytics := parser.Analyze(s.ledger)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	c.JSON(http.StatusOK, gin.H{
-		"message": "data refreshed",
-		"summary": analytics.Summary,
+		"message":     "data refreshed",
+		"summary":     s.analytics.Summary,
+		"issueCount":  len(s.analytics.ParseIssues),
+		"parseIssues": s.analytics.ParseIssues,
 	})
 }
 
 func (s *Server) handleGetBudgets(c *gin.Context) {
+	s.budgetMu.Lock()
+	defer s.budgetMu.Unlock()
+
 	budgetFile := filepath.Join(s.dataDir, "budgets.json")
 	data, err := os.ReadFile(budgetFile)
 	if err != nil {
@@ -183,13 +186,38 @@ func (s *Server) handleSaveBudgets(c *gin.Context) {
 		return
 	}
 
-	budgetFile := filepath.Join(s.dataDir, "budgets.json")
-	if err := os.WriteFile(budgetFile, body, 0644); err != nil {
+	s.budgetMu.Lock()
+	defer s.budgetMu.Unlock()
+
+	if err := atomicWriteFile(filepath.Join(s.dataDir, "budgets.json"), body); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "saved"})
+}
+
+// atomicWriteFile 先写同目录临时文件再 rename,避免写入中断损坏 budgets.json
+func atomicWriteFile(path string, data []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".budgets-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // rename 成功后为空操作
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
 }
 
 // GetDataDir returns absolute data directory path

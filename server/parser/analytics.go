@@ -1,97 +1,103 @@
 package parser
 
 import (
+	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
 // Summary holds the financial summary
 type Summary struct {
-	NetWorth         float64   `json:"netWorth"`
-	TotalAssets      float64   `json:"totalAssets"`
-	TotalLiabilities float64   `json:"totalLiabilities"`
-	MonthIncome      float64   `json:"monthIncome"`
-	MonthExpense     float64   `json:"monthExpense"`
-	MonthBalance     float64   `json:"monthBalance"`
+	NetWorth         Amount    `json:"netWorth"`
+	TotalAssets      Amount    `json:"totalAssets"`
+	TotalLiabilities Amount    `json:"totalLiabilities"`
+	MonthIncome      Amount    `json:"monthIncome"`
+	MonthExpense     Amount    `json:"monthExpense"`
+	MonthBalance     Amount    `json:"monthBalance"`
+	TransactionCount int       `json:"transactionCount"`
+	TrackingDays     int       `json:"trackingDays"`
+	FirstDate        string    `json:"firstDate"`
 	LastUpdated      time.Time `json:"lastUpdated"`
 }
 
 // CategoryAmount represents expense by category
 type CategoryAmount struct {
 	Category string  `json:"category"`
-	Amount   float64 `json:"amount"`
+	Amount   Amount  `json:"amount"`
 	Percent  float64 `json:"percent"`
 	Count    int     `json:"count"`
 }
 
 // AccountBalance represents an account's balance
 type AccountBalance struct {
-	Account  string  `json:"account"`
-	Balance  float64 `json:"balance"`
-	Currency string  `json:"currency"`
-	Type     string  `json:"type"`
+	Account  string `json:"account"`
+	Balance  Amount `json:"balance"`
+	Currency string `json:"currency"`
+	Type     string `json:"type"`
 }
 
 // MonthlyData represents monthly income/expense
 type MonthlyData struct {
-	Month   string  `json:"month"`
-	Income  float64 `json:"income"`
-	Expense float64 `json:"expense"`
-	Balance float64 `json:"balance"`
+	Month   string `json:"month"`
+	Income  Amount `json:"income"`
+	Expense Amount `json:"expense"`
+	Balance Amount `json:"balance"`
 }
 
 // DailyData represents daily income/expense
 type DailyData struct {
-	Date    string  `json:"date"`
-	Income  float64 `json:"income"`
-	Expense float64 `json:"expense"`
-	Balance float64 `json:"balance"`
+	Date    string `json:"date"`
+	Income  Amount `json:"income"`
+	Expense Amount `json:"expense"`
+	Balance Amount `json:"balance"`
 }
 
 // WeeklyData represents weekly income/expense
 type WeeklyData struct {
-	Week    string  `json:"week"` // format: 2006-W01
-	Income  float64 `json:"income"`
-	Expense float64 `json:"expense"`
-	Balance float64 `json:"balance"`
+	Week      string `json:"week"`      // ISO 周,如 "2026-W03"
+	WeekStart string `json:"weekStart"` // 该周周一,如 "2026-01-12"
+	Income    Amount `json:"income"`
+	Expense   Amount `json:"expense"`
+	Balance   Amount `json:"balance"`
 }
 
 // TagStats represents spending by tag (platform)
 type TagStats struct {
 	Tag     string  `json:"tag"`
-	Amount  float64 `json:"amount"`
+	Amount  Amount  `json:"amount"`
 	Count   int     `json:"count"`
 	Percent float64 `json:"percent"`
 }
 
 // PayeeStats represents spending by payee (merchant)
 type PayeeStats struct {
-	Payee  string  `json:"payee"`
-	Amount float64 `json:"amount"`
-	Count  int     `json:"count"`
+	Payee  string `json:"payee"`
+	Amount Amount `json:"amount"`
+	Count  int    `json:"count"`
 }
 
 // WeekdayCategoryCount represents count per category for a weekday
 type WeekdayCategoryCount struct {
-	Category string  `json:"category"`
-	Count    int     `json:"count"`
-	Amount   float64 `json:"amount"`
+	Category string `json:"category"`
+	Count    int    `json:"count"`
+	Amount   Amount `json:"amount"`
 }
 
 // WeekdayStats represents spending by day of week
 type WeekdayStats struct {
 	Weekday           int                    `json:"weekday"` // 0=Sunday, 1=Monday, ...
 	Name              string                 `json:"name"`
-	Amount            float64                `json:"amount"`
+	Amount            Amount                 `json:"amount"`
 	Count             int                    `json:"count"`
-	Dates             []string               `json:"dates"`             // List of dates (MM-DD format) with expenses
-	CategoryBreakdown []WeekdayCategoryCount `json:"categoryBreakdown"` // Spending breakdown by category
+	Dates             []string               `json:"dates"`
+	CategoryBreakdown []WeekdayCategoryCount `json:"categoryBreakdown"`
 }
 
 // MonthlyAmount for category trends
 type MonthlyAmount struct {
-	Month  string  `json:"month"`
-	Amount float64 `json:"amount"`
+	Month  string `json:"month"`
+	Amount Amount `json:"amount"`
 }
 
 // CategoryTrend represents monthly trend for a category
@@ -102,30 +108,32 @@ type CategoryTrend struct {
 
 // LiabilityStats represents liability account details
 type LiabilityStats struct {
-	Account  string  `json:"account"`
-	Name     string  `json:"name"`
-	Balance  float64 `json:"balance"`
-	Currency string  `json:"currency"`
+	Account  string `json:"account"`
+	Name     string `json:"name"`
+	Balance  Amount `json:"balance"`
+	Currency string `json:"currency"`
 }
 
 // IncomeSource represents income breakdown by source
 type IncomeSource struct {
 	Source  string  `json:"source"`
-	Amount  float64 `json:"amount"`
+	Amount  Amount  `json:"amount"`
 	Percent float64 `json:"percent"`
 	Count   int     `json:"count"`
 }
 
 // Analytics holds all analytical data
 type Analytics struct {
-	Summary            Summary          `json:"summary"`
-	ExpenseByCategory  []CategoryAmount `json:"expenseByCategory"`
-	AccountBalances    []AccountBalance `json:"accountBalances"`
-	MonthlyTrend       []MonthlyData    `json:"monthlyTrend"`
-	DailyTrend         []DailyData      `json:"dailyTrend"`
-	WeeklyTrend        []WeeklyData     `json:"weeklyTrend"`
-	RecentTransactions []Transaction    `json:"recentTransactions"`
-	// New analytics
+	Summary           Summary          `json:"summary"`
+	ParseIssues       []ParseIssue     `json:"parseIssues"`
+	BalanceChecks     []BalanceCheck   `json:"balanceChecks"`
+	ExpenseByCategory []CategoryAmount `json:"expenseByCategory"`
+	AccountBalances   []AccountBalance `json:"accountBalances"`
+	MonthlyTrend      []MonthlyData    `json:"monthlyTrend"`
+	DailyTrend        []DailyData      `json:"dailyTrend"`
+	WeeklyTrend       []WeeklyData     `json:"weeklyTrend"`
+	// 全量交易(不含 opening),分类/转账字段已由后端计算
+	Transactions        []Transaction    `json:"transactions"`
 	DailyAverage        float64          `json:"dailyAverage"`
 	PlatformRanking     []TagStats       `json:"platformRanking"`
 	MerchantRanking     []PayeeStats     `json:"merchantRanking"`
@@ -137,81 +145,88 @@ type Analytics struct {
 
 // Analyze analyzes the ledger and returns analytics
 func Analyze(ledger *Ledger) *Analytics {
-	now := time.Now()
-	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	return AnalyzeAt(ledger, time.Now())
+}
 
+// AnalyzeAt 以指定时刻为"现在"做统计,便于测试注入固定时钟。
+// 不修改 ledger,分类结果写在交易副本上。
+func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 	analytics := &Analytics{
-		Summary: Summary{
-			LastUpdated: now,
-		},
-		ExpenseByCategory:  make([]CategoryAmount, 0),
-		AccountBalances:    make([]AccountBalance, 0),
-		MonthlyTrend:       make([]MonthlyData, 0),
-		RecentTransactions: make([]Transaction, 0),
+		Summary:           Summary{LastUpdated: now},
+		ParseIssues:       ledger.Issues,
+		BalanceChecks:     ledger.BalanceChecks,
+		ExpenseByCategory: make([]CategoryAmount, 0),
+		AccountBalances:   make([]AccountBalance, 0),
+		MonthlyTrend:      make([]MonthlyData, 0),
+		Transactions:      make([]Transaction, 0, len(ledger.Transactions)),
 	}
 
-	// Calculate account balances from transactions
-	accountBalances := make(map[string]float64)
+	// 分类在交易副本上计算;opening 不进交易列表,未来日期交易进列表但不进统计
+	var statsTxs []Transaction
+	for _, tx := range ledger.Transactions {
+		classifyTransaction(&tx)
+		if tx.Kind == "opening" {
+			if !tx.Date.After(now) {
+				statsTxs = append(statsTxs, tx) // opening 仍参与账户余额
+			}
+			continue
+		}
+		analytics.Transactions = append(analytics.Transactions, tx)
+		if !tx.Date.After(now) {
+			statsTxs = append(statsTxs, tx)
+		}
+	}
+
+	accountBalances := make(map[string]Amount)
 	monthlyData := make(map[string]*MonthlyData)
 	dailyData := make(map[string]*DailyData)
 	weeklyData := make(map[string]*WeeklyData)
 	categoryExpense := make(map[string]struct {
-		amount float64
+		amount Amount
 		count  int
 	})
 
-	for _, tx := range ledger.Transactions {
-		txMonth := tx.Date.Format("2006-01")
+	for _, tx := range statsTxs {
+		txMonth := monthKey(tx.Date)
 		txDate := tx.Date.Format("2006-01-02")
-		txYear, txWeek := tx.Date.ISOWeek()
-		txWeekStr := time.Date(txYear, 1, 1, 0, 0, 0, 0, time.Local).AddDate(0, 0, (txWeek-1)*7).Format("01-02")
+		weekKey := isoWeekKey(tx.Date)
 
-		// Initialize monthly data if needed
 		if _, ok := monthlyData[txMonth]; !ok {
 			monthlyData[txMonth] = &MonthlyData{Month: txMonth}
 		}
-
-		// Initialize daily data if needed
 		if _, ok := dailyData[txDate]; !ok {
 			dailyData[txDate] = &DailyData{Date: txDate}
 		}
-
-		// Initialize weekly data if needed (use year-week as key)
-		weekKey := tx.Date.Format("2006") + "-W" + txWeekStr
 		if _, ok := weeklyData[weekKey]; !ok {
-			weeklyData[weekKey] = &WeeklyData{Week: weekKey}
+			weeklyData[weekKey] = &WeeklyData{
+				Week:      weekKey,
+				WeekStart: weekStart(tx.Date).Format("2006-01-02"),
+			}
 		}
 
 		for _, posting := range tx.Postings {
-			// Update account balance
 			accountBalances[posting.Account] += posting.Amount
 
-			// Calculate monthly income/expense
-			if tx.Date.Year() == now.Year() && tx.Date.Month() == now.Month() {
-				if isExpenseAccount(posting.Account) && posting.Amount > 0 {
+			// 支出/收入按净额累加:退款记为负数 Expenses posting,应冲减支出而非被忽略
+			switch accountRoot(posting.Account) {
+			case "Expenses":
+				if sameMonth(tx.Date, now) {
 					analytics.Summary.MonthExpense += posting.Amount
-				} else if isIncomeAccount(posting.Account) && posting.Amount < 0 {
-					analytics.Summary.MonthIncome += -posting.Amount // Income is negative in postings
-				}
-			}
 
-			// Aggregate expense by category (current month)
-			if tx.Date.After(currentMonth) || tx.Date.Equal(currentMonth) {
-				if isExpenseAccount(posting.Account) && posting.Amount > 0 {
 					category := getExpenseCategory(posting.Account)
 					ce := categoryExpense[category]
 					ce.amount += posting.Amount
 					ce.count++
 					categoryExpense[category] = ce
 				}
-			}
-
-			// Monthly trend
-			if isExpenseAccount(posting.Account) && posting.Amount > 0 {
 				monthlyData[txMonth].Expense += posting.Amount
 				dailyData[txDate].Expense += posting.Amount
 				weeklyData[weekKey].Expense += posting.Amount
-			} else if isIncomeAccount(posting.Account) && posting.Amount < 0 {
+			case "Income":
+				// Income posting 记负数,取反后为正
+				if sameMonth(tx.Date, now) {
+					analytics.Summary.MonthIncome += -posting.Amount
+				}
 				monthlyData[txMonth].Income += -posting.Amount
 				dailyData[txDate].Income += -posting.Amount
 				weeklyData[weekKey].Income += -posting.Amount
@@ -219,26 +234,45 @@ func Analyze(ledger *Ledger) *Analytics {
 		}
 	}
 
-	// Calculate net worth and totals
+	// Net worth and totals
 	for account, balance := range accountBalances {
-		if isAssetAccount(account) {
+		switch accountRoot(account) {
+		case "Assets":
 			analytics.Summary.TotalAssets += balance
-		} else if isLiabilityAccount(account) {
-			analytics.Summary.TotalLiabilities += -balance // Liabilities are negative
+		case "Liabilities":
+			analytics.Summary.TotalLiabilities += -balance // 负债余额为负,展示取反
 		}
 	}
 	analytics.Summary.NetWorth = analytics.Summary.TotalAssets - analytics.Summary.TotalLiabilities
 	analytics.Summary.MonthBalance = analytics.Summary.MonthIncome - analytics.Summary.MonthExpense
 
-	// Build expense by category
-	var totalExpense float64
+	// 记账口径:交易总数与记账天数基于全量真实交易(不含 opening、不含未来)
+	var firstDate time.Time
+	count := 0
+	for _, tx := range statsTxs {
+		if tx.Kind == "opening" {
+			continue
+		}
+		count++
+		if firstDate.IsZero() || tx.Date.Before(firstDate) {
+			firstDate = tx.Date
+		}
+	}
+	analytics.Summary.TransactionCount = count
+	if !firstDate.IsZero() {
+		analytics.Summary.FirstDate = firstDate.Format("2006-01-02")
+		analytics.Summary.TrackingDays = int(now.Sub(firstDate).Hours()/24) + 1
+	}
+
+	// Expense by category (current month)
+	var totalExpense Amount
 	for _, ce := range categoryExpense {
 		totalExpense += ce.amount
 	}
 	for category, ce := range categoryExpense {
 		percent := 0.0
 		if totalExpense > 0 {
-			percent = (ce.amount / totalExpense) * 100
+			percent = float64(ce.amount) / float64(totalExpense) * 100
 		}
 		analytics.ExpenseByCategory = append(analytics.ExpenseByCategory, CategoryAmount{
 			Category: category,
@@ -247,32 +281,31 @@ func Analyze(ledger *Ledger) *Analytics {
 			Count:    ce.count,
 		})
 	}
-	// Sort by amount descending
 	sort.Slice(analytics.ExpenseByCategory, func(i, j int) bool {
 		return analytics.ExpenseByCategory[i].Amount > analytics.ExpenseByCategory[j].Amount
 	})
 
-	// Build account balances (only Assets and Liabilities)
+	// Account balances (only Assets and Liabilities)
 	for account, balance := range accountBalances {
-		if isAssetAccount(account) || isLiabilityAccount(account) {
+		root := accountRoot(account)
+		if root == "Assets" || root == "Liabilities" {
 			analytics.AccountBalances = append(analytics.AccountBalances, AccountBalance{
 				Account:  account,
 				Balance:  balance,
 				Currency: ledger.BaseCurrency,
-				Type:     getAccountType(account),
+				Type:     root,
 			})
 		}
 	}
-	// Sort by balance descending
 	sort.Slice(analytics.AccountBalances, func(i, j int) bool {
 		return analytics.AccountBalances[i].Balance > analytics.AccountBalances[j].Balance
 	})
 
-	// Build monthly trend (last 6 months, always include even if empty)
+	// 月锚点取每月 1 号,避免 AddDate 在月末(如 31 号)回退时跳月
+	monthAnchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 	var last6Months []string
 	for i := 5; i >= 0; i-- {
-		m := now.AddDate(0, -i, 0)
-		last6Months = append(last6Months, m.Format("2006-01"))
+		last6Months = append(last6Months, monthKey(monthAnchor.AddDate(0, -i, 0)))
 	}
 	for _, month := range last6Months {
 		data := monthlyData[month]
@@ -283,13 +316,9 @@ func Analyze(ledger *Ledger) *Analytics {
 		analytics.MonthlyTrend = append(analytics.MonthlyTrend, *data)
 	}
 
-	// Build daily trend (last 30 days)
-	var last30Days []string
+	// Daily trend (last 30 days)
 	for i := 29; i >= 0; i-- {
-		d := now.AddDate(0, 0, -i)
-		last30Days = append(last30Days, d.Format("2006-01-02"))
-	}
-	for _, day := range last30Days {
+		day := now.AddDate(0, 0, -i).Format("2006-01-02")
 		data := dailyData[day]
 		if data == nil {
 			data = &DailyData{Date: day}
@@ -298,104 +327,68 @@ func Analyze(ledger *Ledger) *Analytics {
 		analytics.DailyTrend = append(analytics.DailyTrend, *data)
 	}
 
-	// Build weekly trend (last 8 weeks)
-	var last8Weeks []string
+	// Weekly trend (last 8 weeks):按 7 天步进,ISO 周天然不重复
 	for i := 7; i >= 0; i-- {
 		d := now.AddDate(0, 0, -i*7)
-		year, week := d.ISOWeek()
-		weekStart := time.Date(year, 1, 1, 0, 0, 0, 0, time.Local).AddDate(0, 0, (week-1)*7)
-		weekKey := d.Format("2006") + "-W" + weekStart.Format("01-02")
-		last8Weeks = append(last8Weeks, weekKey)
-	}
-	// Remove duplicates and keep order
-	seen := make(map[string]bool)
-	var uniqueWeeks []string
-	for _, w := range last8Weeks {
-		if !seen[w] {
-			seen[w] = true
-			uniqueWeeks = append(uniqueWeeks, w)
-		}
-	}
-	for _, week := range uniqueWeeks {
-		data := weeklyData[week]
+		weekKey := isoWeekKey(d)
+		data := weeklyData[weekKey]
 		if data == nil {
-			data = &WeeklyData{Week: week}
+			data = &WeeklyData{
+				Week:      weekKey,
+				WeekStart: weekStart(d).Format("2006-01-02"),
+			}
 		}
 		data.Balance = data.Income - data.Expense
 		analytics.WeeklyTrend = append(analytics.WeeklyTrend, *data)
 	}
 
-	// Recent transactions (last 100 for filtering, excluding opening balance)
-	var recentTxs []Transaction
-	for _, tx := range ledger.Transactions {
-		if isOpeningBalanceTransaction(tx) {
-			continue
-		}
-		recentTxs = append(recentTxs, tx)
-		if len(recentTxs) >= 100 {
-			break
-		}
-	}
-	analytics.RecentTransactions = recentTxs
+	// ========== 排行 / 分布 / 趋势 ==========
 
-	// ========== NEW ANALYTICS ==========
-
-	// Platform ranking (by tag)
 	tagSpending := make(map[string]struct {
-		amount float64
+		amount Amount
 		count  int
 	})
-	// Merchant ranking (by payee)
 	payeeSpending := make(map[string]struct {
-		amount float64
+		amount Amount
 		count  int
 	})
-	// Weekday distribution
 	weekdaySpending := make(map[int]struct {
-		amount     float64
+		amount     Amount
 		count      int
 		dates      []string
 		categories map[string]struct {
 			count  int
-			amount float64
+			amount Amount
 		}
 	})
-	// Category monthly trends
-	categoryMonthly := make(map[string]map[string]float64)
-	// Income by source
+	categoryMonthly := make(map[string]map[string]Amount)
 	incomeBySource := make(map[string]struct {
-		amount float64
+		amount Amount
 		count  int
 	})
-	// Track days with expenses for daily average
-	expenseDays := make(map[string]bool)
 
-	for _, tx := range ledger.Transactions {
-		if isOpeningBalanceTransaction(tx) {
+	for _, tx := range statsTxs {
+		if tx.Kind == "opening" {
 			continue
 		}
 
-		var txExpenseAmount float64
-		var txCategories = make(map[string]float64) // Track categories for this transaction
+		var txExpenseAmount Amount
+		txCategories := make(map[string]Amount)
 
 		for _, posting := range tx.Postings {
-			if isExpenseAccount(posting.Account) && posting.Amount > 0 {
+			switch accountRoot(posting.Account) {
+			case "Expenses":
+				// 净额口径:退款冲减对应分类
 				txExpenseAmount += posting.Amount
 
-				// Category monthly trend
 				category := getExpenseCategory(posting.Account)
-				txMonth := tx.Date.Format("2006-01")
+				txMonth := monthKey(tx.Date)
 				if categoryMonthly[category] == nil {
-					categoryMonthly[category] = make(map[string]float64)
+					categoryMonthly[category] = make(map[string]Amount)
 				}
 				categoryMonthly[category][txMonth] += posting.Amount
-
-				// Track category for weekday breakdown
 				txCategories[category] += posting.Amount
-			}
-
-			// Income breakdown
-			if isIncomeAccount(posting.Account) && posting.Amount < 0 {
+			case "Income":
 				source := getIncomeSource(posting.Account)
 				is := incomeBySource[source]
 				is.amount += -posting.Amount
@@ -405,24 +398,17 @@ func Analyze(ledger *Ledger) *Analytics {
 		}
 
 		if txExpenseAmount > 0 {
-			// Track expense day
-			expenseDays[tx.Date.Format("2006-01-02")] = true
-
-			// Weekday
 			weekday := int(tx.Date.Weekday())
 			ws := weekdaySpending[weekday]
 			ws.amount += txExpenseAmount
 			ws.count++
 
-			// Initialize categories map if nil
 			if ws.categories == nil {
 				ws.categories = make(map[string]struct {
 					count  int
-					amount float64
+					amount Amount
 				})
 			}
-
-			// Add category counts for this transaction
 			for cat, amt := range txCategories {
 				catData := ws.categories[cat]
 				catData.count++
@@ -430,7 +416,6 @@ func Analyze(ledger *Ledger) *Analytics {
 				ws.categories[cat] = catData
 			}
 
-			// Add date if not already in the list (using MM-DD format)
 			dateStr := tx.Date.Format("01-02")
 			found := false
 			for _, d := range ws.dates {
@@ -444,7 +429,6 @@ func Analyze(ledger *Ledger) *Analytics {
 			}
 			weekdaySpending[weekday] = ws
 
-			// Tags (platform)
 			for _, tag := range tx.Tags {
 				ts := tagSpending[tag]
 				ts.amount += txExpenseAmount
@@ -452,7 +436,6 @@ func Analyze(ledger *Ledger) *Analytics {
 				tagSpending[tag] = ts
 			}
 
-			// Payee (merchant)
 			if tx.Payee != "" {
 				ps := payeeSpending[tx.Payee]
 				ps.amount += txExpenseAmount
@@ -462,20 +445,18 @@ func Analyze(ledger *Ledger) *Analytics {
 		}
 	}
 
-	// Daily average (current month)
-	if daysInMonth := now.Day(); daysInMonth > 0 {
-		analytics.DailyAverage = analytics.Summary.MonthExpense / float64(daysInMonth)
-	}
+	// Daily average:本月支出 / 本月已过天数
+	analytics.DailyAverage = analytics.Summary.MonthExpense.Yuan() / float64(now.Day())
 
 	// Platform ranking
-	var totalTagSpending float64
+	var totalTagSpending Amount
 	for _, ts := range tagSpending {
 		totalTagSpending += ts.amount
 	}
 	for tag, ts := range tagSpending {
 		percent := 0.0
 		if totalTagSpending > 0 {
-			percent = (ts.amount / totalTagSpending) * 100
+			percent = float64(ts.amount) / float64(totalTagSpending) * 100
 		}
 		analytics.PlatformRanking = append(analytics.PlatformRanking, TagStats{
 			Tag:     tag,
@@ -511,7 +492,6 @@ func Analyze(ledger *Ledger) *Analytics {
 	for i := 0; i < 7; i++ {
 		ws := weekdaySpending[i]
 
-		// Build category breakdown
 		var catBreakdown []WeekdayCategoryCount
 		for cat, data := range ws.categories {
 			catBreakdown = append(catBreakdown, WeekdayCategoryCount{
@@ -520,7 +500,6 @@ func Analyze(ledger *Ledger) *Analytics {
 				Amount:   data.amount,
 			})
 		}
-		// Sort by count descending
 		sort.Slice(catBreakdown, func(a, b int) bool {
 			return catBreakdown[a].Count > catBreakdown[b].Count
 		})
@@ -543,18 +522,10 @@ func Analyze(ledger *Ledger) *Analytics {
 			break
 		}
 	}
-
-	// Get last 6 months for category trends
-	var catLast6Months []string
-	for i := 5; i >= 0; i-- {
-		m := now.AddDate(0, -i, 0)
-		catLast6Months = append(catLast6Months, m.Format("2006-01"))
-	}
-
 	for _, category := range topCategories {
 		trend := CategoryTrend{Category: category}
 		monthData := categoryMonthly[category]
-		for _, month := range catLast6Months {
+		for _, month := range last6Months {
 			trend.Data = append(trend.Data, MonthlyAmount{
 				Month:  month,
 				Amount: monthData[month],
@@ -565,11 +536,11 @@ func Analyze(ledger *Ledger) *Analytics {
 
 	// Liability breakdown
 	for account, balance := range accountBalances {
-		if isLiabilityAccount(account) && balance < 0 {
+		if accountRoot(account) == "Liabilities" && balance < 0 {
 			analytics.LiabilityBreakdown = append(analytics.LiabilityBreakdown, LiabilityStats{
 				Account:  account,
 				Name:     getAccountShortName(account),
-				Balance:  -balance, // Show as positive number
+				Balance:  -balance,
 				Currency: ledger.BaseCurrency,
 			})
 		}
@@ -579,14 +550,14 @@ func Analyze(ledger *Ledger) *Analytics {
 	})
 
 	// Income breakdown
-	var totalIncome float64
+	var totalIncome Amount
 	for _, is := range incomeBySource {
 		totalIncome += is.amount
 	}
 	for source, is := range incomeBySource {
 		percent := 0.0
 		if totalIncome > 0 {
-			percent = (is.amount / totalIncome) * 100
+			percent = float64(is.amount) / float64(totalIncome) * 100
 		}
 		analytics.IncomeBreakdown = append(analytics.IncomeBreakdown, IncomeSource{
 			Source:  source,
@@ -602,47 +573,125 @@ func Analyze(ledger *Ledger) *Analytics {
 	return analytics
 }
 
-func isAssetAccount(account string) bool {
-	return len(account) > 6 && account[:6] == "Assets"
-}
-
-func isLiabilityAccount(account string) bool {
-	return len(account) > 11 && account[:11] == "Liabilities"
-}
-
-func isExpenseAccount(account string) bool {
-	return len(account) > 8 && account[:8] == "Expenses"
-}
-
-func isIncomeAccount(account string) bool {
-	return len(account) > 6 && account[:6] == "Income"
-}
-
-// isOpeningBalanceTransaction checks if a transaction is an opening balance entry
-func isOpeningBalanceTransaction(tx Transaction) bool {
-	// Check if any posting involves Equity:Opening-Balances
-	for _, p := range tx.Postings {
-		if len(p.Account) > 6 && p.Account[:6] == "Equity" {
-			return true
+// classifyTransaction 计算交易的展示分类。
+// 统计口径始终按 posting 级聚合,这里只决定交易在列表中"是什么、显示多少钱"。
+func classifyTransaction(tx *Transaction) {
+	var posReal, negReal, expNet, incNet Amount
+	hasEquity := false
+	for _, po := range tx.Postings {
+		switch accountRoot(po.Account) {
+		case "Equity":
+			hasEquity = true
+		case "Assets", "Liabilities":
+			if po.Amount > 0 {
+				posReal += po.Amount
+			} else {
+				negReal += -po.Amount
+			}
+		case "Expenses":
+			expNet += po.Amount
+		case "Income":
+			incNet += -po.Amount // Income posting 记负数,取反后为正
 		}
 	}
-	// Also check for common patterns in payee/narration
-	if tx.Payee == "系统初始化" || tx.Narration == "录入现有资产与负债" {
-		return true
+
+	switch {
+	case hasEquity:
+		tx.Kind = "opening"
+
+	case incNet > 0 && expNet > 0:
+		// 收支混合(如税前工资拆税):按净到手展示,统计仍按 posting 分别计入
+		tx.Kind = "mixed"
+		tx.DisplayAmount = incNet - expNet
+		tx.Category = firstCategory(tx, "Income", getIncomeSource)
+
+	case incNet > 0:
+		tx.Kind = "income"
+		tx.DisplayAmount = incNet
+		tx.Category = firstCategory(tx, "Income", getIncomeSource)
+
+	case minAmount(posReal, negReal) > 0:
+		// 资金在真实账户(Assets/Liabilities)间对流:转账/还款,本金取对流较小侧,
+		// 多出的 Expenses 部分是附带手续费——修复"还款 5000+手续费 5 显示成 5 元支出"
+		tx.Kind = "transfer"
+		tx.IsTransfer = true
+		tx.TransferAmount = minAmount(posReal, negReal)
+		tx.FeeAmount = maxAmount(expNet, 0)
+		tx.DisplayAmount = tx.TransferAmount
+		tx.Category = "Financial"
+
+	default:
+		// 普通支出;退款时 expNet 为负,前端按负数金额展示
+		tx.Kind = "expense"
+		tx.DisplayAmount = expNet
+		tx.Category = primaryExpenseCategory(tx)
 	}
-	return false
 }
 
-func getAccountType(account string) string {
-	parts := splitAccount(account)
-	if len(parts) > 0 {
-		return parts[0]
+// primaryExpenseCategory 取金额最大的 Expenses posting 的分类
+func primaryExpenseCategory(tx *Transaction) string {
+	best := ""
+	var bestAmount Amount
+	for _, po := range tx.Postings {
+		if accountRoot(po.Account) != "Expenses" {
+			continue
+		}
+		abs := po.Amount
+		if abs < 0 {
+			abs = -abs
+		}
+		if best == "" || abs > bestAmount {
+			best = getExpenseCategory(po.Account)
+			bestAmount = abs
+		}
 	}
-	return "Unknown"
+	if best == "" {
+		return "Other"
+	}
+	return best
+}
+
+// firstCategory 取第一个指定类型 posting 的分类
+func firstCategory(tx *Transaction, root string, extract func(string) string) string {
+	for _, po := range tx.Postings {
+		if accountRoot(po.Account) == root {
+			return extract(po.Account)
+		}
+	}
+	return "Other"
+}
+
+// ---- 时间口径(单一真相源,前后统计共用) ----
+
+func isoWeekKey(t time.Time) string {
+	year, week := t.ISOWeek()
+	return fmt.Sprintf("%d-W%02d", year, week)
+}
+
+// weekStart 返回 t 所在 ISO 周的周一零点
+func weekStart(t time.Time) time.Time {
+	offset := (int(t.Weekday()) + 6) % 7 // Monday=0
+	d := t.AddDate(0, 0, -offset)
+	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
+}
+
+func monthKey(t time.Time) string {
+	return t.Format("2006-01")
+}
+
+func sameMonth(a, b time.Time) bool {
+	return a.Year() == b.Year() && a.Month() == b.Month()
+}
+
+// ---- 账户工具 ----
+
+// accountRoot 按 ':' 分段取首段,避免前缀比较把 AssetsFoo 误判为资产
+func accountRoot(account string) string {
+	return strings.SplitN(account, ":", 2)[0]
 }
 
 func getExpenseCategory(account string) string {
-	parts := splitAccount(account)
+	parts := strings.Split(account, ":")
 	if len(parts) >= 2 {
 		return parts[1]
 	}
@@ -650,7 +699,7 @@ func getExpenseCategory(account string) string {
 }
 
 func getIncomeSource(account string) string {
-	parts := splitAccount(account)
+	parts := strings.Split(account, ":")
 	if len(parts) >= 2 {
 		return parts[1]
 	}
@@ -658,26 +707,20 @@ func getIncomeSource(account string) string {
 }
 
 func getAccountShortName(account string) string {
-	parts := splitAccount(account)
-	if len(parts) >= 2 {
-		return parts[len(parts)-1]
-	}
-	return account
+	parts := strings.Split(account, ":")
+	return parts[len(parts)-1]
 }
 
-func splitAccount(account string) []string {
-	return splitString(account, ":")
+func minAmount(a, b Amount) Amount {
+	if a < b {
+		return a
+	}
+	return b
 }
 
-func splitString(s, sep string) []string {
-	var result []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if i+len(sep) <= len(s) && s[i:i+len(sep)] == sep {
-			result = append(result, s[start:i])
-			start = i + len(sep)
-		}
+func maxAmount(a, b Amount) Amount {
+	if a > b {
+		return a
 	}
-	result = append(result, s[start:])
-	return result
+	return b
 }
