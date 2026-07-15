@@ -279,9 +279,9 @@
     --income: #2ead4b;
     --income-light: #e2f6d5;
     --expense: #d03238;
-    --expense-light: #320707;
+    --expense-light: rgba(208, 50, 56, 0.08);
     --warning: #ffd11a;
-    --warning-light: #ffd11a;
+    --warning-light: rgba(255, 209, 26, 0.1);
     --info: #38c8ff;
     --info-light: rgba(56, 200, 255, 0.1);
     
