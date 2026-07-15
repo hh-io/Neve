@@ -138,7 +138,7 @@ const anomalyMonth = computed(() => {
 });
 
 const chartOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   if (!selectedData.value?.length) {
     return {
       title: {

@@ -161,7 +161,7 @@ const sankeyData = computed(() => {
 const hasSankeyData = computed(() => sankeyData.value.nodes.length > 0 && sankeyData.value.links.length > 0);
 
 const sankeyOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   return {
     tooltip: {
       trigger: 'item',
@@ -182,7 +182,7 @@ const sankeyOption = computed(() => {
 });
 
 const expensePieOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   return {
     tooltip: {
       trigger: 'item',
@@ -219,7 +219,7 @@ const expensePieOption = computed(() => {
 
 // 收入来源饼图 - 与支出分类保持一致的样式
 const incomePieOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   return {
     tooltip: {
       trigger: 'item',

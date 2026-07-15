@@ -230,7 +230,7 @@ const formatLabel = (item) => {
 };
 
 const trendChartOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   const data = trendData.value;
   return {
     tooltip: {
@@ -285,7 +285,7 @@ const trendChartOption = computed(() => {
 
 // Heatmap Logic
 const heatmapOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   const data = props.analytics.dailyTrend || [];
   // Map to [date, expense]
   const heatmapData = data.map(d => [d.date, Math.abs(d.expense)]);

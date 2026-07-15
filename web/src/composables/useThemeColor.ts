@@ -5,11 +5,11 @@ import { ref } from 'vue';
 // 可以让主题切换时 option 重新计算、图表重新取色。
 export const themeVersion = ref(0);
 
-export function bumpThemeVersion() {
+export function bumpThemeVersion(): void {
     themeVersion.value++;
 }
 
-export function getThemeColor(variableName) {
+export function getThemeColor(variableName: string): string {
     const style = getComputedStyle(document.documentElement);
     return style.getPropertyValue(variableName).trim();
 }

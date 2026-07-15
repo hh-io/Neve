@@ -38,8 +38,10 @@ deps:
 # 总构建任务：先构建前端，再构建后端
 build: build-web build-server
 
-# 构建前端：生成静态资源到 dist 目录
+# 构建前端：先过 ESLint 与类型检查,再生成静态资源到 dist 目录
 build-web:
+	@echo "🔍 前端 lint 与类型检查..."
+	@cd $(WEB_DIR) && pnpm run lint && pnpm run typecheck
 	@echo "🔨 构建前端..."
 	@cd $(WEB_DIR) && pnpm run build
 
@@ -112,4 +114,9 @@ help:
 	@echo "    make test        运行后端单元测试"
 	@echo "    make clean       清理所有构建产物"
 	@echo "    make help        显示此帮助信息"
+	@echo ""
+	@echo "  前端质量 (在 $(WEB_DIR)/ 下用 pnpm 运行):"
+	@echo "    pnpm run lint       ESLint 检查"
+	@echo "    pnpm run typecheck  vue-tsc 类型检查"
+	@echo "    pnpm run format     Prettier 格式化"
 	@echo ""

@@ -97,7 +97,7 @@ onMounted(async () => {
     if (res.ok) {
       budgets.value = await res.json();
     }
-  } catch (e) {
+  } catch {
     // Fallback to localStorage
     budgets.value = JSON.parse(localStorage.getItem('neve-budgets') || '{}');
   }

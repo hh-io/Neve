@@ -324,7 +324,7 @@ const pieColors = ['#C27B7B', '#7B9BC2', '#6B9B7A', '#C9A856', '#9B7BC2', '#7BC2
 
 const expensePieOption = computed(() => {
   // canvas 不解析 CSS 变量,颜色必须取实际值;依赖 themeVersion 以便主题切换时重算
-  themeVersion.value;
+  void themeVersion.value;
   const data = expenseByCategory.value.map((item, index) => ({
     name: getCategoryLabel(item.category),
     value: item.amount,

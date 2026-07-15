@@ -1,7 +1,8 @@
 // Category utilities - shared across components
+import type { Transaction } from '../types/api'
 
 // Category label mapping (Chinese) - 全局唯一的一份映射
-export const categoryLabels = {
+export const categoryLabels: Record<string, string> = {
     // 支出分类
     Food: '餐饮',
     Shopping: '购物',
@@ -31,14 +32,25 @@ export const categoryLabels = {
 };
 
 // Get localized category label
-export function getCategoryLabel(category) {
-    return categoryLabels[category] || category || '其他';
+export function getCategoryLabel(category: string | undefined | null): string {
+    return (category && categoryLabels[category]) || category || '其他';
+}
+
+// 展示层派生字段:processTransaction 在原始交易上叠加的视图属性。
+export interface ProcessedTransaction extends Transaction {
+    amount: number
+    isIncome: boolean
+    accountShort: string
+    amountText: string
+    amountClass: string
+    iconClass: string
+    iconColor: string
 }
 
 // Process raw transaction for display.
 // 金额、分类、转账识别均由后端计算(kind/category/displayAmount/transferAmount/feeAmount),
 // 这里只派生展示层字段,不再从 postings 推断业务含义。
-export function processTransaction(tx) {
+export function processTransaction(tx: Transaction): ProcessedTransaction {
     let accountShort = '';
     for (const posting of tx.postings || []) {
         const parts = (posting.account || '').split(':');
@@ -53,8 +65,8 @@ export function processTransaction(tx) {
     const isIncome = kind === 'income' || kind === 'mixed';
     const isTransfer = kind === 'transfer';
 
-    let amountText;
-    let amountClass;
+    let amountText: string;
+    let amountClass: string;
     if (isTransfer) {
         amountText = `¥${Math.abs(amount).toFixed(2)}`;
         amountClass = 'text-transfer';
@@ -84,7 +96,7 @@ export function processTransaction(tx) {
 }
 
 // Format date for display
-export function formatTransactionDate(dateStr) {
+export function formatTransactionDate(dateStr: string): string {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -93,7 +105,7 @@ export function formatTransactionDate(dateStr) {
 }
 
 // Get relative date label (Today, Yesterday, etc.)
-export function getRelativeDateLabel(dateStr) {
+export function getRelativeDateLabel(dateStr: string): string {
     const date = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date();
@@ -117,7 +129,7 @@ export function getRelativeDateLabel(dateStr) {
 }
 
 // Generate pastel tag color
-export function getTagColor(tag) {
+export function getTagColor(tag: string): string {
     let hash = 0;
     for (let i = 0; i < tag.length; i++) {
         hash = tag.charCodeAt(i) + ((hash << 5) - hash);

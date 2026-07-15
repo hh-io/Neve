@@ -21,7 +21,7 @@ const props = defineProps({
 });
 
 const chartOption = computed(() => {
-  themeVersion.value;
+  void themeVersion.value;
   if (!props.data?.length) {
     return {
       title: {
