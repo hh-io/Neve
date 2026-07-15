@@ -27,6 +27,13 @@ body {
     transition: background-color var(--transition-slow), color var(--transition-slow);
 }
 
+/* ========== Focus Ring ========== */
+/* 统一键盘可见焦点环,只在 :focus-visible 时出现,不影响鼠标点击态 */
+:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    outline-offset: 2px;
+}
+
 /* ========== Scrollbar ========== */
 ::-webkit-scrollbar {
     width: 6px;
@@ -85,6 +92,22 @@ body {
 
 .bg-brand-light {
     background-color: var(--brand-light);
+}
+
+/* ========== Numeric Typography ========== */
+/* 金额/数字统一等宽数字,避免跳动;供组件与工具类复用 */
+.tabular-nums {
+    font-family: var(--font-numeric);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ========== Eyebrow Label ========== */
+/* Linear 式小标题(如"净资产""本月收入"),与大数字形成分类标签 vs 内容对比 */
+.eyebrow {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: var(--text-tertiary);
 }
 
 /* ========== Section Spacing ========== */

@@ -9,7 +9,7 @@
 | Phase | 状态 | 说明 |
 |---|---|---|
 | Phase 1 工具链与类型契约 | ✅ 已完成 | commit `bdd4289`;见下方"Phase 1 落地记录" |
-| Phase 2 设计系统重建 | ⬜ 未开始 | |
+| Phase 2 设计系统重建 | ✅ 已完成 | 新 token 体系 + legacy 别名共存;三主题目检通过 |
 | Phase 3 基础设施重构 | ⬜ 未开始 | |
 | Phase 4 组件逐个重写 | ⬜ 未开始 | |
 | Phase 5 后端小清理 | ✅ 已完成 | commit `e661ed1`;顺带清理了只写不读的 `s.ledger` 字段 |
@@ -126,8 +126,28 @@
 - `useThemeColor.js` 保持现有机制(canvas 不解析 CSS 变量,必须 `getThemeColor()` 取实值 +
   `themeVersion` 触发重算)——**这是 CLAUDE.md 的硬约定,不得绕开**。
 
-**验收**:三主题切换正常,现有页面无明显视觉回归(允许 token 值微调带来的色差)。
+**验收**:三主题切换正常,现有页面无明显视觉回归(允许 token 值微调带来的色差)。 → ✅ light/dark/geek 逐一目检通过(演示数据),token 均正确解析。
 **提交**:`feat: 重建设计 token 体系(surface 阶梯/发丝线/数字排版/图表色板)`
+
+### Phase 2 落地记录(Phase 4 必读)
+
+- **兼容策略=新旧 token 共存**:`variables.css` 每个主题类同时导出新 token
+  (`--canvas`/`--surface-1..3`/`--hairline`/`--hairline-strong`/`--accent`/`--accent-hover`/
+  `--accent-subtle`/`--chart-1..8`/`--chart-income`/`--chart-expense`)与 legacy 别名
+  (`--bg-*`/`--border*`/`--brand-*`/`--income` 等),二者指向同一底色。**未删任何旧名**——
+  现有组件与 `components.css` 零改动继续工作。Phase 4 逐组件切到新名后,可回收 legacy 别名。
+- **圆角 token 值已换**:`--radius-sm/md/lg/xl` 从 8/12/16/20 改为 6/8/12/16(全局收紧),
+  组件无需改动即生效。
+- **深色/geek 阴影 token 置为 `transparent`**:层级只靠 surface 阶梯 + 发丝线;浅色保留极轻阴影。
+  刷新按钮/logo 的硬编码 glow 不受影响(它们不走 `--shadow`)。
+- **新增全局件**:`base.css` 加了 `:focus-visible` 统一焦点环(`color-mix` + `--accent`)、
+  `.eyebrow`(12px/500/0.4px letter-spacing/tertiary)、`.tabular-nums` 工具类;
+  `components.css` 的 `.stat-value`/`.transaction-amount` 已接 `--font-numeric` + `tabular-nums`。
+- **`--card-pad: 24px`** 已定义但**尚未接入**(旧 `.stat-card` 仍用 `--space-6`);Phase 4 重排卡片时切换。
+- **图表色板仍是组件硬编码**:`OverviewTab` 的 `pieColors`、`SpendingTab`/`TrendsTab` 的 `color:[...]`
+  尚未改用 `--chart-*`——这是 **Phase 4** 的接线工作(需配合 `getThemeColor()` + `themeVersion`)。
+- ⚠️ **CSS 注释里禁止出现 `*/` 字符序列**(如写 `--border*/--brand-*`):postcss-import 会把它
+  当成注释提前闭合并报 `Unknown word`。本次已踩过一次,注释统一改用"bg / border 系列"这类措辞。
 
 ---
 

@@ -82,6 +82,8 @@
 .stat-value {
     font-size: var(--font-size-xl);
     font-weight: 600;
+    font-family: var(--font-numeric);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ========== Transaction List ========== */
@@ -143,6 +145,8 @@
 .transaction-amount {
     font-size: var(--font-size-sm);
     font-weight: 600;
+    font-family: var(--font-numeric);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ========== Progress Bar ========== */

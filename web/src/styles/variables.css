@@ -1,21 +1,32 @@
 /* ========================================
    Neve Design System - Variables
    Color Tokens & Theme Configuration
+
+   Token 体系(Phase 2 重建):
+   - Surface 阶梯:--canvas / --surface-1 / --surface-2 / --surface-3
+   - 发丝线:--hairline / --hairline-strong(1px 层级分隔,深色主题不依赖阴影)
+   - 单一强调色:--accent / --accent-hover / --accent-subtle
+   - 图表色板:--chart-1..8 + --chart-income / --chart-expense
+   - 数字排版:--font-numeric(配合 font-variant-numeric: tabular-nums)
+
+   兼容层:旧语义名(bg / border / brand 系列)保留为新 token 的别名,
+   现有组件与 components.css 无需改动即可继续工作;组件在 Phase 4 逐个切到新名。
    ======================================== */
 
-/* ========== Color Tokens ========== */
+/* ========== Raw Color Tokens (per theme) ========== */
 :root {
-    /* Light Theme */
+    /* ---------- Light Theme ---------- */
     --light-bg-primary: #F8F9FC;
     --light-bg-secondary: #FFFFFF;
     --light-bg-tertiary: #F1F3F8;
+    --light-surface-3: #FFFFFF;
     --light-text-primary: #2D3142;
     --light-text-secondary: #6B7280;
     --light-text-tertiary: #9CA3AF;
     --light-border: #E5E7EB;
     --light-border-hover: #D1D5DB;
 
-    /* Brand - Low Saturation Teal */
+    /* Accent - Low Saturation Teal */
     --light-brand-primary: #5B9A9A;
     --light-brand-secondary: #7AB5B5;
     --light-brand-light: #E8F4F4;
@@ -30,20 +41,32 @@
     --light-info: #7B9BC2;
     --light-info-light: #EAF0FB;
 
+    /* Chart palette(源自旧 pieColors,浅色低饱和) */
+    --light-chart-1: #C27B7B;
+    --light-chart-2: #7B9BC2;
+    --light-chart-3: #6B9B7A;
+    --light-chart-4: #C9A856;
+    --light-chart-5: #9B7BC2;
+    --light-chart-6: #7BC2B5;
+    --light-chart-7: #C2997B;
+    --light-chart-8: #7B8BC2;
+
+    /* 浅色主题保留极轻阴影 */
     --light-shadow: rgba(45, 49, 66, 0.08);
     --light-shadow-lg: rgba(45, 49, 66, 0.12);
 
-    /* Dark Theme */
+    /* ---------- Dark Theme ---------- */
     --dark-bg-primary: #1A1D26;
     --dark-bg-secondary: #242834;
     --dark-bg-tertiary: #2E3342;
+    --dark-surface-3: #363B4B;
     --dark-text-primary: #F9FAFB;
     --dark-text-secondary: #D1D5DB;
     --dark-text-tertiary: #9CA3AF;
     --dark-border: #3A3F4F;
     --dark-border-hover: #4A5060;
 
-    /* Brand - Dark */
+    /* Accent - Dark */
     --dark-brand-primary: #81C7C7;
     --dark-brand-secondary: #6FB3B3;
     --dark-brand-light: rgba(129, 199, 199, 0.15);
@@ -58,55 +81,32 @@
     --dark-info: #9BBDF2;
     --dark-info-light: rgba(155, 189, 242, 0.15);
 
-    --dark-shadow: rgba(0, 0, 0, 0.25);
-    --dark-shadow-lg: rgba(0, 0, 0, 0.4);
+    /* Chart palette(深色抬高明度) */
+    --dark-chart-1: #E39A9A;
+    --dark-chart-2: #9BBDE8;
+    --dark-chart-3: #8BC0A0;
+    --dark-chart-4: #E3C878;
+    --dark-chart-5: #BB9BE0;
+    --dark-chart-6: #9BDDCF;
+    --dark-chart-7: #E0BB9B;
+    --dark-chart-8: #9BABE0;
 
-    /* Spacing */
-    --space-1: 0.25rem;
-    --space-2: 0.5rem;
-    --space-3: 0.75rem;
-    --space-4: 1rem;
-    --space-5: 1.25rem;
-    --space-6: 1.5rem;
-    --space-8: 2rem;
-    --space-10: 2.5rem;
-    --space-12: 3rem;
+    /* 深色主题去阴影:层级只靠 surface 提升 + 发丝线 */
+    --dark-shadow: transparent;
+    --dark-shadow-lg: transparent;
 
-    /* Border Radius */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
-    --radius-full: 9999px;
-
-    /* Typography */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-size-xs: 0.75rem;
-    --font-size-sm: 0.875rem;
-    --font-size-base: 1rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.5rem;
-    --font-size-2xl: 2rem;
-
-    /* Transitions */
-    --transition-fast: 0.15s ease;
-    --transition-base: 0.2s ease;
-    --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Sidebar */
-    --sidebar-width: 256px;
-
-    /* Geek Theme (Slate/Indigo) */
+    /* ---------- Geek Theme (Slate/Indigo) ---------- */
     --geek-bg-primary: #0F172A;
     --geek-bg-secondary: #1E293B;
     --geek-bg-tertiary: #334155;
+    --geek-surface-3: #3E4C63;
     --geek-text-primary: #F1F5F9;
     --geek-text-secondary: #94A3B8;
     --geek-text-tertiary: #64748B;
     --geek-border: #334155;
     --geek-border-hover: #475569;
 
-    /* Brand - Indigo */
+    /* Accent - Indigo */
     --geek-brand-primary: #6366F1;
     --geek-brand-secondary: #818CF8;
     --geek-brand-light: rgba(99, 102, 241, 0.15);
@@ -121,13 +121,94 @@
     --geek-info: #60A5FA;
     --geek-info-light: rgba(96, 165, 250, 0.15);
 
-    --geek-shadow: rgba(0, 0, 0, 0.3);
-    --geek-shadow-lg: rgba(0, 0, 0, 0.5);
+    /* Chart palette(geek 高饱和,呼应 indigo) */
+    --geek-chart-1: #F87171;
+    --geek-chart-2: #60A5FA;
+    --geek-chart-3: #34D399;
+    --geek-chart-4: #FBBF24;
+    --geek-chart-5: #A78BFA;
+    --geek-chart-6: #2DD4BF;
+    --geek-chart-7: #FB923C;
+    --geek-chart-8: #818CF8;
+
+    /* 深色系去阴影 */
+    --geek-shadow: transparent;
+    --geek-shadow-lg: transparent;
 }
 
-/* ========== Theme Classes ========== */
+/* ========== Global Design Tokens (theme-independent) ========== */
+:root {
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+
+    /* Card padding(Revolut 式统一留白;移动端在 mobile.css 收窄) */
+    --card-pad: 24px;
+
+    /* Border Radius(Linear 式收紧:嵌入件 6 / 控件 8 / 卡片 12 / 图表面板 16) */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* 金额等数字统一走此栈 + font-variant-numeric: tabular-nums */
+    --font-numeric: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.5rem;
+    --font-size-2xl: 2rem;
+
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Sidebar */
+    --sidebar-width: 256px;
+}
+
+/* ========== Theme Mappings ========== */
+/* 每个主题同时导出新 token(canvas / surface / hairline / accent / chart 系列)
+   与旧别名(bg / border / brand 系列),二者指向同一底色,新旧组件共存。 */
+
 .theme-light,
 :root:not(.theme-dark):not(.theme-geek) {
+    /* new surface ladder */
+    --canvas: var(--light-bg-primary);
+    --surface-1: var(--light-bg-secondary);
+    --surface-2: var(--light-bg-tertiary);
+    --surface-3: var(--light-surface-3);
+    --hairline: var(--light-border);
+    --hairline-strong: var(--light-border-hover);
+    /* new accent */
+    --accent: var(--light-brand-primary);
+    --accent-hover: var(--light-brand-secondary);
+    --accent-subtle: var(--light-brand-light);
+    /* chart palette */
+    --chart-1: var(--light-chart-1);
+    --chart-2: var(--light-chart-2);
+    --chart-3: var(--light-chart-3);
+    --chart-4: var(--light-chart-4);
+    --chart-5: var(--light-chart-5);
+    --chart-6: var(--light-chart-6);
+    --chart-7: var(--light-chart-7);
+    --chart-8: var(--light-chart-8);
+    --chart-income: var(--light-income);
+    --chart-expense: var(--light-expense);
+
+    /* legacy aliases */
     --bg-primary: var(--light-bg-primary);
     --bg-secondary: var(--light-bg-secondary);
     --bg-tertiary: var(--light-bg-tertiary);
@@ -152,6 +233,26 @@
 }
 
 .theme-dark {
+    --canvas: var(--dark-bg-primary);
+    --surface-1: var(--dark-bg-secondary);
+    --surface-2: var(--dark-bg-tertiary);
+    --surface-3: var(--dark-surface-3);
+    --hairline: var(--dark-border);
+    --hairline-strong: var(--dark-border-hover);
+    --accent: var(--dark-brand-primary);
+    --accent-hover: var(--dark-brand-secondary);
+    --accent-subtle: var(--dark-brand-light);
+    --chart-1: var(--dark-chart-1);
+    --chart-2: var(--dark-chart-2);
+    --chart-3: var(--dark-chart-3);
+    --chart-4: var(--dark-chart-4);
+    --chart-5: var(--dark-chart-5);
+    --chart-6: var(--dark-chart-6);
+    --chart-7: var(--dark-chart-7);
+    --chart-8: var(--dark-chart-8);
+    --chart-income: var(--dark-income);
+    --chart-expense: var(--dark-expense);
+
     --bg-primary: var(--dark-bg-primary);
     --bg-secondary: var(--dark-bg-secondary);
     --bg-tertiary: var(--dark-bg-tertiary);
@@ -176,6 +277,26 @@
 }
 
 .theme-geek {
+    --canvas: var(--geek-bg-primary);
+    --surface-1: var(--geek-bg-secondary);
+    --surface-2: var(--geek-bg-tertiary);
+    --surface-3: var(--geek-surface-3);
+    --hairline: var(--geek-border);
+    --hairline-strong: var(--geek-border-hover);
+    --accent: var(--geek-brand-primary);
+    --accent-hover: var(--geek-brand-secondary);
+    --accent-subtle: var(--geek-brand-light);
+    --chart-1: var(--geek-chart-1);
+    --chart-2: var(--geek-chart-2);
+    --chart-3: var(--geek-chart-3);
+    --chart-4: var(--geek-chart-4);
+    --chart-5: var(--geek-chart-5);
+    --chart-6: var(--geek-chart-6);
+    --chart-7: var(--geek-chart-7);
+    --chart-8: var(--geek-chart-8);
+    --chart-income: var(--geek-income);
+    --chart-expense: var(--geek-expense);
+
     --bg-primary: var(--geek-bg-primary);
     --bg-secondary: var(--geek-bg-secondary);
     --bg-tertiary: var(--geek-bg-tertiary);
