@@ -91,6 +91,8 @@ import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/compo
 import { CanvasRenderer } from 'echarts/renderers';
 import PlatformRanking from '../PlatformRanking.vue';
 import MerchantRanking from '../MerchantRanking.vue';
+import { getCategoryLabel } from '../../composables/useCategories';
+import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { icons } from '../../composables/icons';
 
 use([PieChart, SankeyChart, TitleComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
@@ -99,76 +101,42 @@ const props = defineProps({
   analytics: { type: Object, required: true }
 });
 
-// Sankey Data Logic
+// Sankey:收入来源 → 资金账户 → 支出分类。
+// 按 posting 级聚合,一笔交易多条支出腿也能完整呈现;转账只有手续费腿会成为流量。
 const sankeyData = computed(() => {
-  const transactions = props.analytics.recentTransactions || [];
+  const transactions = props.analytics.transactions || [];
   if (transactions.length === 0) return { nodes: [], links: [] };
 
   const nodes = new Set();
-  const links = [];
-  const incomeMap = {}; // Income Category -> Amount
-  const expenseMap = {}; // Expense Category -> Amount (via which account?)
-  
-  // Simplified flow: Income -> [Pool] -> Expense
-  // Or better: Income Source -> Account -> Expense Category
-  // We need asset information for the middle layer. 
-  // Since 'analytics' might not have direct asset mapping, we'll try to reconstruct from postings in recentTransactions if available.
-  
-  // 1. Aggregate Income Sources
-  // 2. Aggregate Expenses by Category
-  // 3. Middle layer: "Assets" (Virtual Wallet for now if account info is missing on income side)
-  
-  // Let's assume a "Wallet" node as the central hub if we can't trace exact flows
-  // But wait, transactions have 'postings'. Let's see if we can use them.
-  
-  // Building Nodes & Links
   const linkMap = {}; // "Source|Target" -> Value
-  
-  transactions.forEach(tx => {
-    // This is a simplified Sankey generator based on what we have.
-    // Ideally, we trace Account -> Expense
-    
-    // Check if it's income or expense
-    let isIncome = false;
-    let category = 'Other';
-    let account = 'Unknown Account';
-    let amount = 0;
 
-    if (tx.postings) {
-      tx.postings.forEach(p => {
-        if (p.account.startsWith('Income:')) {
-          isIncome = true;
-          category = p.account.split(':')[1] || 'Income';
-          amount = Math.abs(p.amount);
-        } else if (p.account.startsWith('Expenses:')) {
-          isIncome = false;
-          category = p.account.split(':')[1] || 'Other';
-          amount = p.amount;
-        } else if (p.account.startsWith('Assets:') || p.account.startsWith('Liabilities:')) {
-           // This is the asset account
-           const parts = p.account.split(':');
-           account = parts.length > 2 ? parts[2] : (parts.length > 1 ? parts[1] : 'Assets');
-        }
-      });
+  const addLink = (source, target, value) => {
+    if (value <= 0) return;
+    const key = `${source}|${target}`;
+    linkMap[key] = (linkMap[key] || 0) + value;
+    nodes.add(source);
+    nodes.add(target);
+  };
+
+  transactions.forEach(tx => {
+    if (tx.kind === 'opening') return;
+
+    // 资金账户取第一条 Assets/Liabilities posting 的末段
+    let account = 'Unknown';
+    for (const p of tx.postings || []) {
+      const parts = (p.account || '').split(':');
+      if (parts[0] === 'Assets' || parts[0] === 'Liabilities') {
+        account = parts[parts.length - 1];
+        break;
+      }
     }
 
-    if (amount > 0) {
-      if (isIncome) {
-        // Income -> Account
-        const source = `Income:${category}`; // Prefix to avoid name collision
-        const target = `Account:${account}`;
-        const key = `${source}|${target}`;
-        linkMap[key] = (linkMap[key] || 0) + amount;
-        nodes.add(source);
-        nodes.add(target);
-      } else {
-        // Account -> Expense
-        const source = `Account:${account}`;
-        const target = `Expense:${category}`;
-        const key = `${source}|${target}`;
-        linkMap[key] = (linkMap[key] || 0) + amount;
-        nodes.add(source);
-        nodes.add(target);
+    for (const p of tx.postings || []) {
+      const parts = (p.account || '').split(':');
+      if (parts[0] === 'Income' && p.amount < 0) {
+        addLink(`Income:${getCategoryLabel(parts[1] || 'Income')}`, `Account:${account}`, -p.amount);
+      } else if (parts[0] === 'Expenses' && p.amount > 0) {
+        addLink(`Account:${account}`, `Expense:${getCategoryLabel(parts[1] || 'Other')}`, p.amount);
       }
     }
   });
@@ -184,7 +152,7 @@ const sankeyData = computed(() => {
 
   const layoutLinks = Object.keys(linkMap).map(key => {
     const [source, target] = key.split('|');
-    return { source, target, value: linkMap[key] };
+    return { source, target, value: Number(linkMap[key].toFixed(2)) };
   });
 
   return { nodes: layoutNodes, links: layoutLinks };
@@ -192,88 +160,97 @@ const sankeyData = computed(() => {
 
 const hasSankeyData = computed(() => sankeyData.value.nodes.length > 0 && sankeyData.value.links.length > 0);
 
-const sankeyOption = computed(() => ({
-  tooltip: {
-    trigger: 'item',
-    triggerOn: 'mousemove'
-  },
-  series: [
-    {
-      type: 'sankey',
-      data: sankeyData.value.nodes.map(n => ({ name: n.name, itemStyle: n.itemStyle, label: { formatter: n.value } })),
-      links: sankeyData.value.links,
-      emphasis: { focus: 'adjacency' },
-      nodeMargin: 10,
-      lineStyle: { color: 'gradient', curveness: 0.5 },
-      label: { color: 'var(--text-primary)', fontSize: 12 }
-    }
-  ]
-}));
-
-const expensePieOption = computed(() => ({
-  tooltip: {
-    trigger: 'item',
-    formatter: '{b}: ¥{c} ({d}%)',
-    backgroundColor: 'var(--bg-secondary)',
-    borderColor: 'var(--border)',
-    textStyle: { color: 'var(--text-primary)' }
-  },
-  legend: {
-    orient: 'vertical',
-    right: 10,
-    top: 'center',
-    textStyle: { color: 'var(--text-secondary)', fontSize: 12 }
-  },
-  color: ['#5B9A9A', '#6B9B7A', '#C27B7B', '#C9A856', '#7B9BC2', '#9B7BA6'],
-  series: [{
-    type: 'pie',
-    radius: ['45%', '70%'],
-    center: ['35%', '50%'],
-    avoidLabelOverlap: true,
-    itemStyle: { borderRadius: 8, borderColor: 'var(--bg-secondary)', borderWidth: 2 },
-    label: { show: false },
-    emphasis: {
-      label: { show: true, fontSize: 14, fontWeight: 'bold' },
-      itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
+const sankeyOption = computed(() => {
+  themeVersion.value;
+  return {
+    tooltip: {
+      trigger: 'item',
+      triggerOn: 'mousemove'
     },
-    data: props.analytics.expenseByCategory?.slice(0, 6).map(item => ({
-      name: item.category,
-      value: Math.abs(item.amount)
-    })) || []
-  }]
-}));
+    series: [
+      {
+        type: 'sankey',
+        data: sankeyData.value.nodes.map(n => ({ name: n.name, itemStyle: n.itemStyle, label: { formatter: n.value } })),
+        links: sankeyData.value.links,
+        emphasis: { focus: 'adjacency' },
+        nodeMargin: 10,
+        lineStyle: { color: 'gradient', curveness: 0.5 },
+        label: { color: getThemeColor('--text-primary'), fontSize: 12 }
+      }
+    ]
+  };
+});
+
+const expensePieOption = computed(() => {
+  themeVersion.value;
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: ¥{c} ({d}%)',
+      backgroundColor: getThemeColor('--bg-secondary'),
+      borderColor: getThemeColor('--border'),
+      textStyle: { color: getThemeColor('--text-primary') }
+    },
+    legend: {
+      orient: 'vertical',
+      right: 10,
+      top: 'center',
+      textStyle: { color: getThemeColor('--text-secondary'), fontSize: 12 }
+    },
+    color: ['#5B9A9A', '#6B9B7A', '#C27B7B', '#C9A856', '#7B9BC2', '#9B7BA6'],
+    series: [{
+      type: 'pie',
+      radius: ['45%', '70%'],
+      center: ['35%', '50%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 8, borderColor: getThemeColor('--bg-secondary'), borderWidth: 2 },
+      label: { show: false },
+      emphasis: {
+        label: { show: true, fontSize: 14, fontWeight: 'bold' },
+        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
+      },
+      data: props.analytics.expenseByCategory?.slice(0, 6).map(item => ({
+        name: getCategoryLabel(item.category),
+        value: Math.abs(item.amount)
+      })) || []
+    }]
+  };
+});
 
 // 收入来源饼图 - 与支出分类保持一致的样式
-const incomePieOption = computed(() => ({
-  tooltip: {
-    trigger: 'item',
-    formatter: '{b}: ¥{c} ({d}%)',
-    backgroundColor: 'var(--bg-secondary)',
-    borderColor: 'var(--border)',
-    textStyle: { color: 'var(--text-primary)' }
-  },
-  legend: {
-    orient: 'vertical',
-    right: 10,
-    top: 'center',
-    textStyle: { color: 'var(--text-secondary)', fontSize: 12 }
-  },
-  color: ['#6B9B7A', '#5B9A9A', '#7BC27B', '#9BC27B', '#7B9BC2', '#A6C27B'],
-  series: [{
-    type: 'pie',
-    radius: ['45%', '70%'],
-    center: ['35%', '50%'],
-    avoidLabelOverlap: true,
-    itemStyle: { borderRadius: 8, borderColor: 'var(--bg-secondary)', borderWidth: 2 },
-    label: { show: false },
-    emphasis: {
-      label: { show: true, fontSize: 14, fontWeight: 'bold' },
-      itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
+const incomePieOption = computed(() => {
+  themeVersion.value;
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: ¥{c} ({d}%)',
+      backgroundColor: getThemeColor('--bg-secondary'),
+      borderColor: getThemeColor('--border'),
+      textStyle: { color: getThemeColor('--text-primary') }
     },
-    data: props.analytics.incomeBreakdown?.slice(0, 6).map(item => ({
-      name: item.source,
-      value: Math.abs(item.amount)
-    })) || []
-  }]
-}));
+    legend: {
+      orient: 'vertical',
+      right: 10,
+      top: 'center',
+      textStyle: { color: getThemeColor('--text-secondary'), fontSize: 12 }
+    },
+    color: ['#6B9B7A', '#5B9A9A', '#7BC27B', '#9BC27B', '#7B9BC2', '#A6C27B'],
+    series: [{
+      type: 'pie',
+      radius: ['45%', '70%'],
+      center: ['35%', '50%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 8, borderColor: getThemeColor('--bg-secondary'), borderWidth: 2 },
+      label: { show: false },
+      emphasis: {
+        label: { show: true, fontSize: 14, fontWeight: 'bold' },
+        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
+      },
+      data: props.analytics.incomeBreakdown?.slice(0, 6).map(item => ({
+        name: getCategoryLabel(item.source),
+        value: Math.abs(item.amount)
+      })) || []
+    }]
+  };
+});
 </script>

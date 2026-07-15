@@ -176,6 +176,7 @@ import { CanvasRenderer } from 'echarts/renderers';
 import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
 import TransactionCalendar from '../TransactionCalendar.vue';
+import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { icons } from '../../composables/icons';
 
 use([LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
@@ -221,27 +222,29 @@ const formatLabel = (item) => {
   if (selectedPeriod.value === 'day') {
     return item.date?.slice(5) || '';
   } else if (selectedPeriod.value === 'week') {
-    return item.week?.split('-W')[1] || '';
+    // 后端输出 ISO 周("2026-W28")+ 周一日期,x 轴用周一日期更直观
+    return item.weekStart?.slice(5) || item.week || '';
   } else {
     return item.month?.slice(5) || '';
   }
 };
 
 const trendChartOption = computed(() => {
+  themeVersion.value;
   const data = trendData.value;
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'var(--bg-secondary)',
-      borderColor: 'var(--border)',
-      textStyle: { color: 'var(--text-primary)' }
+      backgroundColor: getThemeColor('--bg-secondary'),
+      borderColor: getThemeColor('--border'),
+      textStyle: { color: getThemeColor('--text-primary') }
     },
     grid: { left: 50, right: 20, top: 20, bottom: 30 },
     xAxis: {
       type: 'category',
       data: data.map(d => formatLabel(d)),
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { 
+      axisLine: { lineStyle: { color: getThemeColor('--border') } },
+      axisLabel: {
         color: '#9CA3AF',
         rotate: selectedPeriod.value === 'day' ? 45 : 0,
         fontSize: selectedPeriod.value === 'day' ? 10 : 12
@@ -250,7 +253,7 @@ const trendChartOption = computed(() => {
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
+      splitLine: { lineStyle: { color: getThemeColor('--border'), type: 'dashed' } },
       axisLabel: { color: '#9CA3AF', formatter: v => v >= 1000 ? `¥${(v/1000).toFixed(0)}k` : `¥${v}` }
     },
     series: [
@@ -282,6 +285,7 @@ const trendChartOption = computed(() => {
 
 // Heatmap Logic
 const heatmapOption = computed(() => {
+  themeVersion.value;
   const data = props.analytics.dailyTrend || [];
   // Map to [date, expense]
   const heatmapData = data.map(d => [d.date, Math.abs(d.expense)]);
@@ -295,9 +299,9 @@ const heatmapOption = computed(() => {
       formatter: (p) => {
         return `${p.data[0]}: ¥${p.data[1].toFixed(2)}`;
       },
-      backgroundColor: 'var(--bg-secondary)',
-      borderColor: 'var(--border)',
-      textStyle: { color: 'var(--text-primary)' }
+      backgroundColor: getThemeColor('--bg-secondary'),
+      borderColor: getThemeColor('--border'),
+      textStyle: { color: getThemeColor('--text-primary') }
     },
     visualMap: {
       min: 0,
@@ -323,7 +327,7 @@ const heatmapOption = computed(() => {
       range: new Date().getFullYear(), // Current Year
       itemStyle: {
         color: 'transparent',
-        borderColor: 'var(--border)',
+        borderColor: getThemeColor('--border'),
         borderWidth: 1
       },
       yearLabel: { show: false },
@@ -337,68 +341,27 @@ const heatmapOption = computed(() => {
       data: heatmapData,
       itemStyle: {
         borderRadius: 2,
-        borderColor: 'var(--bg-secondary)', // Gap color
+        borderColor: getThemeColor('--bg-secondary'), // Gap color
         borderWidth: 1
       }
     }
   };
 });
 
-// Ranking Logic
-// 1. Top Payees
-const topPayees = computed(() => {
-  const txs = props.analytics.recentTransactions || [];
-  const payeeMap = {};
-  
-  txs.forEach(tx => {
-    let isExpense = false;
-    let amount = 0;
+// Ranking:直接消费后端全量口径的排行,避免与 SpendingTab 的排行数据打架
+const topPayees = computed(() =>
+  (props.analytics.merchantRanking || [])
+    .slice(0, 5)
+    .map((item, index) => ({ rank: index + 1, name: item.payee, amount: item.amount }))
+);
 
-    // Try to get data from pre-calculated fields if they exist
-    if (typeof tx.isIncome === 'boolean' && tx.amount !== undefined) {
-      if (!tx.isIncome) {
-        isExpense = true;
-        amount = Math.abs(tx.amount);
-      }
-    } 
-    // Fallback to postings logic (checking for Expenses account)
-    else if (tx.postings && tx.postings.length) {
-      for (const p of tx.postings) {
-        if (p.account && p.account.startsWith('Expenses:')) {
-          isExpense = true;
-          amount += Math.abs(p.amount);
-        }
-      }
-    }
-
-    if (isExpense && tx.payee && amount > 0) {
-      payeeMap[tx.payee] = (payeeMap[tx.payee] || 0) + amount;
-    }
-  });
-  
-  return Object.entries(payeeMap)
-    .sort((a, b) => b[1] - a[1]) // Sort by amount descending
-    .slice(0, 5) // Top 5
-    .map(([name, amount], index) => ({ rank: index + 1, name, amount }));
-});
-
-// 2. Top Tags
-const topTags = computed(() => {
-  const txs = props.analytics.recentTransactions || [];
-  const tagMap = {};
-  txs.forEach(tx => {
-    if (tx.tags && tx.tags.length) {
-      tx.tags.forEach(tag => {
-        tagMap[tag] = (tagMap[tag] || 0) + 1; // Count frequency
-      });
-    }
-  });
-
-  return Object.entries(tagMap)
-    .sort((a, b) => b[1] - a[1]) // Sort by frequency descending
-    .slice(0, 5) // Top 5
-    .map(([name, count], index) => ({ rank: index + 1, name, value: `${count}次` }));
-});
+const topTags = computed(() =>
+  (props.analytics.platformRanking || [])
+    .slice()
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((item, index) => ({ rank: index + 1, name: item.tag, value: `${item.count}次` }))
+);
 
 function getRankColor(rank) {
   if (rank === 1) return '#FFD700'; // Gold

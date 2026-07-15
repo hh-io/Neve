@@ -61,7 +61,8 @@ import { use } from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, MarkLineComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { getThemeColor } from '../composables/useThemeColor';
+import { getThemeColor, themeVersion } from '../composables/useThemeColor';
+import { getCategoryLabel } from '../composables/useCategories';
 
 use([LineChart, GridComponent, TooltipComponent, MarkLineComponent, CanvasRenderer]);
 
@@ -78,23 +79,6 @@ const compareMode = ref(false);
 watch(compareCategory, (val) => {
   if (!val) compareMode.value = false;
 });
-
-// Category name mapping
-function getCategoryLabel(cat) {
-  const labelMap = {
-    Shopping: '购物',
-    Food: '餐饮',
-    Transport: '交通',
-    Entertainment: '娱乐',
-    Gift: '红包/礼物',
-    Financial: '金融',
-    Communication: '通讯',
-    Lodging: '住宿',
-    Digital: '数码',
-    Unknown: '其他',
-  };
-  return labelMap[cat] || cat;
-}
 
 function formatNum(val) {
   if (val >= 1000) return (val / 1000).toFixed(1) + 'k';
@@ -154,14 +138,15 @@ const anomalyMonth = computed(() => {
 });
 
 const chartOption = computed(() => {
+  themeVersion.value;
   if (!selectedData.value?.length) {
-    return { 
-      title: { 
-        text: '暂无数据', 
-        left: 'center', 
+    return {
+      title: {
+        text: '暂无数据',
+        left: 'center',
         top: 'center',
-        textStyle: { color: 'var(--text-tertiary)', fontSize: 14 }
-      } 
+        textStyle: { color: getThemeColor('--text-tertiary'), fontSize: 14 }
+      }
     };
   }
 
@@ -225,14 +210,14 @@ const chartOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'var(--bg-secondary)',
-      borderColor: 'var(--border)',
-      textStyle: { color: 'var(--text-primary)' }
+      backgroundColor: getThemeColor('--bg-secondary'),
+      borderColor: getThemeColor('--border'),
+      textStyle: { color: getThemeColor('--text-primary') }
     },
     legend: compareMode.value && compareCategory.value ? {
       data: [getCategoryLabel(selectedCategory.value), getCategoryLabel(compareCategory.value)],
       bottom: 0,
-      textStyle: { color: 'var(--text-secondary)', fontSize: 11 }
+      textStyle: { color: getThemeColor('--text-secondary'), fontSize: 11 }
     } : undefined,
     grid: {
       left: 10,
@@ -244,15 +229,15 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'category',
       data: labels,
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
+      axisLine: { lineStyle: { color: getThemeColor('--border') } },
+      axisLabel: { color: getThemeColor('--text-secondary'), fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
+      splitLine: { lineStyle: { color: getThemeColor('--border'), type: 'dashed' } },
       axisLabel: {
-        color: 'var(--text-secondary)',
+        color: getThemeColor('--text-secondary'),
         formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },

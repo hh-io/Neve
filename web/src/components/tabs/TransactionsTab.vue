@@ -25,6 +25,7 @@
           <option value="">全部类型</option>
           <option value="expense">支出</option>
           <option value="income">收入</option>
+          <option value="transfer">转账</option>
         </select>
 
         <!-- Reset -->
@@ -71,11 +72,11 @@
             class="transaction-row"
           >
             <!-- Icon -->
-            <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-              <component 
-                :is="getCategoryIconComponent(tx.category)" 
-                :size="20" 
-                :color="tx.isIncome ? 'var(--income)' : 'var(--expense)'" 
+            <div :class="['tx-icon', tx.iconClass]">
+              <component
+                :is="getCategoryIconComponent(tx.category)"
+                :size="20"
+                :color="tx.iconColor"
               />
             </div>
             
@@ -96,16 +97,15 @@
               
               <!-- Bottom Row: Category, Narration -->
               <div class="tx-bottom">
-                <span class="tx-category-badge">{{ getCategoryLabel(tx.category) }}</span>
+                <span class="tx-category-badge">{{ tx.isTransfer ? '转账' : getCategoryLabel(tx.category) }}</span>
                 <span v-if="tx.narration" class="tx-narration">{{ tx.narration }}</span>
               </div>
             </div>
             
             <!-- Amount & Account (Right Side) -->
             <div class="tx-amount-col">
-              <div :class="['tx-amount', tx.isIncome ? 'text-income' : 'text-expense']">
-                {{ tx.isIncome ? '+' : '-' }}¥{{ Math.abs(tx.amount).toFixed(2) }}
-              </div>
+              <div :class="['tx-amount', tx.amountClass]">{{ tx.amountText }}</div>
+              <div v-if="tx.isTransfer && tx.feeAmount > 0" class="tx-fee">手续费 ¥{{ tx.feeAmount.toFixed(2) }}</div>
               <div class="tx-account">{{ tx.accountShort }}</div>
             </div>
           </div>
@@ -188,8 +188,9 @@ const filteredTransactions = computed(() => {
   }
   
   if (typeFilter.value) {
-    if (typeFilter.value === 'expense') result = result.filter(t => !t.isIncome);
+    if (typeFilter.value === 'expense') result = result.filter(t => !t.isIncome && !t.isTransfer);
     else if (typeFilter.value === 'income') result = result.filter(t => t.isIncome);
+    else if (typeFilter.value === 'transfer') result = result.filter(t => t.isTransfer);
   }
   
   return result;
@@ -218,10 +219,13 @@ const groupedTransactions = computed(() => {
       };
     }
     groups[dateStr].items.push(tx);
-    if (tx.isIncome) {
+    // 日合计:转账只计手续费,退款(负支出)冲减当日支出
+    if (tx.isTransfer) {
+      groups[dateStr].expense += tx.feeAmount || 0;
+    } else if (tx.isIncome) {
       groups[dateStr].income += Math.abs(tx.amount);
     } else {
-      groups[dateStr].expense += Math.abs(tx.amount);
+      groups[dateStr].expense += tx.amount;
     }
   });
 
@@ -449,12 +453,25 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   color: var(--expense);
 }
 
+.text-transfer {
+  color: var(--text-secondary);
+}
+
 .bg-income-light {
   background: var(--income-light, rgba(107, 155, 122, 0.15));
 }
 
 .bg-expense-light {
   background: var(--expense-light, rgba(194, 123, 123, 0.15));
+}
+
+.bg-brand-light {
+  background: var(--brand-light);
+}
+
+.tx-fee {
+  font-size: 10px;
+  color: var(--text-tertiary);
 }
 
 /* Pagination */

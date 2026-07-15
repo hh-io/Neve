@@ -42,6 +42,9 @@
           </div>
         </header>
 
+        <!-- 解析错误/断言失败横幅:软失败的坏数据必须显眼,否则会误信统计数字 -->
+        <IssuesBanner :issues="analytics.parseIssues || []" :balanceChecks="analytics.balanceChecks || []" />
+
         <!-- Tab Contents -->
         <OverviewTab v-show="activeTab === 'overview'" :analytics="analytics" />
         <SpendingTab v-show="activeTab === 'spending'" :analytics="analytics" />
@@ -55,7 +58,7 @@
           />
         </div>
         
-        <TransactionsTab v-show="activeTab === 'transactions'" :transactions="analytics.recentTransactions || []" />
+        <TransactionsTab v-show="activeTab === 'transactions'" :transactions="analytics.transactions || []" />
 
         <!-- Footer -->
         <footer style="text-align: center; padding: var(--space-8); color: var(--text-tertiary); font-size: var(--font-size-sm); border-top: 1px solid var(--border); margin-top: var(--space-8);">
@@ -85,6 +88,7 @@ import AppSidebar from "./components/layout/AppSidebar.vue";
 import ThemeSwitcher from "./components/layout/ThemeSwitcher.vue";
 import MobileNav from "./components/layout/MobileNav.vue";
 import AppToast from "./components/common/AppToast.vue";
+import IssuesBanner from "./components/common/IssuesBanner.vue";
 
 // Tab Components
 import OverviewTab from "./components/tabs/OverviewTab.vue";
@@ -96,6 +100,7 @@ import BudgetCard from "./components/BudgetCard.vue";
 
 // Composables
 import { formatDateTime } from "./composables/useFormatters";
+import { bumpThemeVersion } from "./composables/useThemeColor";
 import { icons } from "./composables/icons";
 
 // State
@@ -126,6 +131,8 @@ function applyTheme() {
   const html = document.documentElement;
   html.classList.remove('theme-light', 'theme-dark', 'theme-geek');
   html.classList.add(themeClass.value);
+  // 通知 ECharts 图表重新读取 CSS 变量的实际颜色值
+  bumpThemeVersion();
 }
 
 watch(themeClass, applyTheme, { immediate: true });
@@ -161,7 +168,19 @@ async function refresh() {
   loading.value = true;
   error.value = null;
   try {
-    await fetch("/api/refresh", { method: "POST" });
+    const response = await fetch("/api/refresh", { method: "POST" });
+    if (response.status === 429) {
+      const body = await response.json().catch(() => null);
+      const wait = Math.ceil(body?.retryAfter ?? 5);
+      showToast(`刷新过于频繁,请 ${wait} 秒后再试`, 'error');
+      // 服务端有缓存数据,仍拉取一次保证页面可用(如初次加载失败后的重试)
+      if (!analytics.value) analytics.value = await fetchAnalytics();
+      return;
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error?.message || `HTTP ${response.status}`);
+    }
     analytics.value = await fetchAnalytics();
     showToast('数据刷新成功', 'success');
   } catch (e) {
@@ -172,17 +191,9 @@ async function refresh() {
   }
 }
 
-// Stats
-const totalTransactionCount = computed(() => analytics.value?.recentTransactions?.length || 0);
-
-const trackingDays = computed(() => {
-  if (!analytics.value?.recentTransactions?.length) return 0;
-  const dates = analytics.value.recentTransactions.map(t => new Date(t.date).getTime());
-  if (dates.length === 0) return 0;
-  const minDate = Math.min(...dates);
-  const diffTime = Math.abs(new Date().getTime() - minDate);
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-});
+// Stats:记账口径由后端统一计算,不再基于交易列表推算
+const totalTransactionCount = computed(() => analytics.value?.summary?.transactionCount || 0);
+const trackingDays = computed(() => analytics.value?.summary?.trackingDays || 0);
 
 // Init
 onMounted(async () => {

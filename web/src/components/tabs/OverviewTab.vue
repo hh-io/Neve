@@ -185,11 +185,11 @@
             <span style="font-weight: 600; color: var(--text-primary);">最近交易</span>
           </div>
           <span style="font-size: var(--font-size-xs); color: var(--text-tertiary);">
-            共 {{ (analytics.recentTransactions || []).length }} 条
+            共 {{ (analytics.transactions || []).length }} 条
           </span>
         </div>
-        <TransactionList 
-          :transactions="analytics.recentTransactions || []" 
+        <TransactionList
+          :transactions="analytics.transactions || []"
           max-height="350px"
           :show-account="false"
         />
@@ -206,6 +206,8 @@ import { TitleComponent, TooltipComponent, LegendComponent } from 'echarts/compo
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
 import { formatMoney } from '../../composables/useFormatters';
+import { getCategoryLabel } from '../../composables/useCategories';
+import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { icons } from '../../composables/icons';
 import TransactionList from '../TransactionList.vue';
 
@@ -266,10 +268,8 @@ const debtRatio = computed(() => {
   return (liabilities / assets) * 100;
 });
 
-const dailyAverage = computed(() => {
-  const days = new Date().getDate();
-  return monthlyExpense.value / days;
-});
+// 日均支出由后端按统一口径计算
+const dailyAverage = computed(() => props.analytics.dailyAverage || 0);
 
 const daysInMonth = computed(() => {
   const now = new Date();
@@ -295,18 +295,12 @@ const expenseCount = computed(() => {
     (monthlyExpense.value > 0 ? 1 : 0);
 });
 
-const categoryLabels = {
-  Food: '餐饮', Shopping: '购物', Transport: '交通', Entertainment: '娱乐',
-  Gift: '红包', Financial: '金融', Communication: '通讯', Lodging: '住宿',
-  Digital: '数码', Health: '健康', Education: '教育', Other: '其他'
-};
-
 const topCategory = computed(() => {
   if (expenseByCategory.value.length === 0) return null;
   const sorted = [...expenseByCategory.value].sort((a, b) => b.amount - a.amount);
   const top = sorted[0];
   const percent = monthlyExpense.value > 0 ? Math.round((top.amount / monthlyExpense.value) * 100) : 0;
-  return { name: categoryLabels[top.category] || top.category, percent };
+  return { name: getCategoryLabel(top.category), percent };
 });
 
 // Predicted savings (projected to end of month based on current pace)
@@ -329,8 +323,10 @@ const dailySavings = computed(() => {
 const pieColors = ['#C27B7B', '#7B9BC2', '#6B9B7A', '#C9A856', '#9B7BC2', '#7BC2B5', '#C2997B', '#7B8BC2'];
 
 const expensePieOption = computed(() => {
+  // canvas 不解析 CSS 变量,颜色必须取实际值;依赖 themeVersion 以便主题切换时重算
+  themeVersion.value;
   const data = expenseByCategory.value.map((item, index) => ({
-    name: categoryLabels[item.category] || item.category,
+    name: getCategoryLabel(item.category),
     value: item.amount,
     itemStyle: { color: pieColors[index % pieColors.length] }
   }));
@@ -344,14 +340,14 @@ const expensePieOption = computed(() => {
       orient: 'vertical',
       right: 10,
       top: 'center',
-      textStyle: { fontSize: 11, color: 'var(--text-secondary)' }
+      textStyle: { fontSize: 11, color: getThemeColor('--text-secondary') }
     },
     series: [{
       type: 'pie',
       radius: ['45%', '70%'],
       center: ['35%', '50%'],
       avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 6, borderColor: 'var(--bg-secondary)', borderWidth: 2 },
+      itemStyle: { borderRadius: 6, borderColor: getThemeColor('--bg-secondary'), borderWidth: 2 },
       label: { show: false },
       emphasis: {
         label: { show: true, fontSize: 14, fontWeight: 'bold' }

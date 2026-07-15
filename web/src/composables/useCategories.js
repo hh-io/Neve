@@ -1,8 +1,8 @@
 // Category utilities - shared across components
-import { icons } from './icons';
 
-// Category label mapping (Chinese)
+// Category label mapping (Chinese) - 全局唯一的一份映射
 export const categoryLabels = {
+    // 支出分类
     Food: '餐饮',
     Shopping: '购物',
     Transport: '交通',
@@ -11,11 +11,23 @@ export const categoryLabels = {
     Financial: '金融',
     Communication: '通讯',
     Lodging: '住宿',
-    Digital: '数码',
+    Digital: '订阅',
     Health: '健康',
     Education: '教育',
+    Fixed: '固定支出',
+    Utilities: '公共事业',
+    Housing: '居住',
+    Unknown: '未分类',
+    Other: '其他',
+    // 收入来源
     Income: '收入',
-    Other: '其他'
+    Salary: '工资',
+    Bonus: '奖金',
+    Membership: '会费',
+    Dividend: '股息',
+    Investment: '投资',
+    SecondHand: '闲置交易',
+    Family: '家人'
 };
 
 // Get localized category label
@@ -23,92 +35,49 @@ export function getCategoryLabel(category) {
     return categoryLabels[category] || category || '其他';
 }
 
-// Category to icon mapping
-export function getCategoryIcon(category) {
-    const iconMap = {
-        Food: icons.food,
-        Shopping: icons.shopping,
-        Transport: icons.transfer,
-        Gift: icons.gift,
-        Entertainment: icons.entertainment,
-        Financial: icons.wallet,
-        Income: icons.arrowDown,
-        Health: icons.heart,
-        Digital: icons.creditCard,
-        Education: icons.tags,
-        Communication: icons.bell,
-        Lodging: icons.bank,
-        Other: icons.creditCard
-    };
-    return iconMap[category] || icons.creditCard;
-}
-
-// Process raw transaction to extract amount, category, etc.
+// Process raw transaction for display.
+// 金额、分类、转账识别均由后端计算(kind/category/displayAmount/transferAmount/feeAmount),
+// 这里只派生展示层字段,不再从 postings 推断业务含义。
 export function processTransaction(tx) {
-    // If already processed, return as-is
-    if (tx.isIncome !== undefined && tx.amount !== undefined) {
-        return tx;
+    let accountShort = '';
+    for (const posting of tx.postings || []) {
+        const parts = (posting.account || '').split(':');
+        if (parts[0] === 'Assets' || parts[0] === 'Liabilities') {
+            accountShort = parts[parts.length - 1];
+            break;
+        }
     }
 
-    let amount = 0;
-    let category = 'Other';
-    let isIncome = false;
-    let accountShort = '';
-    let isTransfer = false;
+    const kind = tx.kind || 'expense';
+    const amount = tx.displayAmount ?? 0;
+    const isIncome = kind === 'income' || kind === 'mixed';
+    const isTransfer = kind === 'transfer';
 
-    if (tx.postings && tx.postings.length > 0) {
-        for (const posting of tx.postings) {
-            const account = posting.account || '';
-
-            if (account.startsWith('Expenses:')) {
-                amount = posting.amount;
-                isIncome = false;
-                const parts = account.split(':');
-                category = parts.length > 1 ? parts[1] : 'Other';
-            } else if (account.startsWith('Income:')) {
-                amount = Math.abs(posting.amount);
-                isIncome = true;
-                const parts = account.split(':');
-                category = parts.length > 1 ? parts[1] : 'Income';
-            }
-
-            if (account.startsWith('Assets:') || account.startsWith('Liabilities:')) {
-                const parts = account.split(':');
-                accountShort = parts.length > 2 ? parts[2] : (parts.length > 1 ? parts[1] : account);
-            }
-        }
-
-        // 内部转账处理：仅涉及 Assets/Liabilities 的交易（如还款、转账）
-        if (amount === 0 && tx.postings.length >= 2) {
-            const hasExpenseOrIncome = tx.postings.some(p => 
-                p.account?.startsWith('Expenses:') || p.account?.startsWith('Income:')
-            );
-            
-            if (!hasExpenseOrIncome) {
-                isTransfer = true;
-                category = 'Financial';
-                // 取正值金额作为转账金额
-                for (const posting of tx.postings) {
-                    if (posting.amount > 0) {
-                        amount = posting.amount;
-                        // Liabilities 正值表示还款
-                        if (posting.account?.startsWith('Liabilities:')) {
-                            isIncome = false; // 还款视为支出方向
-                        }
-                        break;
-                    }
-                }
-            }
-        }
+    let amountText;
+    let amountClass;
+    if (isTransfer) {
+        amountText = `¥${Math.abs(amount).toFixed(2)}`;
+        amountClass = 'text-transfer';
+    } else if (isIncome || amount < 0) {
+        // 收入,或支出为负(退款)按收入方向展示
+        amountText = `+¥${Math.abs(amount).toFixed(2)}`;
+        amountClass = 'text-income';
+    } else {
+        amountText = `-¥${Math.abs(amount).toFixed(2)}`;
+        amountClass = 'text-expense';
     }
 
     return {
         ...tx,
         amount,
-        category,
         isIncome,
         isTransfer,
+        category: tx.category || 'Other',
         accountShort,
+        amountText,
+        amountClass,
+        iconClass: isTransfer ? 'bg-brand-light' : isIncome ? 'bg-income-light' : 'bg-expense-light',
+        iconColor: isTransfer ? 'var(--brand-primary)' : isIncome ? 'var(--income)' : 'var(--expense)',
         payee: tx.payee || '',
         narration: tx.narration || ''
     };

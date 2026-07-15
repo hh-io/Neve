@@ -10,30 +10,29 @@
       class="tx-row"
     >
       <!-- Icon (using Vue components) -->
-      <div :class="['tx-icon', tx.isIncome ? 'bg-income-light' : 'bg-expense-light']">
-        <component 
-          :is="getCategoryIconComponent(tx.category)" 
-          :size="18" 
-          :color="tx.isIncome ? 'var(--income)' : 'var(--expense)'" 
+      <div :class="['tx-icon', tx.iconClass]">
+        <component
+          :is="getCategoryIconComponent(tx.category)"
+          :size="18"
+          :color="tx.iconColor"
         />
       </div>
-      
+
       <!-- Main Info -->
       <div class="tx-main">
         <div class="tx-title">{{ tx.payee || tx.narration || '未知交易' }}</div>
         <div v-if="tx.payee && tx.narration" class="tx-narration">{{ tx.narration }}</div>
         <div class="tx-meta">
-          <span class="tx-category">{{ getCategoryLabel(tx.category) }}</span>
+          <span class="tx-category">{{ tx.isTransfer ? '转账' : getCategoryLabel(tx.category) }}</span>
           <span class="tx-date">{{ formatDate(tx.date) }}</span>
           <span v-for="tag in (tx.tags || [])" :key="tag" class="tx-tag">#{{ tag }}</span>
         </div>
       </div>
-      
+
       <!-- Amount & Account -->
       <div class="tx-right">
-        <div :class="['tx-amount', tx.isIncome ? 'text-income' : 'text-expense']">
-          {{ tx.isIncome ? '+' : '-' }}¥{{ Math.abs(tx.amount).toFixed(2) }}
-        </div>
+        <div :class="['tx-amount', tx.amountClass]">{{ tx.amountText }}</div>
+        <div v-if="tx.isTransfer && tx.feeAmount > 0" class="tx-fee">手续费 ¥{{ tx.feeAmount.toFixed(2) }}</div>
         <div v-if="showAccount" class="tx-account">{{ tx.accountShort }}</div>
       </div>
     </div>
@@ -176,6 +175,14 @@ const formatDate = formatTransactionDate;
 
 .text-income { color: var(--income); }
 .text-expense { color: var(--expense); }
+.text-transfer { color: var(--text-secondary); }
 .bg-income-light { background: var(--income-light, rgba(107, 155, 122, 0.15)); }
 .bg-expense-light { background: var(--expense-light, rgba(194, 123, 123, 0.15)); }
+.bg-brand-light { background: var(--brand-light); }
+
+.tx-fee {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
 </style>

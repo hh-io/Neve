@@ -13,21 +13,23 @@ import { GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
-import { getThemeColor } from '../composables/useThemeColor';
+import { getThemeColor, themeVersion } from '../composables/useThemeColor';
+import { getCategoryLabel } from '../composables/useCategories';
 
 const props = defineProps({
   data: { type: Array, default: () => [] }
 });
 
 const chartOption = computed(() => {
+  themeVersion.value;
   if (!props.data?.length) {
-    return { 
-      title: { 
-        text: '暂无数据', 
-        left: 'center', 
+    return {
+      title: {
+        text: '暂无数据',
+        left: 'center',
         top: 'center',
-        textStyle: { color: 'var(--text-tertiary)', fontSize: 14 }
-      } 
+        textStyle: { color: getThemeColor('--text-tertiary'), fontSize: 14 }
+      }
     };
   }
 
@@ -51,13 +53,8 @@ const chartOption = computed(() => {
         
         // Build category breakdown string
         const categories = weekdayData?.categoryBreakdown || [];
-        const categoryLabels = {
-          Shopping: '购物', Food: '餐饮', Transport: '交通', Entertainment: '娱乐',
-          Gift: '红包/礼物', Financial: '金融', Communication: '通讯', Lodging: '住宿',
-          Digital: '数码', Unknown: '其他'
-        };
-        const catStr = categories.slice(0, 4).map(c => 
-          `${categoryLabels[c.category] || c.category}: ${c.count}笔`
+        const catStr = categories.slice(0, 4).map(c =>
+          `${getCategoryLabel(c.category)}: ${c.count}笔`
         ).join('<br/>');
         
         let result = `<strong>${title}</strong><br/>`;
@@ -68,9 +65,9 @@ const chartOption = computed(() => {
         }
         return result;
       },
-      backgroundColor: 'var(--bg-secondary)',
-      borderColor: 'var(--border)',
-      textStyle: { color: 'var(--text-primary)' }
+      backgroundColor: getThemeColor('--bg-secondary'),
+      borderColor: getThemeColor('--border'),
+      textStyle: { color: getThemeColor('--text-primary') }
     },
     grid: {
       left: 10,
@@ -82,15 +79,15 @@ const chartOption = computed(() => {
     xAxis: {
       type: 'category',
       data: orderedData.map(d => d.name),
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
+      axisLine: { lineStyle: { color: getThemeColor('--border') } },
+      axisLabel: { color: getThemeColor('--text-secondary'), fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: 'var(--border)', type: 'dashed' } },
+      splitLine: { lineStyle: { color: getThemeColor('--border'), type: 'dashed' } },
       axisLabel: {
-        color: 'var(--text-secondary)',
+        color: getThemeColor('--text-secondary'),
         formatter: (val) => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val,
       },
     },
