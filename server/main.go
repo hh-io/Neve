@@ -62,7 +62,6 @@ func main() {
 			param.Latency,
 		)
 	}))
-	r.Use(corsMiddleware())
 
 	// API routes
 	server.SetupRoutes(r)
@@ -119,21 +118,6 @@ func main() {
 	log.Printf("Starting Neve server on http://localhost:%s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
-	}
-}
-
-func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-
-		c.Next()
 	}
 }
 

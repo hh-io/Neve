@@ -16,13 +16,12 @@ import (
 // Server holds the API server state
 type Server struct {
 	dataDir string
-	// mu 保护 ledger/analytics/lastRefresh;analytics 在 Refresh 时一次算好,
+	// mu 保护 analytics/lastRefresh;analytics 在 Refresh 时一次算好,
 	// 各端点读同一份缓存,避免每请求重算导致的时间口径不一致
 	mu          sync.RWMutex
-	ledger      *parser.Ledger
 	analytics   *parser.Analytics
 	lastRefresh time.Time
-	// budgets.json 的读写不经过 ledger,单独用一把锁
+	// budgets.json 的读写不经过账本,单独用一把锁
 	budgetMu sync.Mutex
 }
 
@@ -43,7 +42,6 @@ func (s *Server) Refresh() error {
 	analytics := parser.Analyze(ledger)
 
 	s.mu.Lock()
-	s.ledger = ledger
 	s.analytics = analytics
 	s.lastRefresh = time.Now()
 	s.mu.Unlock()
@@ -55,41 +53,11 @@ func (s *Server) Refresh() error {
 func (s *Server) SetupRoutes(r *gin.Engine) {
 	api := r.Group("/api")
 	{
-		api.GET("/summary", s.handleSummary)
-		api.GET("/transactions", s.handleTransactions)
 		api.GET("/analytics", s.handleAnalytics)
-		api.GET("/accounts", s.handleAccounts)
 		api.POST("/refresh", s.handleRefresh)
 		api.GET("/budgets", s.handleGetBudgets)
 		api.POST("/budgets", s.handleSaveBudgets)
 	}
-}
-
-func (s *Server) handleSummary(c *gin.Context) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.analytics == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
-		return
-	}
-
-	c.JSON(http.StatusOK, s.analytics.Summary)
-}
-
-func (s *Server) handleTransactions(c *gin.Context) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.analytics == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"transactions": s.analytics.Transactions,
-		"total":        len(s.analytics.Transactions),
-	})
 }
 
 func (s *Server) handleAnalytics(c *gin.Context) {
@@ -102,21 +70,6 @@ func (s *Server) handleAnalytics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, s.analytics)
-}
-
-func (s *Server) handleAccounts(c *gin.Context) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.ledger == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"accounts": s.ledger.Accounts,
-		"total":    len(s.ledger.Accounts),
-	})
 }
 
 func (s *Server) handleRefresh(c *gin.Context) {
