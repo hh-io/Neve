@@ -31,8 +31,10 @@
 
 | 特性 | 描述 |
 |------|------|
-| 🎨 **Apple 设计语言** | 玻璃拟态 + 精心调校的亮/暗双主题 |
+| 🎨 **Apple 设计语言** | 精心调校的亮/暗/极客三主题 |
 | 📈 **丰富的图表分析** | 收支趋势、分类占比、周消费分布、商户排行 |
+| ✅ **记账正确性校验** | 借贷平衡、账户定义、balance 断言对账,脏数据显式报错不进统计 |
+| 💰 **定点金额运算** | 金额以"分"为单位整数运算,无浮点误差 |
 | 🚀 **单文件部署** | 前端嵌入二进制，一个 `./neve` 即刻运行 |
 | ☁️ **iCloud 原生集成** | 与 iOS 快捷指令配合，实现移动端无应用记账 |
 
@@ -61,7 +63,7 @@
 
 | 工具 | 版本要求 | 安装指南 |
 |------|----------|----------|
-| **Go** | >= 1.21 | [golang.org/dl](https://golang.org/dl/) |
+| **Go** | >= 1.25 | [golang.org/dl](https://golang.org/dl/) |
 | **Node.js** | >= 18 | [nodejs.org](https://nodejs.org/) |
 | **pnpm** | >= 8 | `npm install -g pnpm` |
 
@@ -96,10 +98,17 @@ make dev-server
 make dev
 ```
 
+### 🧪 测试
+
+```bash
+# 后端单元测试（解析器 + 统计逻辑，make build 会自动执行）
+make test
+```
+
 ### 📦 生产构建
 
 ```bash
-# 一键构建：前端 → 后端（嵌入静态文件）
+# 一键构建：前端 → 测试 → 后端（嵌入静态文件）
 make build
 
 # 运行生产版本
@@ -117,18 +126,22 @@ Neve/
 ├── 📄 neve                      # 编译后的单文件可执行程序
 ├── 📄 Makefile                  # 构建自动化脚本
 │
-├── 📁 data/                     # Beancount 数据目录 (可 iCloud 同步)
+├── 📁 data/                     # Beancount 数据目录 (可 iCloud 同步,不入库)
 │   ├── main.bean               # 入口文件 (账户定义 + include)
+│   ├── balance.bean            # 初始余额 + balance 断言
 │   ├── inbox.bean              # 待整理流水 (iOS 快捷指令写入)
 │   └── 2025.bean               # 年度归档交易
+├── 📁 data.example/             # 演示数据 (入库,结构同 data/)
 │
 ├── 📁 server/                   # 🔧 Go 后端
 │   ├── main.go                 # 入口 + HTTP 服务 + 静态文件 embed
 │   ├── api/
-│   │   └── handler.go          # REST API 处理器
+│   │   └── handler.go          # REST API 处理器 (analytics 缓存)
 │   └── parser/
-│       ├── parser.go           # Beancount 文件解析器
-│       └── analytics.go        # 数据分析 (净资产/分类/趋势)
+│       ├── amount.go           # 定点金额类型 (分, int64)
+│       ├── parser.go           # Beancount 解析器 (校验 + 错误收集)
+│       ├── analytics.go        # 数据分析 (净资产/分类/趋势/转账识别)
+│       └── *_test.go           # 单元测试
 │
 └── 📁 web/                      # 🎨 Vue 3 前端
     └── src/
@@ -140,14 +153,16 @@ Neve/
         │   │   ├── TrendsTab.vue        # 趋势图表
         │   │   ├── TransactionsTab.vue  # 交易列表
         │   │   └── AccountsTab.vue      # 账户管理
+        │   ├── common/IssuesBanner.vue  # 解析错误/断言失败横幅
         │   ├── CategoryTrendChart.vue   # 分类趋势图
         │   ├── WeekdayChart.vue         # 周分布图
         │   └── TransactionList.vue      # 交易列表组件
         ├── composables/
         │   ├── icons.js        # SVG 图标库
-        │   └── useFormatters.js # 格式化工具
-        └── styles/
-            └── main.css        # 设计系统 (玻璃拟态 + 主题)
+        │   ├── useCategories.js # 分类中文映射 + 交易展示字段
+        │   ├── useFormatters.js # 格式化工具
+        │   └── useThemeColor.js # ECharts 主题取色
+        └── styles/             # 设计系统 (variables/base/layout/components/mobile)
 ```
 
 ---
@@ -173,11 +188,15 @@ Neve/
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/summary` | 财务摘要 (净资产/本月收支) |
-| `GET` | `/api/analytics` | 完整分析数据 (图表/列表) |
+| `GET` | `/api/summary` | 财务摘要 (净资产/本月收支/记账天数) |
+| `GET` | `/api/analytics` | 完整分析数据 (图表/全量交易/parseIssues/balanceChecks) |
 | `GET` | `/api/transactions` | 获取交易列表 |
 | `GET` | `/api/accounts` | 获取账户列表 |
-| `POST` | `/api/refresh` | 刷新数据缓存 |
+| `POST` | `/api/refresh` | 重新解析账本并重建缓存 (5 秒限流) |
+| `GET` | `/api/budgets` | 获取预算 |
+| `POST` | `/api/budgets` | 保存预算 (原子写 budgets.json) |
+
+> 仅支持 CNY 单币种;非 CNY、借贷不平衡、未 open 账户的交易会被跳过并在 `parseIssues` 中报错。
 
 ---
 
@@ -193,6 +212,9 @@ launchctl load ~/Library/LaunchAgents/com.neve.server.plist
 # 查看日志
 tail -f ~/Library/Logs/neve.log
 ```
+
+> ⚠️ 日期按服务器本地时区归属月份/星期,部署机时区必须为 `Asia/Shanghai`
+> (launchd 可在 plist 的 EnvironmentVariables 中设置 `TZ`)。
 
 ### Cloudflare Tunnel (可选)
 

@@ -1,6 +1,5 @@
 <template>
-  <div class="glass-card chart-card">
-    <h3 class="card-title">平台消费排行</h3>
+  <div>
     <div class="ranking-list" v-if="data?.length">
       <div 
         v-for="(item, index) in data" 
@@ -81,8 +80,8 @@ function getBarOpacity(index) {
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  background: var(--color-bg);
-  color: var(--color-text-secondary);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .rank-num.gold { background: linear-gradient(135deg, #FFD700, #FFA500); color: white; }
@@ -92,12 +91,12 @@ function getBarOpacity(index) {
 .rank-tag {
   font-size: var(--font-size-sm);
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
 }
 
 .rank-bar-wrap {
   height: 8px;
-  background: var(--color-bg);
+  background: var(--bg-tertiary);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -112,13 +111,13 @@ function getBarOpacity(index) {
 .rank-amount {
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-align: right;
 }
 
 .empty-state {
   text-align: center;
   padding: var(--space-8);
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
 }
 </style>

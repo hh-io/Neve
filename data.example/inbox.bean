@@ -1,0 +1,78 @@
+;; inbox.bean - 待整理流水(iOS 快捷指令 AI 识别追加写入;演示数据)
+
+2026-03-10 * "公司" "三月工资"
+  Income:Salary                    -15000.00 CNY
+  Assets:Bank:CMBC                  15000.00 CNY
+
+2026-03-14 * "海底捞" "朋友聚餐" #alipay
+  Expenses:Food:Dine-in               328.00 CNY
+  Assets:Cash:Alipay                 -328.00 CNY
+
+2026-03-22 * "中国移动" "三月话费" #alipay
+  Expenses:Communication:PhoneBill     58.00 CNY
+  Assets:Cash:Alipay                  -58.00 CNY
+
+2026-04-05 * "山姆会员店" "日用品采购" #jd
+  Expenses:Shopping:Daily             246.30 CNY
+  Liabilities:JD:BNPL                -246.30 CNY
+
+2026-04-10 * "公司" "四月工资"
+  Income:Salary                    -15000.00 CNY
+  Assets:Bank:CMBC                  15000.00 CNY
+
+2026-04-18 * "滴滴出行" "打车" #wechat
+  Expenses:Transport:Taxi              31.60 CNY
+  Assets:Cash:WeChat                  -31.60 CNY
+
+2026-05-03 * "瑞幸咖啡" "拿铁两杯" #meituan
+  Expenses:Food:Coffee                 19.80 CNY
+  Assets:Cash:WeChat                  -19.80 CNY
+
+2026-05-10 * "公司" "五月工资"
+  Income:Salary                    -15000.00 CNY
+  Assets:Bank:CMBC                  15000.00 CNY
+
+2026-05-20 * "京东" "机械键盘" #jd
+  Expenses:Shopping:Digital           499.00 CNY
+  Liabilities:JD:BNPL                -499.00 CNY
+
+2026-06-07 * "永辉超市" "食材" #wechat
+  Expenses:Food:Ingredients            87.40 CNY
+  Assets:Cash:WeChat                  -87.40 CNY
+
+2026-06-10 * "公司" "六月工资"
+  Income:Salary                    -15000.00 CNY
+  Assets:Bank:CMBC                  15000.00 CNY
+
+2026-06-15 * "猫眼电影" "电影票" #meituan
+  Expenses:Entertainment               78.00 CNY
+  Assets:Cash:WeChat                  -78.00 CNY
+
+2026-07-05 * "美团外卖" "午餐" #meituan
+  Expenses:Food:Delivery               32.50 CNY
+  Liabilities:Meituan:MP              -32.50 CNY
+
+2026-07-08 * "滴滴出行" "打车回家" #alipay
+  Expenses:Transport:Taxi              23.80 CNY
+  Assets:Cash:Alipay                  -23.80 CNY
+
+2026-07-09 * "拼多多" "退款-数据线" #alipay
+  Assets:Cash:Alipay                   19.90 CNY
+  Expenses:Shopping:Digital           -19.90 CNY
+
+2026-07-10 * "招商银行" "信用卡还款(含手续费)" #alipay
+  Assets:Cash:Alipay                -2005.00 CNY
+  Liabilities:CreditCard:CMBC        2000.00 CNY
+  Expenses:Financial:ServiceFee         5.00 CNY
+
+2026-07-12 * "微信" "零钱提现到支付宝" #wechat
+  Assets:Cash:WeChat                 -500.00 CNY
+  Assets:Cash:Alipay                  500.00 CNY
+
+2026-07-13 * "京东" "AirPods Pro" #jd
+  Expenses:Shopping:Digital          1899.00 CNY
+  Liabilities:JD:BNPL               -1899.00 CNY
+
+2026-07-14 * "公司" "七月工资"
+  Income:Salary                    -15000.00 CNY
+  Assets:Bank:CMBC                  15000.00 CNY

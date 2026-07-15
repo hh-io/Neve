@@ -1,0 +1,130 @@
+;; main.bean - 核心配置文件
+
+;; 1. 基础设置
+option "title" "Neve Accounting"
+option "operating_currency" "CNY"
+
+
+;; 2. 资产账户 
+2020-01-01 open Assets:Bank:CMBC                       CNY ; 招商银行
+2020-01-01 open Assets:Bank:ICBC                       CNY ; 工商银行
+2020-01-01 open Assets:Bank:PSBC                       CNY ; 邮储银行
+2020-01-01 open Assets:Cash:WeChat                     CNY ; 微信零钱
+2020-01-01 open Assets:Cash:Alipay                     CNY ; 支付宝余额
+2020-01-01 open Liabilities:JD:CLO                     CNY ; 京东金条 (cash loan service)
+2020-01-01 open Liabilities:JD:BNPL                    CNY ; 京东白条 (buy now, pay later)
+2020-01-01 open Liabilities:Meituan:MP                 CNY ; 美团月付
+2020-01-01 open Liabilities:Alipay:Huabei              CNY ; 支付宝花呗
+2020-01-01 open Liabilities:CreditCard:CMBC            CNY ; 招行信用卡
+
+2020-01-01 open Expenses:Unknown                       CNY ; 容错账户
+2020-01-01 open Equity:Opening-Balances                CNY ; 权益账户 (用于初始化余额)    
+
+;; 金融支出
+2020-01-01 open Expenses:Financial:Interest            CNY ; 利息支出 (借钱的成本)
+2020-01-01 open Expenses:Financial:ServiceFee          CNY ; 手续费 (分期费/年费)
+
+;; 投资资产 
+2020-01-01 open Assets:Investment:Stock                CNY ; 股票账户
+2020-01-01 open Assets:Investment:Fund                 CNY ; 基金/理财
+2020-01-01 open Assets:Investment:Crypto               CNY ; 加密货币 (如有)
+    
+    
+;; 收入账户    
+2020-01-01 open Income:Salary                          CNY ; 工资
+2020-01-01 open Income:Bonus                           CNY ; 奖金
+2020-01-01 open Income:Membership                      CNY ; 会费
+2020-01-01 open Income:Dividend                        CNY ; 股息
+2020-01-01 open Income:Investment                      CNY ; 投资
+2020-01-01 open Income:SecondHand                      CNY ; 闲置交易/闲鱼
+2020-01-01 open Income:Other                           CNY ; 其他
+
+;; 人情往来 (收入)
+2020-01-01 open Income:Gift                            CNY ; 收到红包/赠予 (记为负数)
+2020-01-01 open Income:Family                          CNY ; 家人给的钱 (记为负数)
+    
+;; 支出账户 (基于分类)     
+    
+; 餐饮     
+2020-01-01 open Expenses:Food:Delivery                 CNY ; 外卖
+2020-01-01 open Expenses:Food:Dine-in                  CNY ; 堂食
+2020-01-01 open Expenses:Food:Ingredients              CNY ; 食材
+2020-01-01 open Expenses:Food:Fruit                    CNY ; 水果
+2020-01-01 open Expenses:Food:Milk                     CNY ; 牛奶
+2020-01-01 open Expenses:Food:Coffee                   CNY ; 咖啡
+    
+; 交通     
+2020-01-01 open Expenses:Transport:Taxi                CNY ; 出租车
+2020-01-01 open Expenses:Transport:Fuel                CNY ; 加油
+2020-01-01 open Expenses:Transport:Charging            CNY ; 充电
+2020-01-01 open Expenses:Transport:Bus                 CNY ; 公交
+2020-01-01 open Expenses:Transport:Subway              CNY ; 地铁
+2020-01-01 open Expenses:Transport:Train               CNY ; 火车
+2020-01-01 open Expenses:Transport:Plane               CNY ; 飞机
+2020-01-01 open Expenses:Transport:HSR                 CNY ; 高铁
+    
+; 住宿     
+2020-01-01 open Expenses:Lodging:Hotel                 CNY ; 酒店
+    
+; 通讯     
+2020-01-01 open Expenses:Communication:PhoneBill       CNY ; 话费
+    
+; 娱乐     
+2020-01-01 open Expenses:Entertainment                 CNY ; 娱乐
+    
+; 购物     
+2020-01-01 open Expenses:Shopping:Digital              CNY ; 数码
+2020-01-01 open Expenses:Shopping:Skincare             CNY ; 护肤
+2020-01-01 open Expenses:Shopping:Clothing             CNY ; 穿搭
+2020-01-01 open Expenses:Shopping:Snacks               CNY ; 零食
+2020-01-01 open Expenses:Shopping:Daily                CNY ; 日用品
+2020-01-01 open Expenses:Shopping:Virtual              CNY ; 虚拟
+    
+; 订阅     
+2020-01-01 open Expenses:Digital:Subscription          CNY ; 订阅 使用`payee ~ 'Google'`查看具体服务
+    
+; 固定支出     
+2020-01-01 open Expenses:Fixed:Mortgage                CNY ; 房贷
+2020-01-01 open Expenses:Fixed:CarLoan                 CNY ; 车贷
+    
+; 公共事业     
+2020-01-01 open Expenses:Utilities:Water               CNY ; 水费
+2020-01-01 open Expenses:Utilities:Electricity         CNY ; 电费
+2020-01-01 open Expenses:Utilities:Gas                 CNY ; 燃气费
+
+
+;; 医疗健康 
+2020-01-01 open Expenses:Health:Medical                CNY ; 药品/看病/挂号
+2020-01-01 open Expenses:Health:Insurance              CNY ; 商业保险/医保自费部分
+2020-01-01 open Expenses:Health:Checkup                CNY ; 体检
+
+;; 居住支出 
+;; 既然你有 Mortgage (房贷)，通常会有物业费或维修费
+2020-01-01 open Expenses:Housing:PropertyFee           CNY ; 物业费
+2020-01-01 open Expenses:Housing:Maintenance           CNY ; 房屋维修/家政保洁
+2020-01-01 open Expenses:Housing:Rent                  CNY ; 房租
+2020-01-01 open Expenses:Housing:Mortgage              CNY ; 房贷
+
+
+;; 自我提升 
+2020-01-01 open Expenses:Education:Course              CNY ; 课程/培训
+2020-01-01 open Expenses:Education:Books               CNY ; 书籍/知识付费
+2020-01-01 open Expenses:Education:MemberGroup         CNY ; 收费群组
+
+;; 人情往来 (支出)
+2020-01-01 open Expenses:Gift:RedPacket                CNY ; 发红包/转账给他人/随份子
+2020-01-01 open Expenses:Gift:Family                   CNY ; 给家人的钱/赡养费
+    
+; 其他     
+2020-01-01 open Expenses:Other                         CNY ; 其他
+
+
+;; 4. 初始余额 (引入 balance)
+include "balance.bean"
+
+
+;; 5. 包含子文件 (引入 inbox)
+include "inbox.bean"
+
+;; 6. 历史归档 (每年一个文件，保持 main 干净)
+include "2025.bean"

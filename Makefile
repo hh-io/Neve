@@ -18,7 +18,7 @@ GO_LDFLAGS := -s -w
 SHELL := /bin/bash
 
 # .PHONY 声明这些目标不是文件，避免与同名文件冲突
-.PHONY: all deps build build-web build-server run dev dev-web dev-server clean help
+.PHONY: all deps build build-web build-server run dev dev-web dev-server test clean help
 
 # ==============================================================================
 # 核心构建任务
@@ -43,8 +43,13 @@ build-web:
 	@echo "🔨 构建前端..."
 	@cd $(WEB_DIR) && pnpm run build
 
+# 后端单元测试 (解析器 + 统计,含数据竞争检测)
+test:
+	@echo "🧪 运行后端测试..."
+	@cd $(SERVER_DIR) && go test -race ./...
+
 # 构建后端：编译 Go 二进制文件 (依赖前端构建产物用于 embed)
-build-server: build-web
+build-server: build-web test
 	@echo "🔍 检查代码质量..."
 	@cd $(SERVER_DIR) && go fmt ./... && go vet ./...
 	@echo "🔨 构建后端二进制..."
@@ -104,6 +109,7 @@ help:
 	@echo "    make dev-server  启动后端开发服务器"
 	@echo ""
 	@echo "  辅助命令:"
+	@echo "    make test        运行后端单元测试"
 	@echo "    make clean       清理所有构建产物"
 	@echo "    make help        显示此帮助信息"
 	@echo ""

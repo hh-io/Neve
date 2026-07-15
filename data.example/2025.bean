@@ -1,0 +1,13 @@
+;; 2025.bean - 2025 年度归档交易(演示数据)
+
+2025-12-10 * "瑞幸咖啡" "生椰拿铁" #meituan
+  Expenses:Food:Coffee                  9.90 CNY
+  Assets:Cash:WeChat                   -9.90 CNY
+
+2025-12-15 * "公司" "十二月工资"
+  Income:Salary                    -15000.00 CNY
+  Assets:Bank:CMBC                  15000.00 CNY
+
+2025-12-20 * "山姆会员店" "囤零食" #jd
+  Expenses:Shopping:Snacks            186.50 CNY
+  Liabilities:JD:BNPL                -186.50 CNY

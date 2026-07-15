@@ -1,0 +1,31 @@
+;; balance.bean - 余额初始化与核对
+
+;; ==========================================================
+;; 初始余额设定 (One-time Initialization)
+;; ==========================================================
+
+2025-12-01 * "系统初始化" "录入现有资产与负债"
+  ;; --- 资产 (钱在哪里) ---
+  Assets:Bank:PSBC                     469.07   CNY ; 邮储银行
+  Assets:Cash:WeChat                   18562.46 CNY ; 微信零钱
+  Assets:Cash:Alipay                   3399.47  CNY ; 支付宝余额
+  
+  ;; --- 负债 (欠了多少) 注意：负债必须是负数 ---
+  Liabilities:Alipay:Huabei           -3168.48  CNY ; 花呗欠款
+  Liabilities:JD:CLO                  -25794.63 CNY ; 京东金条
+  Liabilities:JD:BNPL                 -1863.78  CNY ; 京东白条
+  Liabilities:Meituan:MP              -218.86   CNY ; 美团月付
+  
+  Liabilities:CreditCard:CMBC         -17590.81 CNY ; 招行信用卡
+  
+  ;; --- 平衡项 (净资产) ---
+  Equity:Opening-Balances
+
+
+;; ==========================================================
+;; 余额断言 (Checkpoints) - 以后每隔一段时间在这里追加
+;; ==========================================================
+;; 作用：告诉系统“我确认这一天银行卡里确实是这么多钱”
+;; 断言核对的是该日期当天开始前的余额,对不上会在页面顶部报错提醒查账
+2025-12-05 balance Assets:Cash:WeChat        18562.46 CNY
+2026-07-01 balance Assets:Bank:CMBC          75000.00 CNY

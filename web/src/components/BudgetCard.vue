@@ -1,7 +1,7 @@
 <template>
-  <div class="glass-card budget-card">
+  <div class="card-static budget-card">
     <div class="budget-header">
-      <h3 class="card-title">本月预算</h3>
+      <h3 class="budget-title">本月预算</h3>
       <button class="edit-btn" @click="showEdit = !showEdit">
         {{ showEdit ? '完成' : '设置' }}
       </button>
@@ -170,6 +170,7 @@ const totalProgress = computed(() => {
 <style scoped>
 .budget-card {
   min-height: 200px;
+  padding: var(--space-6);
 }
 
 .budget-header {
@@ -179,15 +180,18 @@ const totalProgress = computed(() => {
   margin-bottom: var(--space-4);
 }
 
-.budget-header .card-title {
-  margin-bottom: 0;
+.budget-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .edit-btn {
   padding: var(--space-2) var(--space-3);
   border: none;
-  background: rgba(0, 122, 255, 0.1);
-  color: var(--color-blue);
+  background: var(--brand-light);
+  color: var(--brand-primary);
   font-size: var(--font-size-sm);
   font-weight: 500;
   border-radius: var(--radius-sm);
@@ -219,40 +223,40 @@ const totalProgress = computed(() => {
 
 .budget-amount {
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
 }
 
 .budget-progress-wrap {
   height: 6px;
-  background: var(--color-bg);
+  background: var(--bg-tertiary);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .budget-progress {
   height: 100%;
-  background: var(--color-green);
+  background: var(--income);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .budget-progress.warning {
-  background: var(--color-orange);
+  background: var(--warning);
 }
 
 .budget-progress.over {
-  background: var(--color-red);
+  background: var(--expense);
 }
 
 .budget-percent {
   font-size: var(--font-size-sm);
   font-weight: 600;
   text-align: right;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .budget-percent.over {
-  color: var(--color-red);
+  color: var(--expense);
 }
 
 .budget-total {
@@ -307,7 +311,7 @@ const totalProgress = computed(() => {
   width: 32px;
   height: 32px;
   border: none;
-  background: var(--color-blue);
+  background: var(--brand-primary);
   color: white;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -315,13 +319,13 @@ const totalProgress = computed(() => {
 }
 
 .add-btn:disabled {
-  background: var(--color-text-tertiary);
+  background: var(--text-tertiary);
 }
 
 .empty-state {
   text-align: center;
   padding: var(--space-6);
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
 }
 
 .delete-btn {
@@ -329,7 +333,7 @@ const totalProgress = computed(() => {
   height: 28px;
   border: none;
   background: rgba(255, 59, 48, 0.1);
-  color: var(--color-red);
+  color: var(--expense);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 16px;
@@ -338,7 +342,7 @@ const totalProgress = computed(() => {
 }
 
 .delete-btn:hover {
-  background: var(--color-red);
+  background: var(--expense);
   color: white;
 }
 </style>

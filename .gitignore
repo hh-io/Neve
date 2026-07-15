@@ -2,8 +2,12 @@
 *.bean
 data
 
+# 演示数据入库,真实账本(data -> iCloud)不入库
+!data.example/*.bean
+
 # Build
 neve
+server/neve-server
 server/static/*
 !server/static/.gitkeep
 
