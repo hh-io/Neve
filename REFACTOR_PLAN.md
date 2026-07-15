@@ -4,6 +4,36 @@
 > 每个 Phase 是一个独立可提交的单元(中文 conventional commit)。执行前必读根目录 `CLAUDE.md`
 > 的"正确性约定"一节——本次重构**不改变任何记账口径与后端统计逻辑**。
 
+## 执行进度
+
+| Phase | 状态 | 说明 |
+|---|---|---|
+| Phase 1 工具链与类型契约 | ✅ 已完成 | commit `bdd4289`;见下方"Phase 1 落地记录" |
+| Phase 2 设计系统重建 | ⬜ 未开始 | |
+| Phase 3 基础设施重构 | ⬜ 未开始 | |
+| Phase 4 组件逐个重写 | ⬜ 未开始 | |
+| Phase 5 后端小清理 | ⬜ 未开始 | |
+| Phase 6 文档同步 | ⬜ 未开始 | |
+
+### Phase 1 落地记录(与原计划的偏差,下个会话必读)
+
+- **依赖已升级到最新**(用户要求):`vue@3.5.39`、`echarts@6.1.0`、`vite@8.1.4`、
+  `vue-echarts@8`。**TypeScript 刻意停在 5.9**——TS 7(tsgo 原生版)移除了 `./lib/tsc`
+  子路径,会让 `vue-tsc` 崩溃,**不要升 TS 到 7**。
+- **Vite 8 底层是 Rolldown**(非 Rollup):分包在 `vite.config.ts` 用
+  `rollupOptions.output.codeSplitting: { groups }`(旧 `manualChunks` / `advancedChunks` 会报弃用)。
+- **echarts 升 6** 顺带修复了原本 `vue-echarts@8` 要求 echarts^6 却装着 echarts 5 的 peer 不匹配。
+- **ESLint 现用 `flat/essential`**(只查正确性,不含模板风格/排序规则),且 **`vue/block-lang` 关闭**
+  (见 `eslint.config.js` 注释)。原因:组件仍是 JS `<script setup>`。
+  **Phase 4 收尾时**再:①把组件全改成 `<script setup lang="ts">`;②ESLint 升级为 `flat/recommended`;
+  ③删掉 `vue/block-lang` 覆盖。⚠️ 切勿现在用 `flat/recommended` 对遗留 JS 模板跑 `--fix`——
+  它会把 `@update:activeTab` 误改成 kebab,而 Vue 3 自定义事件名大小写敏感,会断开 Tab 切换。
+- `themeVersion.value;` 的响应式触碰惯例已统一改为 `void themeVersion.value;`(满足 no-unused-expressions,
+  语义与行为不变,Phase 4 保留)。
+- **可视化目检待补**:执行环境浏览器扩展常离线,Phase 1 只完成了 `make build` 全绿 + API 契约核对,
+  echarts 5→6 / vite 7→8 的三主题图表**人工目检尚未完成**,下个会话开工前建议先跑
+  `NEVE_DATA_DIR=./data.example TZ=Asia/Shanghai ./neve` 目检一遍作为基线。
+
 ## 0. 审计结论与决策记录
 
 | 议题 | 决策 | 理由 |
@@ -30,7 +60,7 @@
 
 ---
 
-## Phase 1:工具链与类型契约(不动任何 UI)
+## Phase 1:工具链与类型契约(不动任何 UI) ✅ 已完成(commit `bdd4289`)
 
 **目标**:建立 TS、lint、类型契约三件基础设施,全部绿灯后再开始重构。
 
@@ -51,8 +81,8 @@
    `package.json` 增加 `lint`、`format`、`typecheck`(`vue-tsc --noEmit`)三个 script。
 5. Makefile:`build-web` 前置执行 `pnpm run lint && pnpm run typecheck`;`make help` 同步更新。
 
-**验收**:`make build` 全绿;浏览器行为与重构前完全一致。
-**提交**:`chore: 前端引入 TypeScript 与 ESLint 工具链,固化 API 契约类型`
+**验收**:`make build` 全绿;浏览器行为与重构前完全一致。 → ✅ `make build` 已全绿(人工目检待补,见上方落地记录)
+**提交**:`chore: 前端引入 TypeScript 与 ESLint 工具链,固化 API 契约类型` → ✅ 已提交 `bdd4289`
 
 ---
 
