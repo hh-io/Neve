@@ -12,16 +12,16 @@
     <!-- Main Content -->
     <main class="main-content">
       <!-- Error State -->
-      <div v-if="error" class="card-static" style="padding: var(--space-8); text-align: center;">
-        <h3 style="color: var(--expense); margin-bottom: var(--space-4);">加载失败</h3>
-        <p style="color: var(--text-secondary);">{{ error }}</p>
-        <button class="btn btn-primary" style="margin-top: var(--space-4);" @click="refresh">重试</button>
+      <div v-if="error" class="card-static state-error">
+        <h3 class="state-error-title">加载失败</h3>
+        <p class="state-error-msg">{{ error }}</p>
+        <button class="btn btn-primary state-error-btn" @click="refresh">重试</button>
       </div>
 
       <!-- Loading State -->
-      <div v-else-if="loading && !analytics" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; gap: var(--space-4);">
-        <div style="width: 48px; height: 48px; border: 3px solid var(--brand-primary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <p style="color: var(--text-secondary);">加载中...</p>
+      <div v-else-if="loading && !analytics" class="state-loading">
+        <div class="state-spinner"></div>
+        <p class="state-loading-msg">加载中...</p>
       </div>
 
       <!-- Dashboard -->
@@ -46,7 +46,7 @@
         <IssuesBanner :issues="analytics.parseIssues || []" :balanceChecks="analytics.balanceChecks || []" />
 
         <!-- Tab Contents -->
-        <OverviewTab v-show="activeTab === 'overview'" :analytics="analytics" />
+        <OverviewTab v-show="activeTab === 'overview'" />
         <SpendingTab v-show="activeTab === 'spending'" :analytics="analytics" />
         <TrendsTab v-show="activeTab === 'trends'" :analytics="analytics" />
         <AccountsTab v-show="activeTab === 'accounts'" :analytics="analytics" />
@@ -61,7 +61,7 @@
         <TransactionsTab v-show="activeTab === 'transactions'" />
 
         <!-- Footer -->
-        <footer style="text-align: center; padding: var(--space-8); color: var(--text-tertiary); font-size: var(--font-size-sm); border-top: 1px solid var(--border); margin-top: var(--space-8);">
+        <footer class="app-footer">
           <p>最后更新: {{ formatDateTime(analytics.summary?.lastUpdated) }}</p>
         </footer>
       </template>
@@ -133,5 +133,55 @@ onMounted(load);
 <style>
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* 加载/错误/footer 态(shell 级) */
+.state-error {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.state-error-title {
+  color: var(--expense);
+  margin-bottom: var(--space-4);
+}
+
+.state-error-msg {
+  color: var(--text-secondary);
+}
+
+.state-error-btn {
+  margin-top: var(--space-4);
+}
+
+.state-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: var(--space-4);
+}
+
+.state-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.state-loading-msg {
+  color: var(--text-secondary);
+}
+
+.app-footer {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  border-top: 1px solid var(--hairline);
+  margin-top: var(--space-8);
 }
 </style>

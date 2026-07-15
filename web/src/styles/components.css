@@ -149,6 +149,44 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ========== Panel(卡片内容面板:图标标题头 + 内容,统一 --card-pad 留白) ========== */
+.panel {
+    padding: var(--card-pad);
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.panel-head-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.panel-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.panel-sub {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
 /* ========== Filter Pills(Revolut 式分段药丸:轨道 surface-2,选中 surface-1 提升) ========== */
 .filter-pills {
     display: inline-flex;
