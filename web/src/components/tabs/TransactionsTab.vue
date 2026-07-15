@@ -1,55 +1,56 @@
 <template>
   <div class="animate-fade-in-up">
     <!-- Filters -->
-    <div class="card-static section-mb" style="padding: var(--space-4);">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3);">
-        <!-- Search -->
-        <div style="flex: 1; min-width: 200px; position: relative;">
-          <Search :size="16" color="var(--text-tertiary)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);" />
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="搜索商家、备注..."
-            class="search-input"
-          />
-        </div>
-
-        <!-- Category Filter -->
-        <select v-model="categoryFilter" class="filter-select">
-          <option value="">所有分类</option>
-          <option v-for="cat in categories" :key="cat" :value="cat">{{ getCategoryLabel(cat) }}</option>
-        </select>
-
-        <!-- Type Filter -->
-        <select v-model="typeFilter" class="filter-select">
-          <option value="">全部类型</option>
-          <option value="expense">支出</option>
-          <option value="income">收入</option>
-          <option value="transfer">转账</option>
-        </select>
-
-        <!-- Reset -->
-        <button v-if="hasFilters" class="btn btn-ghost" @click="resetFilters" style="font-size: var(--font-size-sm);">
-          清除
-        </button>
+    <div class="filter-bar card-static section-mb">
+      <!-- Search -->
+      <div class="search-wrap">
+        <Search :size="16" color="var(--text-tertiary)" class="search-icon" />
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="搜索商家、备注..."
+          class="search-input"
+        />
       </div>
+
+      <!-- Category Filter -->
+      <select v-model="categoryFilter" class="filter-select">
+        <option value="">所有分类</option>
+        <option v-for="cat in categories" :key="cat" :value="cat">{{ getCategoryLabel(cat) }}</option>
+      </select>
+
+      <!-- Type Filter(药丸分段) -->
+      <div class="filter-pills">
+        <button
+          v-for="opt in typeOptions"
+          :key="opt.value"
+          class="filter-pill"
+          :class="{ active: typeFilter === opt.value }"
+          @click="typeFilter = opt.value"
+        >{{ opt.label }}</button>
+      </div>
+
+      <!-- Reset -->
+      <button v-if="hasFilters" class="btn btn-ghost btn-clear" @click="resetFilters">
+        清除
+      </button>
     </div>
 
     <!-- Transaction List -->
-    <div class="card-static" style="padding: var(--space-4); height: calc(100vh - 340px); min-height: 350px; display: flex; flex-direction: column;">
+    <div class="tx-panel card-static">
       <!-- Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);">
-        <div style="display: flex; align-items: center; gap: var(--space-2);">
-          <div class="stat-icon bg-brand-light" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-            <ArrowRightLeft :size="16" color="var(--brand-primary)" />
+      <div class="tx-panel-header">
+        <div class="tx-panel-title">
+          <div class="tx-panel-icon">
+            <ArrowRightLeft :size="16" color="var(--accent)" />
           </div>
-          <span style="font-weight: 600; color: var(--text-primary); font-size: var(--font-size-base);">交易明细</span>
+          <span class="tx-panel-label">交易明细</span>
         </div>
         <span class="badge">共 {{ filteredTransactions.length }} 条</span>
       </div>
 
       <!-- Empty State -->
-      <div v-if="processedTransactions.length === 0" style="text-align: center; padding: var(--space-8); color: var(--text-tertiary); flex: 1; display: flex; align-items: center; justify-content: center;">
+      <div v-if="processedTransactions.length === 0" class="tx-empty-state">
         暂无匹配的交易记录
       </div>
 
@@ -86,11 +87,11 @@
               <div class="tx-top">
                 <span class="tx-payee">{{ tx.payee || '未知交易' }}</span>
                 <div class="tx-tags">
-                  <span 
-                    v-for="tag in (tx.tags || [])" 
-                    :key="tag" 
+                  <span
+                    v-for="tag in (tx.tags || [])"
+                    :key="tag"
                     class="tx-tag"
-                    :style="{ backgroundColor: getTagColor(tag), color: 'var(--text-secondary)' }"
+                    :style="{ backgroundColor: getTagColor(tag) }"
                   >#{{ tag }}</span>
                 </div>
               </div>
@@ -130,9 +131,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { Search, ArrowRightLeft } from '@lucide/vue';
+import type { ProcessedTransaction } from '../../composables/useCategories';
 import {
   getCategoryLabel,
   processTransaction,
@@ -140,10 +142,24 @@ import {
   getTagColor
 } from '../../composables/useCategories';
 import { getCategoryIcon } from '../../composables/useCategoryIcon';
+import { useAnalytics } from '../../composables/useAnalytics';
 
-const props = defineProps({
-  transactions: { type: Array, required: true }
-});
+const { analytics } = useAnalytics();
+
+interface DateGroup {
+  dateStr: string;
+  dateLabel: string;
+  items: ProcessedTransaction[];
+  income: number;
+  expense: number;
+}
+
+const typeOptions = [
+  { value: '', label: '全部' },
+  { value: 'expense', label: '支出' },
+  { value: 'income', label: '收入' },
+  { value: 'transfer', label: '转账' }
+] as const;
 
 // Filters
 const searchQuery = ref('');
@@ -154,7 +170,7 @@ const pageSize = 20;
 
 // Process transactions using shared utility
 const processedTransactions = computed(() => {
-  return props.transactions.map(processTransaction);
+  return (analytics.value?.transactions ?? []).map(processTransaction);
 });
 
 const categories = computed(() => {
@@ -204,9 +220,9 @@ const paginatedTransactions = computed(() => {
 });
 
 // Group paginated transactions by date
-const groupedTransactions = computed(() => {
-  const groups = {};
-  
+const groupedTransactions = computed<DateGroup[]>(() => {
+  const groups: Record<string, DateGroup> = {};
+
   paginatedTransactions.value.forEach(tx => {
     const dateStr = tx.date;
     if (!groups[dateStr]) {
@@ -230,7 +246,7 @@ const groupedTransactions = computed(() => {
   });
 
   return Object.values(groups).sort((a, b) => {
-    return new Date(b.dateStr) - new Date(a.dateStr);
+    return new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime();
   });
 });
 
@@ -240,12 +256,34 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 </script>
 
 <style scoped>
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.search-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 .search-input {
   width: 100%;
   padding: var(--space-2) var(--space-3) var(--space-2) 36px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
   outline: none;
@@ -253,14 +291,14 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 }
 
 .search-input:focus {
-  border-color: var(--brand-primary);
+  border-color: var(--accent);
 }
 
 .filter-select {
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
   min-width: 100px;
@@ -268,12 +306,66 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   cursor: pointer;
 }
 
+.btn-clear {
+  font-size: var(--font-size-sm);
+}
+
 .badge {
   padding: var(--space-1) var(--space-2);
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
+}
+
+.tx-panel {
+  padding: var(--space-4);
+  height: calc(100vh - 340px);
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tx-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.tx-panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tx-panel-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tx-panel-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.tx-empty-state {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .transaction-scroll-container {
@@ -289,12 +381,12 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 }
 
 .transaction-scroll-container::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: 3px;
 }
 
 .transaction-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--hairline);
   border-radius: 3px;
 }
 
@@ -310,7 +402,7 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 .tx-date-header {
   position: sticky;
   top: 0;
-  background-color: var(--bg-secondary);
+  background-color: var(--surface-1);
   z-index: 10;
   padding: var(--space-2) var(--space-1);
   font-size: var(--font-size-xs);
@@ -323,14 +415,15 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 
 .date-total {
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .date-income-text {
-  color: rgba(107, 155, 122, 0.8); /* Low saturation income */
+  color: var(--income);
 }
 
 .date-expense-text {
-  color: rgba(194, 123, 123, 0.8); /* Low saturation expense */
+  color: var(--expense);
 }
 
 .ml-2 { margin-left: 8px; }
@@ -347,7 +440,7 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 }
 
 .transaction-row:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
 }
 
 .tx-icon {
@@ -407,7 +500,7 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 
 .tx-category-badge {
   padding: 1px 6px;
-  background: var(--bg-tertiary); /* User requested background */
+  background: var(--surface-2);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   margin-right: 6px;
@@ -418,11 +511,6 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.tx-dot {
-  margin: 0 4px;
-  color: var(--border);
 }
 
 .tx-account {
@@ -442,7 +530,8 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 .tx-amount {
   font-weight: 600;
   font-size: var(--font-size-base);
-  font-feature-settings: 'tnum';
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
 }
 
 .text-income {
@@ -458,15 +547,15 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 }
 
 .bg-income-light {
-  background: var(--income-light, rgba(107, 155, 122, 0.15));
+  background: var(--income-light);
 }
 
 .bg-expense-light {
-  background: var(--expense-light, rgba(194, 123, 123, 0.15));
+  background: var(--expense-light);
 }
 
 .bg-brand-light {
-  background: var(--brand-light);
+  background: var(--accent-subtle);
 }
 
 .tx-fee {
@@ -482,7 +571,7 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   gap: var(--space-3);
   margin-top: var(--space-4);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
 }
 
 .page-info {
@@ -491,11 +580,12 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   gap: var(--space-1);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .current-page {
   font-weight: 600;
-  color: var(--brand-primary);
+  color: var(--accent);
 }
 
 .btn-sm {

@@ -58,7 +58,7 @@
           />
         </div>
 
-        <TransactionsTab v-show="activeTab === 'transactions'" :transactions="analytics.transactions || []" />
+        <TransactionsTab v-show="activeTab === 'transactions'" />
 
         <!-- Footer -->
         <footer style="text-align: center; padding: var(--space-8); color: var(--text-tertiary); font-size: var(--font-size-sm); border-top: 1px solid var(--border); margin-top: var(--space-8);">

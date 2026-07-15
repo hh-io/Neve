@@ -1,9 +1,9 @@
 <template>
-  <div v-if="transactions.length === 0" style="text-align: center; padding: var(--space-8); color: var(--text-tertiary);">
+  <div v-if="transactions.length === 0" class="tx-empty">
     暂无交易记录
   </div>
 
-  <div v-else class="tx-scroll-container" :style="{ maxHeight: maxHeight }">
+  <div v-else class="tx-scroll-container" :style="{ maxHeight }">
     <div
       v-for="(tx, index) in displayedTransactions"
       :key="`${tx.date}-${index}`"
@@ -39,19 +39,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
-import { 
-  getCategoryLabel, 
-  processTransaction, 
-  formatTransactionDate 
+import type { Transaction } from '../types/api';
+import {
+  getCategoryLabel,
+  processTransaction,
+  formatTransactionDate
 } from '../composables/useCategories';
 import { getCategoryIcon } from '../composables/useCategoryIcon';
 
-const props = defineProps({
-  transactions: { type: Array, required: true },
-  maxHeight: { type: String, default: '400px' },
-  showAccount: { type: Boolean, default: true }
+const props = withDefaults(defineProps<{
+  transactions: Transaction[];
+  maxHeight?: string;
+  showAccount?: boolean;
+}>(), {
+  maxHeight: '400px',
+  showAccount: true
 });
 
 // Process transactions using shared utility
@@ -64,6 +68,12 @@ const formatDate = formatTransactionDate;
 </script>
 
 <style scoped>
+.tx-empty {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+}
+
 .tx-scroll-container {
   overflow-y: auto;
   padding-right: var(--space-2);
@@ -74,30 +84,30 @@ const formatDate = formatTransactionDate;
 }
 
 .tx-scroll-container::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: 3px;
 }
 
 .tx-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--hairline);
   border-radius: 3px;
 }
 
+/* changelog-row:扁平行,靠发丝线底边分隔,无卡片嵌套、无斑马纹 */
 .tx-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  padding: var(--space-3);
   transition: background var(--transition-base);
 }
 
 .tx-row:hover {
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
 }
 
 .tx-row:not(:last-child) {
-  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.05));
+  border-bottom: 1px solid var(--hairline);
 }
 
 .tx-icon {
@@ -135,7 +145,7 @@ const formatDate = formatTransactionDate;
 
 .tx-category {
   padding: 1px 6px;
-  background: var(--bg-tertiary);
+  background: var(--surface-2);
   border-radius: var(--radius-sm);
 }
 
@@ -150,8 +160,8 @@ const formatDate = formatTransactionDate;
 
 .tx-tag {
   padding: 1px 5px;
-  background: var(--brand-light);
-  color: var(--brand-primary);
+  background: var(--accent-subtle);
+  color: var(--accent);
   border-radius: var(--radius-sm);
   font-size: 10px;
 }
@@ -164,7 +174,8 @@ const formatDate = formatTransactionDate;
 .tx-amount {
   font-weight: 600;
   font-size: var(--font-size-sm);
-  font-feature-settings: 'tnum';
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
 }
 
 .tx-account {
@@ -176,9 +187,9 @@ const formatDate = formatTransactionDate;
 .text-income { color: var(--income); }
 .text-expense { color: var(--expense); }
 .text-transfer { color: var(--text-secondary); }
-.bg-income-light { background: var(--income-light, rgba(107, 155, 122, 0.15)); }
-.bg-expense-light { background: var(--expense-light, rgba(194, 123, 123, 0.15)); }
-.bg-brand-light { background: var(--brand-light); }
+.bg-income-light { background: var(--income-light); }
+.bg-expense-light { background: var(--expense-light); }
+.bg-brand-light { background: var(--accent-subtle); }
 
 .tx-fee {
   font-size: 10px;

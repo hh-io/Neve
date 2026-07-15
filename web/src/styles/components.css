@@ -149,6 +149,37 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ========== Filter Pills(Revolut 式分段药丸:轨道 surface-2,选中 surface-1 提升) ========== */
+.filter-pills {
+    display: inline-flex;
+    gap: 2px;
+    background: var(--surface-2);
+    padding: 3px;
+    border-radius: var(--radius-full);
+}
+
+.filter-pill {
+    padding: var(--space-1) var(--space-3);
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+}
+
+.filter-pill:hover {
+    color: var(--text-secondary);
+}
+
+.filter-pill.active {
+    background: var(--surface-1);
+    color: var(--text-primary);
+}
+
 /* ========== Progress Bar ========== */
 .progress-bar {
     height: 8px;

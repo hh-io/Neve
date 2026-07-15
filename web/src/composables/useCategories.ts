@@ -89,7 +89,7 @@ export function processTransaction(tx: Transaction): ProcessedTransaction {
         amountText,
         amountClass,
         iconClass: isTransfer ? 'bg-brand-light' : isIncome ? 'bg-income-light' : 'bg-expense-light',
-        iconColor: isTransfer ? 'var(--brand-primary)' : isIncome ? 'var(--income)' : 'var(--expense)',
+        iconColor: isTransfer ? 'var(--accent)' : isIncome ? 'var(--income)' : 'var(--expense)',
         payee: tx.payee || '',
         narration: tx.narration || ''
     };
