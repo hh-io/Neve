@@ -221,8 +221,9 @@ tail -f ~/Library/Logs/neve.log
 改动模板后重新执行 `make install-service`,再 `launchctl bootout gui/$(id -u)/com.neve.server`
 + `bootstrap` 重载生效。
 
-> ⚠️ 日期按服务器本地时区归属月份/星期,部署机时区必须为 `Asia/Shanghai`
-> (plist 模板已在 EnvironmentVariables 中内置 `TZ=Asia/Shanghai`)。
+> ⚠️ 日期按服务器本地时区归属月份/星期,应通过 `TZ` 显式钉死记账时区
+> (plist 模板已在 EnvironmentVariables 中内置 `TZ=Asia/Singapore`,按需修改),
+> 避免系统时区自动切换导致归属漂移。
 
 ### Cloudflare Tunnel (可选)
 

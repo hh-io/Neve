@@ -20,9 +20,9 @@
         <string>@NEVE_ROOT@/data</string>
         <key>NEVE_PORT</key>
         <string>9999</string>
-        <!-- launchd 不继承 shell 环境;日期按服务器本地时区归属,必须显式指定 -->
+        <!-- 显式钉死时区,避免系统时区随旅行自动切换导致日期归属漂移 -->
         <key>TZ</key>
-        <string>Asia/Shanghai</string>
+        <string>Asia/Singapore</string>
     </dict>
 
     <key>RunAtLoad</key>

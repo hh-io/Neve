@@ -49,7 +49,8 @@ iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
   统计按 posting 级聚合:转账本金不计支出,手续费计入;退款(负 Expenses)按净额冲减。
 - **balance 断言**会真正核对(断言日期当天开始前的余额,官方 beancount 语义),
   失败报 `BALANCE_FAILED`。
-- **日期按服务器本地时区**解析与归属,部署机必须 `TZ=Asia/Shanghai`。
+- **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
+  (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。
 - **ECharts 颜色**:canvas 不解析 CSS 变量,option 里必须用
   `getThemeColor('--xxx')` 取实际值,并在 computed 中引用 `themeVersion.value`
