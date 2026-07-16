@@ -13,12 +13,20 @@ SERVER_DIR  := server
 # Go 构建参数：-s 去除符号表, -w 去除 DWARF 调试信息, 减小二进制体积
 GO_LDFLAGS := -s -w
 
+# --- 部署配置 (deploy/ 下的模板渲染后安装到系统位置) ---
+DEPLOY_DIR     := deploy
+LAUNCH_PLIST   := $(HOME)/Library/LaunchAgents/com.neve.server.plist
+NEWSYSLOG_CONF := /etc/newsyslog.d/neve.conf
+# 渲染模板占位符: @NEVE_ROOT@ / @HOME@ / @USER@
+RENDER := sed -e 's|@NEVE_ROOT@|$(CURDIR)|g' -e 's|@HOME@|$(HOME)|g' -e 's|@USER@|$(USER)|g'
+
 # --- Makefile 配置 ---
 .DEFAULT_GOAL := all
 SHELL := /bin/bash
 
 # .PHONY 声明这些目标不是文件，避免与同名文件冲突
-.PHONY: all deps build build-web build-server run dev dev-web dev-server test clean help
+.PHONY: all deps build build-web build-server run dev dev-web dev-server test clean help \
+        install-service install-logrotate
 
 # ==============================================================================
 # 核心构建任务
@@ -81,6 +89,23 @@ dev-server:
 	@cd $(SERVER_DIR) && NEVE_DATA_DIR=../data go run .
 
 # ==============================================================================
+# 部署 (macOS launchd + newsyslog)
+# ==============================================================================
+
+# 渲染并安装 launchd 服务配置 (只写文件不启动;服务在运行需重载才生效)
+install-service:
+	@$(RENDER) $(DEPLOY_DIR)/com.neve.server.plist.in > $(LAUNCH_PLIST)
+	@echo "✅ 已写入 $(LAUNCH_PLIST)"
+	@echo "   启动: launchctl bootstrap gui/$$(id -u) $(LAUNCH_PLIST)"
+	@echo "   重载: launchctl bootout gui/$$(id -u)/com.neve.server && launchctl bootstrap gui/$$(id -u) $(LAUNCH_PLIST)"
+
+# 渲染并安装日志轮转配置 (需要 sudo)
+install-logrotate:
+	@$(RENDER) $(DEPLOY_DIR)/neve.newsyslog.conf.in | sudo tee $(NEWSYSLOG_CONF) > /dev/null
+	@echo "✅ 已写入 $(NEWSYSLOG_CONF),newsyslog 试运行验证:"
+	@sudo newsyslog -nv | grep neve
+
+# ==============================================================================
 # 清理与辅助
 # ==============================================================================
 
@@ -109,6 +134,10 @@ help:
 	@echo "    make run         构建并运行生产二进制"
 	@echo "    make dev         启动前端开发服务器 (热重载)"
 	@echo "    make dev-server  启动后端开发服务器"
+	@echo ""
+	@echo "  部署命令:"
+	@echo "    make install-service    渲染并安装 launchd 服务配置"
+	@echo "    make install-logrotate  渲染并安装日志轮转配置 (需 sudo)"
 	@echo ""
 	@echo "  辅助命令:"
 	@echo "    make test        运行后端单元测试"

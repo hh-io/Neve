@@ -1,0 +1,10 @@
+# Neve 日志轮转模板:@占位符@ 由 `make install-logrotate` 渲染并安装到 /etc/newsyslog.d/neve.conf
+#
+# 字段: logfile  owner:group  mode  count  size(KB)  when  flags
+# count=7   保留 7 份历史
+# when=*    只按大小轮转,不按时间
+# J         bzip2 压缩历史日志
+# N         轮转后不发信号 (无 pid 文件;进程重启时自然切到新文件)
+
+@HOME@/Library/Logs/neve.log          @USER@:staff  644  7  5120  *  JN
+@HOME@/Library/Logs/neve.error.log    @USER@:staff  644  7  1024  *  JN

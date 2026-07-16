@@ -203,17 +203,26 @@ Neve/
 
 ### macOS 后台服务 (launchd)
 
+服务与日志轮转配置以模板形式放在 `deploy/`(占位符 `@NEVE_ROOT@`/`@HOME@`/`@USER@`),
+由 make 按本机路径渲染后安装,仓库中不含硬编码路径:
+
 ```bash
-# 安装服务
-cp com.neve.server.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.neve.server.plist
+# 渲染并安装 launchd 配置到 ~/Library/LaunchAgents (只写文件,不启动)
+make install-service
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.neve.server.plist
+
+# 渲染并安装日志轮转配置到 /etc/newsyslog.d (需 sudo)
+make install-logrotate
 
 # 查看日志
 tail -f ~/Library/Logs/neve.log
 ```
 
+改动模板后重新执行 `make install-service`,再 `launchctl bootout gui/$(id -u)/com.neve.server`
++ `bootstrap` 重载生效。
+
 > ⚠️ 日期按服务器本地时区归属月份/星期,部署机时区必须为 `Asia/Shanghai`
-> (launchd 可在 plist 的 EnvironmentVariables 中设置 `TZ`)。
+> (plist 模板已在 EnvironmentVariables 中内置 `TZ=Asia/Shanghai`)。
 
 ### Cloudflare Tunnel (可选)
 

@@ -1,71 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- launchd 服务模板:@占位符@ 由 `make install-service` 渲染,不要直接拷贝本文件 -->
 <plist version="1.0">
 <dict>
-    <!-- 服务标识符 -->
     <key>Label</key>
     <string>com.neve.server</string>
-    
-    <!-- 执行程序路径 -->
+
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/hh/Workspace/Neve/neve</string>
+        <string>@NEVE_ROOT@/neve</string>
     </array>
-    
-    <!-- 工作目录 -->
+
     <key>WorkingDirectory</key>
-    <string>/Users/hh/Workspace/Neve</string>
-    
-    <!-- 环境变量配置 -->
+    <string>@NEVE_ROOT@</string>
+
     <key>EnvironmentVariables</key>
     <dict>
         <key>NEVE_DATA_DIR</key>
-        <string>/Users/hh/Workspace/Neve/data</string>
+        <string>@NEVE_ROOT@/data</string>
         <key>NEVE_PORT</key>
         <string>9999</string>
+        <!-- launchd 不继承 shell 环境;日期按服务器本地时区归属,必须显式指定 -->
+        <key>TZ</key>
+        <string>Asia/Shanghai</string>
     </dict>
-    
-    <!-- 开机自动启动 -->
+
     <key>RunAtLoad</key>
     <true/>
-    
-    <!-- 保持运行 (崩溃后自动重启) -->
+
+    <!-- 崩溃后自动重启,正常退出不拉起 -->
     <key>KeepAlive</key>
     <dict>
         <key>SuccessfulExit</key>
         <false/>
     </dict>
-    
-    <!-- 重启间隔 (秒) -->
+
     <key>ThrottleInterval</key>
     <integer>30</integer>
-    
-    <!-- ========== 生产环境优化 ========== -->
-    
-    <!-- 进程类型: Background (后台服务，系统可优化调度) -->
+
+    <!-- 后台低优先级,不抢占前台资源 -->
     <key>ProcessType</key>
     <string>Background</string>
-    
-    <!-- Nice 优先级: 10 (低于默认0，不抢占前台资源) -->
+
     <key>Nice</key>
     <integer>10</integer>
-    
-    <!-- 软资源限制 -->
+
     <key>SoftResourceLimits</key>
     <dict>
-        <!-- 最大打开文件数 -->
         <key>NumberOfFiles</key>
         <integer>1024</integer>
     </dict>
-    
-    <!-- ========== 日志配置 ========== -->
-    
-    <!-- 标准输出日志路径 -->
+
     <key>StandardOutPath</key>
-    <string>/Users/hh/Library/Logs/neve.log</string>
-    
-    <!-- 错误输出日志路径 -->
+    <string>@HOME@/Library/Logs/neve.log</string>
+
     <key>StandardErrorPath</key>
-    <string>/Users/hh/Library/Logs/neve.error.log</string>
+    <string>@HOME@/Library/Logs/neve.error.log</string>
 </dict>
 </plist>
