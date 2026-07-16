@@ -255,7 +255,7 @@
     --chart-1: #533afd;         /* electric indigo */
     --chart-2: #ea2261;         /* ruby pink-red */
     --chart-3: #f96bee;         /* magenta */
-    --chart-4: #9b6829;         /* lemon/sherbet */
+    --chart-4: #9b6829;         /* amber */
     --chart-5: #00a3e0;         /* ice cyan */
     --chart-6: #24b47e;         /* mint green */
     --chart-7: #1c1e54;         /* deep navy */
@@ -281,7 +281,7 @@
     --income-light: rgba(36, 180, 126, 0.08);
     --expense: #ea2261;
     --expense-light: rgba(234, 34, 97, 0.08);
-    --warning: #9b6829;         /* lemon-amber */
+    --warning: #9b6829;         /* amber */
     --warning-light: rgba(155, 104, 41, 0.08);
     --info: #00a3e0;
     --info-light: rgba(0, 163, 224, 0.08);
@@ -303,21 +303,21 @@
 
 /* Specific component overrides for Stripe theme to ensure absolute fidelity and premium UI feel */
 .theme-stripe .btn-primary {
-    background-color: #533afd !important;
+    background-color: var(--accent) !important;
     color: #ffffff !important;
-    border-color: #533afd !important;
+    border-color: var(--accent) !important;
     font-weight: 400 !important;
     border-radius: 9999px !important; /* Force pill shape for Stripi buttons */
     box-shadow: 0 1px 3px rgba(0, 55, 112, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
 }
 
 .theme-stripe .btn-primary:hover {
-    background-color: #4434d4 !important;
+    background-color: var(--accent-hover) !important;
     box-shadow: 0 4px 12px rgba(83, 58, 253, 0.18) !important;
 }
 
-.theme-stripe .theme-btn.active {
-    color: #ffffff !important;
+.theme-stripe .theme-trigger.active {
+    color: var(--accent) !important;
 }
 
 /* Stripe Editorial-Density Display Typography: Thin weight + Tight Tracking */
@@ -342,14 +342,18 @@
     letter-spacing: -0.02em !important;
 }
 
-/* Sidebar styling for Stripe theme: Familar Dark-app Shell (Brand Dark 900) */
+/* Sidebar styling for Stripe theme: Familar Dark-app Shell (Brand Dark 900)。
+   紧邻的主内容区是近白 canvas,深藏青侧边栏若用纯白文字+硬边框,明暗断层过于突兀;
+   主要文字降到 92% 白、分割线换成朝右的柔和阴影(shadow-blue 色系),弱化断层同时不破坏
+   DESIGN.md 里 brand-dark-900 + on-primary 的既定配色。 */
 .theme-stripe .sidebar {
     background-color: #1c1e54 !important;
-    border-right: 1px solid rgba(227, 232, 238, 0.05) !important;
+    border-right: none !important;
+    box-shadow: rgba(0, 55, 112, 0.16) 4px 0 24px 0 !important;
 }
 
 .theme-stripe .sidebar .logo-text h1 {
-    color: #ffffff !important;
+    color: rgba(255, 255, 255, 0.92) !important;
     font-weight: 300 !important;
     letter-spacing: -0.03em !important;
 }
@@ -366,18 +370,18 @@
 }
 
 .theme-stripe .nav-item:hover:not(.active) {
-    color: #ffffff !important;
+    color: rgba(255, 255, 255, 0.85) !important;
     background-color: rgba(255, 255, 255, 0.04) !important;
 }
 
 .theme-stripe .nav-item.active {
-    color: #ffffff !important;
-    background-color: rgba(83, 58, 253, 0.2) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    background-color: rgba(83, 58, 253, 0.16) !important;
     font-weight: 500 !important;
 }
 
 .theme-stripe .nav-item.active::before {
-    background: #533afd !important; /* Indigo indicator */
+    background: var(--accent) !important; /* Indigo indicator */
     width: 4px !important;
     height: 16px !important;
     border-radius: 0 4px 4px 0 !important;
@@ -404,7 +408,7 @@
 }
 
 .theme-stripe .user-name {
-    color: #ffffff !important;
+    color: rgba(255, 255, 255, 0.92) !important;
 }
 
 .theme-stripe .user-email {
@@ -412,7 +416,7 @@
 }
 
 .theme-stripe .user-avatar {
-    background: #533afd !important;
+    background: var(--accent) !important;
     color: #ffffff !important;
 }
 
@@ -422,6 +426,31 @@
 
 .theme-stripe .user-section {
     border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Stats card inside dark sidebar shell */
+.theme-stripe .stats-card {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.theme-stripe .stats-card:hover {
+    border-color: rgba(83, 58, 253, 0.4) !important;
+}
+
+.theme-stripe .stats-icon-wrapper {
+    background-color: rgba(83, 58, 253, 0.16) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.theme-stripe .stats-label,
+.theme-stripe .stats-subtitle,
+.theme-stripe .stats-unit {
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.theme-stripe .stats-value {
+    color: rgba(255, 255, 255, 0.92) !important;
 }
 
 

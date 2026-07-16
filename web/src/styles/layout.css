@@ -79,11 +79,11 @@
     height: 8px;
     background: radial-gradient(ellipse, rgba(99, 102, 241, 0.6) 0%, transparent 70%);
     filter: blur(4px);
-    animation: logoGlowDark 2s ease-in-out infinite alternate;
+    animation: logoGlow 2s ease-in-out infinite alternate;
     z-index: -1;
 }
 
-@keyframes logoGlowDark {
+@keyframes logoGlow {
     0% {
         opacity: 0.4;
         width: 20px;
@@ -93,12 +93,6 @@
         opacity: 0.8;
         width: 28px;
     }
-}
-
-.logo-icon-new span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .logo-text h1 {
@@ -257,6 +251,11 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-8);
+    /* header 自身带 animate-fade-in-up(transform,fill-mode:forwards 结束后仍留着 translateY(0)),
+       会建立独立层叠上下文;下方 tab 内容根节点同样有该动画类,DOM 序更靠后,z-index 打平后会盖过
+       header 里的下拉菜单。显式提升层叠层级,保证 header 内浮层始终盖在页面内容之上。 */
+    position: relative;
+    z-index: 1;
 }
 
 .page-title h2 {
@@ -275,74 +274,6 @@
     display: flex;
     align-items: center;
     gap: var(--space-4);
-}
-
-/* ========== Theme Switcher ========== */
-.theme-switcher {
-    display: flex;
-    align-items: center;
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
-    padding: 3px;
-    position: relative;
-}
-
-.theme-slider {
-    position: absolute;
-    top: 3px;
-    width: 36px;
-    height: 32px;
-    background-color: var(--brand-primary);
-    border-radius: var(--radius-lg);
-    transition: all var(--transition-slow);
-    z-index: 1;
-}
-
-.theme-slider.light {
-    left: 3px;
-}
-
-.theme-slider.dark {
-    left: calc(3px + 36px);
-}
-
-.theme-slider.system {
-    left: calc(3px + 72px);
-}
-
-.theme-slider.stripe {
-    left: calc(3px + 108px);
-}
-
-.theme-btn {
-    position: relative;
-    z-index: 2;
-    width: 36px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: color var(--transition-base);
-}
-
-.theme-btn.active {
-    color: white;
-}
-
-.theme-btn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.theme-btn span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 /* ========== Grid Layouts ========== */

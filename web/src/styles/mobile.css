@@ -78,34 +78,6 @@
         width: 100%;
     }
 
-    /* Theme switcher compact */
-    .theme-switcher {
-        padding: 2px;
-    }
-
-    .theme-btn {
-        width: 32px;
-        height: 28px;
-    }
-
-    .theme-slider {
-        width: 32px;
-        height: 28px;
-        top: 2px;
-    }
-
-    .theme-slider.light {
-        left: 2px;
-    }
-
-    .theme-slider.dark {
-        left: calc(2px + 32px);
-    }
-
-    .theme-slider.system {
-        left: calc(2px + 64px);
-    }
-
     /* Cards */
     .card,
     .card-static {
