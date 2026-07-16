@@ -105,6 +105,16 @@ onUnmounted(() => {
   box-shadow: var(--shadow-lg);
 }
 
+/* 移动端 .header-actions 是 space-between 撑满整行,触发按钮被推到最左侧;
+   仍按 right:0 展开会让菜单大半截伸到视口外(左侧裁掉、看起来像被遮挡),
+   改成从左边缘向右展开,离屏概率更低。 */
+@media (max-width: 768px) {
+  .theme-menu {
+    right: auto;
+    left: 0;
+  }
+}
+
 .theme-menu-item {
   display: flex;
   align-items: center;
