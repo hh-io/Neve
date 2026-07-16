@@ -5,7 +5,7 @@ import { showToast } from './useToast'
 const budgets = ref<Record<string, number>>({})
 let loaded = false
 
-// 首屏加载:服务端不可达时回退 localStorage 备份
+// 首屏加载:服务端不可达或响应异常时回退 localStorage 备份
 async function loadBudgets(): Promise<void> {
   if (loaded) return
   loaded = true
@@ -13,9 +13,16 @@ async function loadBudgets(): Promise<void> {
     const res = await fetch('/api/budgets')
     if (res.ok) {
       budgets.value = await res.json()
+      return
     }
   } catch {
+    // 网络错误与非 2xx 同样走下方本地备份
+  }
+  try {
     budgets.value = JSON.parse(localStorage.getItem('neve-budgets') || '{}')
+  } catch {
+    // 本地备份损坏时置空,避免 loadBudgets 变成 rejected promise
+    budgets.value = {}
   }
 }
 

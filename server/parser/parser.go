@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -111,11 +112,17 @@ type Parser struct {
 	dataDir string
 	now     time.Time
 	seq     int
+	// activeFiles 记录当前 include 调用栈上的文件,用于检测循环 include。
+	// 不检测的话循环引用会无限递归:先耗尽 fd,再把交易重复计入几百次。
+	activeFiles map[string]bool
 }
+
+// errIncludeCycle 由 parseFile 返回,include 处捕获后记为 INCLUDE_CYCLE 软错误
+var errIncludeCycle = errors.New("循环 include")
 
 // NewParser creates a new parser
 func NewParser(dataDir string) *Parser {
-	return &Parser{dataDir: dataDir, now: time.Now()}
+	return &Parser{dataDir: dataDir, now: time.Now(), activeFiles: make(map[string]bool)}
 }
 
 // Parse parses all bean files starting from main.bean.
@@ -167,6 +174,14 @@ var (
 )
 
 func (p *Parser) parseFile(filePath string, ledger *Ledger) error {
+	// 所有路径都由 dataDir/include 处 Join 而来,Clean 后可作为循环检测的稳定键
+	cleanPath := filepath.Clean(filePath)
+	if p.activeFiles[cleanPath] {
+		return errIncludeCycle
+	}
+	p.activeFiles[cleanPath] = true
+	defer delete(p.activeFiles, cleanPath)
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -212,8 +227,13 @@ func (p *Parser) parseFile(filePath string, ledger *Ledger) error {
 					includePath = filepath.Join(filepath.Dir(filePath), includePath)
 				}
 				if err := p.parseFile(includePath, ledger); err != nil {
-					ledger.addIssue(sourceFile, lineNum, "error", "INCLUDE_MISSING",
-						fmt.Sprintf("无法读取 include 文件 %q: %v", matches[1], err))
+					if errors.Is(err, errIncludeCycle) {
+						ledger.addIssue(sourceFile, lineNum, "error", "INCLUDE_CYCLE",
+							fmt.Sprintf("检测到循环 include %q,已跳过", matches[1]))
+					} else {
+						ledger.addIssue(sourceFile, lineNum, "error", "INCLUDE_MISSING",
+							fmt.Sprintf("无法读取 include 文件 %q: %v", matches[1], err))
+					}
 				}
 
 			case optionRe.MatchString(line):

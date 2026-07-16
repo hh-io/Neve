@@ -23,6 +23,9 @@ type Server struct {
 	lastRefresh time.Time
 	// budgets.json 的读写不经过账本,单独用一把锁
 	budgetMu sync.Mutex
+	// refreshMu 串行化 /api/refresh:限流检查与 Refresh 之间存在 TOCTOU,
+	// 并发请求会同时通过检查并重复解析,靠这把锁 + 拿锁后二次检查兜住
+	refreshMu sync.Mutex
 }
 
 // NewServer creates a new API server
@@ -86,6 +89,29 @@ func (s *Server) handleRefresh(c *gin.Context) {
 		return
 	}
 
+	s.refreshMu.Lock()
+	defer s.refreshMu.Unlock()
+
+	respondOK := func() {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+		c.JSON(http.StatusOK, gin.H{
+			"message":     "data refreshed",
+			"summary":     s.analytics.Summary,
+			"issueCount":  len(s.analytics.ParseIssues),
+			"parseIssues": s.analytics.ParseIssues,
+		})
+	}
+
+	// 二次检查:排队等锁期间别人已刷新过,直接返回缓存结果
+	s.mu.RLock()
+	refreshedWhileWaiting := time.Since(s.lastRefresh) < 5*time.Second
+	s.mu.RUnlock()
+	if refreshedWhileWaiting {
+		respondOK()
+		return
+	}
+
 	// 解析中的脏数据是软失败(体现在 parseIssues),只有账本完全无法加载才算刷新失败
 	if err := s.Refresh(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -94,14 +120,7 @@ func (s *Server) handleRefresh(c *gin.Context) {
 		return
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	c.JSON(http.StatusOK, gin.H{
-		"message":     "data refreshed",
-		"summary":     s.analytics.Summary,
-		"issueCount":  len(s.analytics.ParseIssues),
-		"parseIssues": s.analytics.ParseIssues,
-	})
+	respondOK()
 }
 
 func (s *Server) handleGetBudgets(c *gin.Context) {

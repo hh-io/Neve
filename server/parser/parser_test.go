@@ -229,6 +229,34 @@ include "not-exist.bean"
 	}
 }
 
+func TestIncludeCycle(t *testing.T) {
+	ledger := parseFixture(t, map[string]string{
+		"main.bean": openHeader + `include "a.bean"` + "\n",
+		"a.bean": `include "b.bean"
+2026-07-10 * "星巴克" "拿铁"
+  Expenses:Food:Coffee    25.00 CNY
+  Assets:Cash:WeChat     -25.00 CNY
+`,
+		"b.bean": `include "a.bean"` + "\n",
+	})
+	if issueCodes(ledger)["INCLUDE_CYCLE"] != 1 {
+		t.Fatalf("期望 INCLUDE_CYCLE,得到: %+v", ledger.Issues)
+	}
+	// 循环被切断后其余内容照常解析,且不因重复展开而重复计入
+	if len(ledger.Transactions) != 1 {
+		t.Fatalf("期望 1 笔交易,得到 %d 笔", len(ledger.Transactions))
+	}
+}
+
+func TestIncludeSelfCycle(t *testing.T) {
+	ledger := parseFixture(t, map[string]string{
+		"main.bean": openHeader + `include "main.bean"` + "\n",
+	})
+	if issueCodes(ledger)["INCLUDE_CYCLE"] != 1 {
+		t.Fatalf("期望 INCLUDE_CYCLE,得到: %+v", ledger.Issues)
+	}
+}
+
 func TestIncludeParsesRelativeFile(t *testing.T) {
 	ledger := parseFixture(t, map[string]string{
 		"main.bean": openHeader + `include "2026.bean"` + "\n",
