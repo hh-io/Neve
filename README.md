@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/vue-3.5-4FC08D?style=flat-square&logo=vue.js" alt="Vue 3">
-  <img src="https://img.shields.io/badge/typescript-5.9-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/typescript-6.0-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/go-1.25+-00ADD8?style=flat-square&logo=go" alt="Go">
   <img src="https://img.shields.io/badge/vite-8.x-646CFF?style=flat-square&logo=vite" alt="Vite">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
