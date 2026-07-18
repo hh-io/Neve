@@ -125,9 +125,8 @@ install-tunnel:
 	@$(RENDER) $(DEPLOY_DIR)/cloudflared-config.yml.in > $(CLOUDFLARED_CONF)
 	@echo "✅ 已写入 $(CLOUDFLARED_CONF)"
 	@echo "   DNS 绑定: cloudflared tunnel route dns $(NEVE_TUNNEL_ID) $(NEVE_TUNNEL_HOSTNAME)"
-	@echo "   常驻运行 (macOS LaunchDaemon 只读 /etc/cloudflared,需先拷贝):"
-	@echo "     sudo mkdir -p /etc/cloudflared && sudo cp $(CLOUDFLARED_CONF) /etc/cloudflared/config.yml"
-	@echo "     sudo cloudflared service install && sudo launchctl start com.cloudflare.cloudflared"
+	@echo "   常驻运行: cloudflared service install  (不加 sudo → 用户级 LaunchAgent,"
+	@echo "   直接读本文件,与 Neve 的 LaunchAgent 同生命周期;需开机自动登录)"
 
 # 渲染并安装日志轮转配置 (需要 sudo)
 install-logrotate:
