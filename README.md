@@ -269,19 +269,18 @@ cloudflared tunnel create neve            # 得到 tunnel UUID,填入 deploy/loc
 make install-tunnel                       # 渲染 ~/.cloudflared/config.yml
 cloudflared tunnel route dns neve inbox.your-domain.com
 
-# 常驻运行:不加 sudo → 用户级 LaunchAgent,直接读 ~/.cloudflared/config.yml,
-# 与 Neve 的 LaunchAgent 同生命周期(登录后自启,需开机自动登录)
-cloudflared service install
+# 常驻运行:make install-tunnel 已同时渲染用户级 LaunchAgent
+# (deploy/com.neve.tunnel.plist.in,执行 cloudflared tunnel run,与 Neve 同生命周期)
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.neve.tunnel.plist
 
 # 日志
-tail -f ~/Library/Logs/com.cloudflare.cloudflared.out.log
+tail -f ~/Library/Logs/neve-tunnel.error.log
 ```
 
 > 隧道用本地托管模式(config.yml + credentials),**不要**用仪表盘 token 连接器——
-> 路径级 ingress 限制需要留在版本化的本地配置里。改模板后重跑 `make install-tunnel`,
-> 再 `launchctl kickstart -k gui/$(id -u)/com.cloudflare.cloudflared` 重启生效。
-> 加 sudo 安装则是系统级 LaunchDaemon(免登录但只读 /etc/cloudflared,需自行拷贝配置),
-> 仅当 Neve 本体也改为系统 Daemon 时才有意义。
+> 路径级 ingress 限制需要留在版本化的本地配置里。也不要用 `cloudflared service install`:
+> 它生成的 plist 缺 `tunnel run` 子命令,命名隧道会陷入退出重启循环。
+> 改模板后重跑 `make install-tunnel`,再 bootout + bootstrap 重载生效(命令见 make 输出)。
 
 > 没有托管在 Cloudflare 的域名时,可改用 Tailscale:iPhone 装客户端后快捷指令直连
 > `http://<mac-tailscale-ip>:9999/api/inbox`,服务端配置不变。
