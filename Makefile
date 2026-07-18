@@ -117,6 +117,7 @@ dev-server:
 # 渲染并安装 launchd 服务配置 (只写文件不启动;服务在运行需重载才生效)
 install-service:
 	@$(RENDER) $(DEPLOY_DIR)/com.neve.server.plist.in > $(LAUNCH_PLIST)
+	@chmod 600 $(LAUNCH_PLIST)
 	@echo "✅ 已写入 $(LAUNCH_PLIST)"
 	@echo "   启动: launchctl bootstrap gui/$$(id -u) $(LAUNCH_PLIST)"
 	@echo "   重载: launchctl bootout gui/$$(id -u)/com.neve.server && launchctl bootstrap gui/$$(id -u) $(LAUNCH_PLIST)"
