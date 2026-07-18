@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- cloudflared 用户级 LaunchAgent 模板:@占位符@ 由 `make install-tunnel` 渲染。
+     不用 cloudflared 自带的 service install:它生成的 plist 不带 `tunnel run` 子命令,
+     对 config.yml 里的命名隧道会直接 exit 1,陷入 launchd 重启循环。 -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.neve.tunnel</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@CLOUDFLARED_BIN@</string>
+        <string>tunnel</string>
+        <string>run</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- 崩溃后自动重启,正常退出不拉起(与 com.neve.server 约定一致) -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>@HOME@/Library/Logs/neve-tunnel.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>@HOME@/Library/Logs/neve-tunnel.error.log</string>
+</dict>
+</plist>
