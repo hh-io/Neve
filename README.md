@@ -268,8 +268,17 @@ brew install cloudflared && cloudflared tunnel login
 cloudflared tunnel create neve            # 得到 tunnel UUID,填入 deploy/local.env
 make install-tunnel                       # 渲染 ~/.cloudflared/config.yml
 cloudflared tunnel route dns neve inbox.your-domain.com
-sudo cloudflared service install          # 常驻运行
+
+# 常驻运行:macOS LaunchDaemon 只读 /etc/cloudflared,先拷贝渲染好的配置
+sudo mkdir -p /etc/cloudflared
+sudo cp ~/.cloudflared/config.yml /etc/cloudflared/config.yml
+sudo cloudflared service install
+sudo launchctl start com.cloudflare.cloudflared
 ```
+
+> 隧道用本地托管模式(config.yml + credentials),**不要**用仪表盘 token 连接器——
+> 路径级 ingress 限制需要留在版本化的本地配置里。改模板后重跑 `make install-tunnel`
+> 并重新拷贝到 /etc/cloudflared,再 `sudo launchctl stop/start com.cloudflare.cloudflared`。
 
 > 没有托管在 Cloudflare 的域名时,可改用 Tailscale:iPhone 装客户端后快捷指令直连
 > `http://<mac-tailscale-ip>:9999/api/inbox`,服务端配置不变。
