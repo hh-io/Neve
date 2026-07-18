@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"neve/ai"
 	"neve/parser"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +28,13 @@ type Server struct {
 	// refreshMu 串行化 /api/refresh:限流检查与 Refresh 之间存在 TOCTOU,
 	// 并发请求会同时通过检查并重复解析,靠这把锁 + 拿锁后二次检查兜住
 	refreshMu sync.Mutex
+
+	// 无感记账入口(见 inbox.go),EnableInbox 配置后 /api/inbox 才生效
+	aiClient     ai.Client
+	inboxToken   string
+	barkURL      string
+	inboxMu      sync.Mutex   // 串行化 inbox.bean 追加
+	inboxPending atomic.Int32 // 在途异步识别任务数
 }
 
 // NewServer creates a new API server
@@ -60,6 +69,7 @@ func (s *Server) SetupRoutes(r *gin.Engine) {
 		api.POST("/refresh", s.handleRefresh)
 		api.GET("/budgets", s.handleGetBudgets)
 		api.POST("/budgets", s.handleSaveBudgets)
+		api.POST("/inbox", s.handleInbox)
 	}
 }
 

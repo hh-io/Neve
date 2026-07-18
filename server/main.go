@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"neve/ai"
 	"neve/api"
 	"os"
 	"path/filepath"
@@ -47,6 +48,17 @@ func main() {
 	// Load initial data
 	if err := server.Refresh(); err != nil {
 		log.Printf("Warning: Failed to load initial data: %v", err)
+	}
+
+	// 无感记账入口:token 与 AI 配置齐备才启用,否则 /api/inbox 返回 404
+	if inboxToken := os.Getenv("NEVE_INBOX_TOKEN"); inboxToken != "" {
+		aiClient, err := ai.NewClientFromEnv()
+		if err != nil {
+			log.Printf("Warning: inbox 未启用: %v", err)
+		} else {
+			server.EnableInbox(aiClient, inboxToken, os.Getenv("NEVE_BARK_URL"))
+			log.Printf("Inbox endpoint enabled (provider=%s)", aiClient.Provider())
+		}
 	}
 
 	// Set up Gin

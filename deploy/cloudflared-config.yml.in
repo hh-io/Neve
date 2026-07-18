@@ -1,0 +1,10 @@
+# Cloudflare Tunnel 配置模板:@占位符@ 由 `make install-tunnel` 渲染,不要直接拷贝本文件。
+# ingress 只放行 /api/inbox 一条路径——analytics/budgets 等无鉴权端点绝不暴露公网。
+tunnel: @NEVE_TUNNEL_ID@
+credentials-file: @HOME@/.cloudflared/@NEVE_TUNNEL_ID@.json
+
+ingress:
+  - hostname: @NEVE_TUNNEL_HOSTNAME@
+    path: ^/api/inbox$
+    service: http://localhost:9999
+  - service: http_status:404

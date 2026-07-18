@@ -23,6 +23,17 @@
         <!-- 显式钉死时区,避免系统时区随旅行自动切换导致日期归属漂移 -->
         <key>TZ</key>
         <string>Asia/Singapore</string>
+        <!-- 无感记账入口:值来自 deploy/local.env(不入库),留空则 /api/inbox 关闭 -->
+        <key>NEVE_INBOX_TOKEN</key>
+        <string>@NEVE_INBOX_TOKEN@</string>
+        <key>NEVE_AI_PROVIDER</key>
+        <string>@NEVE_AI_PROVIDER@</string>
+        <key>NEVE_AI_API_KEY</key>
+        <string>@NEVE_AI_API_KEY@</string>
+        <key>NEVE_AI_MODEL</key>
+        <string>@NEVE_AI_MODEL@</string>
+        <key>NEVE_BARK_URL</key>
+        <string>@NEVE_BARK_URL@</string>
     </dict>
 
     <key>RunAtLoad</key>

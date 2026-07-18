@@ -20,7 +20,11 @@ cd web && pnpm run typecheck   # vue-tsc --noEmit
 ## 架构与数据流
 
 ```
-iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
+iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
+  → server/api/inbox.go 异步:server/ai 拼提示词(账户列表实时取自 main.bean)
+    → AI 视觉识别(claude/gemini,原生 HTTP)→ parser 预校验(失败回喂修正一次)
+    → 追加 iCloud 的 data/inbox.bean → Refresh → Bark 推送结果
+    (失败不落盘,留档 data/failed/<时间戳>/)
   → server/parser/parser.go 解析 main.bean(include 展开)+ 校验
   → server/parser/analytics.go 统计(Refresh 时算好缓存)
   → GET /api/analytics 一次性输出全部数据
@@ -29,6 +33,12 @@ iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
 ```
 
 - `data/` 是 iCloud 软链接,**不入库**(.gitignore);`data.example/` 是入库的演示数据。
+- 无感记账入口由环境变量启用:`NEVE_INBOX_TOKEN` + `NEVE_AI_PROVIDER`/`NEVE_AI_API_KEY`
+  (+`NEVE_AI_MODEL`、可选 `NEVE_BARK_URL`),缺任一则 `/api/inbox` 返回 404。
+  部署密钥统一放 gitignore 的 `deploy/local.env`(模板 `local.env.example`),由
+  `make install-service` / `make install-tunnel` 渲染注入;Tunnel ingress 只放行
+  `/api/inbox`,无鉴权端点不暴露公网。AI 调用走原生 HTTP,**不引入 SDK 依赖**
+  (维持后端唯一依赖 gin)。
 - 前端 **TypeScript**(`vue-tsc` 校验,契约类型见 `web/src/types/api.ts`),无 UI 库
   (图标用 `@lucide/vue`),无状态管理库(以 composable 模块级单例替代 Pinia:
   `useAnalytics`/`useTheme`/`useToast`/`useBudgets`),手写 CSS 变量设计系统
@@ -42,6 +52,10 @@ iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
 - **软失败**:脏数据(不平衡/未 open 账户/非法金额日期等)跳过该笔并记入
   `Ledger.Issues`(带文件:行号),随 `/api/analytics` 的 `parseIssues` 展示在
   `IssuesBanner`;仅 main.bean 无法打开才是硬错误。
+- **AI 输出必须过 parser 预校验才可落盘**:`server/api/inbox.go` 的 `validateCandidate`
+  在临时目录拼"真实 open 指令 + 候选交易"试解析,任何 issue 都拒绝写入并回喂 AI
+  修正一次;识别提示词的账户列表由 `server/ai.ExtractAccounts` 从 main.bean **原文**
+  提取(保留行尾中文注释,parser 结构化数据会丢注释),不要再手工维护账户清单。
 - **交易口径由后端唯一计算**:`classifyTransaction` 输出
   `kind`(expense/income/transfer/opening/mixed)、`category`、`displayAmount`、
   `transferAmount`、`feeAmount`。前端禁止从 postings 推断交易类型/金额
@@ -71,10 +85,14 @@ iOS 快捷指令 AI 识别账单 → 追加 iCloud 的 data/inbox.bean
 - `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)
 - `server/parser/amount.go` — 定点金额类型
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
+- `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
+- `server/ai/` — AI 视觉客户端(claude/gemini 原生 HTTP)+ 提示词模板(prompt.md,
+  `{{DATE}}`/`{{ACCOUNTS}}` 运行时注入)
 - `web/src/App.vue` — 布局壳、主题、Tab 分发(数据/主题为 composable 单例)
 - `web/src/types/api.ts` — `/api/analytics` 契约类型(逐字段对照后端 struct JSON tag)
 - `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发
 - `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,亮/暗双主题)
-- `shortcut/shortcut_to_call_ai_prompt.md` — iOS 快捷指令的 AI 识别提示词(记账入口)
+- `shortcut/` — iOS 快捷指令搭建说明(不入库);AI 提示词已迁入 `server/ai/prompt.md`,
+  快捷指令本身不再携带提示词,只上传图片到 `/api/inbox`

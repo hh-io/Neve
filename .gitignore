@@ -22,4 +22,7 @@ web/dist/
 
 shortcut/*
 
+# 部署密钥 (模板见 deploy/local.env.example)
+deploy/local.env
+
 project-alias.zsh

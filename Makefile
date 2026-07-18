@@ -17,8 +17,27 @@ GO_LDFLAGS := -s -w
 DEPLOY_DIR     := deploy
 LAUNCH_PLIST   := $(HOME)/Library/LaunchAgents/com.neve.server.plist
 NEWSYSLOG_CONF := /etc/newsyslog.d/neve.conf
-# 渲染模板占位符: @NEVE_ROOT@ / @HOME@ / @USER@
-RENDER := sed -e 's|@NEVE_ROOT@|$(CURDIR)|g' -e 's|@HOME@|$(HOME)|g' -e 's|@USER@|$(USER)|g'
+CLOUDFLARED_CONF := $(HOME)/.cloudflared/config.yml
+
+# 密钥/私有配置来自 deploy/local.env (不入库,见 deploy/local.env.example),缺省渲染为空
+-include $(DEPLOY_DIR)/local.env
+NEVE_INBOX_TOKEN     ?=
+NEVE_AI_PROVIDER     ?=
+NEVE_AI_API_KEY      ?=
+NEVE_AI_MODEL        ?=
+NEVE_BARK_URL        ?=
+NEVE_TUNNEL_ID       ?=
+NEVE_TUNNEL_HOSTNAME ?=
+
+# 渲染模板占位符: @NEVE_ROOT@ / @HOME@ / @USER@ + local.env 中的私有配置
+RENDER := sed -e 's|@NEVE_ROOT@|$(CURDIR)|g' -e 's|@HOME@|$(HOME)|g' -e 's|@USER@|$(USER)|g' \
+	-e 's|@NEVE_INBOX_TOKEN@|$(NEVE_INBOX_TOKEN)|g' \
+	-e 's|@NEVE_AI_PROVIDER@|$(NEVE_AI_PROVIDER)|g' \
+	-e 's|@NEVE_AI_API_KEY@|$(NEVE_AI_API_KEY)|g' \
+	-e 's|@NEVE_AI_MODEL@|$(NEVE_AI_MODEL)|g' \
+	-e 's|@NEVE_BARK_URL@|$(NEVE_BARK_URL)|g' \
+	-e 's|@NEVE_TUNNEL_ID@|$(NEVE_TUNNEL_ID)|g' \
+	-e 's|@NEVE_TUNNEL_HOSTNAME@|$(NEVE_TUNNEL_HOSTNAME)|g'
 
 # --- Makefile 配置 ---
 .DEFAULT_GOAL := all
@@ -26,7 +45,7 @@ SHELL := /bin/bash
 
 # .PHONY 声明这些目标不是文件，避免与同名文件冲突
 .PHONY: all deps build build-web build-server run dev dev-web dev-server test clean help \
-        install-service install-logrotate
+        install-service install-logrotate install-tunnel
 
 # ==============================================================================
 # 核心构建任务
@@ -99,6 +118,15 @@ install-service:
 	@echo "   启动: launchctl bootstrap gui/$$(id -u) $(LAUNCH_PLIST)"
 	@echo "   重载: launchctl bootout gui/$$(id -u)/com.neve.server && launchctl bootstrap gui/$$(id -u) $(LAUNCH_PLIST)"
 
+# 渲染并安装 Cloudflare Tunnel 配置 (仅暴露 /api/inbox;需先 cloudflared tunnel create 并在 local.env 填好 ID/域名)
+install-tunnel:
+	@test -n "$(NEVE_TUNNEL_ID)" || { echo "❌ 请在 $(DEPLOY_DIR)/local.env 设置 NEVE_TUNNEL_ID / NEVE_TUNNEL_HOSTNAME"; exit 1; }
+	@mkdir -p $(HOME)/.cloudflared
+	@$(RENDER) $(DEPLOY_DIR)/cloudflared-config.yml.in > $(CLOUDFLARED_CONF)
+	@echo "✅ 已写入 $(CLOUDFLARED_CONF)"
+	@echo "   DNS 绑定: cloudflared tunnel route dns $(NEVE_TUNNEL_ID) $(NEVE_TUNNEL_HOSTNAME)"
+	@echo "   常驻运行: sudo cloudflared service install"
+
 # 渲染并安装日志轮转配置 (需要 sudo)
 install-logrotate:
 	@$(RENDER) $(DEPLOY_DIR)/neve.newsyslog.conf.in | sudo tee $(NEWSYSLOG_CONF) > /dev/null
@@ -136,8 +164,9 @@ help:
 	@echo "    make dev-server  启动后端开发服务器"
 	@echo ""
 	@echo "  部署命令:"
-	@echo "    make install-service    渲染并安装 launchd 服务配置"
+	@echo "    make install-service    渲染并安装 launchd 服务配置 (含 deploy/local.env 密钥)"
 	@echo "    make install-logrotate  渲染并安装日志轮转配置 (需 sudo)"
+	@echo "    make install-tunnel     渲染并安装 Cloudflare Tunnel 配置 (仅暴露 /api/inbox)"
 	@echo ""
 	@echo "  辅助命令:"
 	@echo "    make test        运行后端单元测试"

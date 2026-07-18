@@ -77,6 +77,13 @@
 # .env.example
 NEVE_DATA_DIR=/path/to/your/beancount/data   # Beancount 数据目录 (默认: ./data)
 NEVE_PORT=8080                                # HTTP 服务端口 (默认: 8080)
+
+# 以下为无感记账入口 (可选,四者齐备才启用 /api/inbox,详见「📸 无感记账」)
+NEVE_INBOX_TOKEN=<随机串>                     # /api/inbox 的 Bearer 令牌
+NEVE_AI_PROVIDER=claude                       # claude | gemini
+NEVE_AI_API_KEY=<key>                         # 对应提供商的 API Key
+NEVE_AI_MODEL=                                # claude 留空默认 claude-opus-4-8;gemini 必填
+NEVE_BARK_URL=https://api.day.app/<key>       # Bark 推送地址 (可选,留空不推送)
 ```
 
 ### 📦 安装依赖
@@ -194,8 +201,33 @@ Neve/
 | `POST` | `/api/refresh` | 重新解析账本并重建缓存 (5 秒限流) |
 | `GET` | `/api/budgets` | 获取预算 |
 | `POST` | `/api/budgets` | 保存预算 (原子写 budgets.json) |
+| `POST` | `/api/inbox` | 无感记账:上传账单图片立即 202,AI 识别与入账异步完成 (Bearer 鉴权,未配置时 404) |
 
 > 仅支持 CNY 单币种;非 CNY、借贷不平衡、未 open 账户的交易会被跳过并在 `parseIssues` 中报错。
+
+---
+
+## 📸 无感记账 (AI 异步入账)
+
+iPhone 快捷指令只做一次图片上传 (约 1-2 秒),识别、校验、写账全部在服务端后台完成:
+
+```
+iPhone 快捷指令 ──POST /api/inbox (立即 202)──▶ Neve 服务端
+                                                 ├ 1. 从 main.bean 实时提取账户列表拼提示词 (无需手工同步)
+                                                 ├ 2. 调 AI 视觉识别 (Claude / Gemini)
+                                                 ├ 3. parser 预校验;失败回喂 AI 修正一次
+                                                 ├ 4. 追加 data/inbox.bean 并刷新缓存
+                                                 └ 5. Bark 推送结果 (失败告警含 AI 原文,留档 data/failed/)
+```
+
+请求格式 (快捷指令用「获取 URL 内容」发 POST,附 `Authorization: Bearer $NEVE_INBOX_TOKEN` 头):
+
+```json
+{ "image": "<base64>", "mime": "image/jpeg", "text": "可选补充说明" }
+```
+
+- `image` 必填 (无 `data:` 前缀);`mime` 支持 jpeg/png/webp/gif,默认 jpeg
+- 识别失败不污染账本:原始输出与图片留档 `data/failed/<时间戳>/`,并推送告警便于手工补记
 
 ---
 
@@ -204,7 +236,8 @@ Neve/
 ### macOS 后台服务 (launchd)
 
 服务与日志轮转配置以模板形式放在 `deploy/`(占位符 `@NEVE_ROOT@`/`@HOME@`/`@USER@`),
-由 make 按本机路径渲染后安装,仓库中不含硬编码路径:
+由 make 按本机路径渲染后安装,仓库中不含硬编码路径。无感记账相关的密钥统一放在
+`deploy/local.env`(从 `local.env.example` 拷贝,已 gitignore),渲染时一并注入:
 
 ```bash
 # 渲染并安装 launchd 配置到 ~/Library/LaunchAgents (只写文件,不启动)
@@ -225,15 +258,21 @@ tail -f ~/Library/Logs/neve.log
 > (plist 模板已在 EnvironmentVariables 中内置 `TZ=Asia/Singapore`,按需修改),
 > 避免系统时区自动切换导致归属漂移。
 
-### Cloudflare Tunnel (可选)
+### Cloudflare Tunnel (无感记账需要)
 
-```yaml
-# ~/.cloudflared/config.yml
-ingress:
-  - hostname: neve.your-domain.com
-    service: http://localhost:8080
-  - service: http_status:404
+让 iPhone 在任意网络下都能访问 `/api/inbox`。配置模板见 `deploy/cloudflared-config.yml.in`,
+**ingress 只放行 `/api/inbox` 一条路径**——analytics 等无鉴权端点绝不暴露公网:
+
+```bash
+brew install cloudflared && cloudflared tunnel login
+cloudflared tunnel create neve            # 得到 tunnel UUID,填入 deploy/local.env
+make install-tunnel                       # 渲染 ~/.cloudflared/config.yml
+cloudflared tunnel route dns neve inbox.your-domain.com
+sudo cloudflared service install          # 常驻运行
 ```
+
+> 没有托管在 Cloudflare 的域名时,可改用 Tailscale:iPhone 装客户端后快捷指令直连
+> `http://<mac-tailscale-ip>:9999/api/inbox`,服务端配置不变。
 
 ---
 
