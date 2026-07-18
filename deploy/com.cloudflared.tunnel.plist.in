@@ -5,8 +5,10 @@
      对 config.yml 里的命名隧道会直接 exit 1,陷入 launchd 重启循环。 -->
 <plist version="1.0">
 <dict>
+    <!-- Label 不用 com.neve.*:隧道是机器级设施(可服务多站点),且避免与
+         com.neve.server 在 svc 等按第二段取短名的工具里撞名 -->
     <key>Label</key>
-    <string>com.neve.tunnel</string>
+    <string>com.cloudflared.tunnel</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -32,9 +34,9 @@
     <string>Background</string>
 
     <key>StandardOutPath</key>
-    <string>@HOME@/Library/Logs/neve-tunnel.log</string>
+    <string>@HOME@/Library/Logs/cloudflared.log</string>
 
     <key>StandardErrorPath</key>
-    <string>@HOME@/Library/Logs/neve-tunnel.error.log</string>
+    <string>@HOME@/Library/Logs/cloudflared.error.log</string>
 </dict>
 </plist>

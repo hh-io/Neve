@@ -270,11 +270,11 @@ make install-tunnel                       # 渲染 ~/.cloudflared/config.yml
 cloudflared tunnel route dns neve inbox.your-domain.com
 
 # 常驻运行:make install-tunnel 已同时渲染用户级 LaunchAgent
-# (deploy/com.neve.tunnel.plist.in,执行 cloudflared tunnel run,与 Neve 同生命周期)
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.neve.tunnel.plist
+# (deploy/com.cloudflared.tunnel.plist.in,执行 cloudflared tunnel run,与 Neve 同生命周期)
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.cloudflared.tunnel.plist
 
 # 日志
-tail -f ~/Library/Logs/neve-tunnel.error.log
+tail -f ~/Library/Logs/cloudflared.error.log
 ```
 
 > 隧道用本地托管模式(config.yml + credentials),**不要**用仪表盘 token 连接器——

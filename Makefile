@@ -18,7 +18,7 @@ DEPLOY_DIR     := deploy
 LAUNCH_PLIST   := $(HOME)/Library/LaunchAgents/com.neve.server.plist
 NEWSYSLOG_CONF := /etc/newsyslog.d/neve.conf
 CLOUDFLARED_CONF := $(HOME)/.cloudflared/config.yml
-TUNNEL_PLIST     := $(HOME)/Library/LaunchAgents/com.neve.tunnel.plist
+TUNNEL_PLIST     := $(HOME)/Library/LaunchAgents/com.cloudflared.tunnel.plist
 CLOUDFLARED_BIN  ?= $(shell command -v cloudflared)
 
 # 密钥/私有配置来自 deploy/local.env (不入库,见 deploy/local.env.example),缺省渲染为空
@@ -127,11 +127,11 @@ install-tunnel:
 	@test -n "$(CLOUDFLARED_BIN)" || { echo "❌ 未找到 cloudflared,先 brew install cloudflared"; exit 1; }
 	@mkdir -p $(HOME)/.cloudflared
 	@$(RENDER) $(DEPLOY_DIR)/cloudflared-config.yml.in > $(CLOUDFLARED_CONF)
-	@$(RENDER) $(DEPLOY_DIR)/com.neve.tunnel.plist.in > $(TUNNEL_PLIST)
+	@$(RENDER) $(DEPLOY_DIR)/com.cloudflared.tunnel.plist.in > $(TUNNEL_PLIST)
 	@echo "✅ 已写入 $(CLOUDFLARED_CONF) 与 $(TUNNEL_PLIST)"
 	@echo "   DNS 绑定: cloudflared tunnel route dns $(NEVE_TUNNEL_ID) $(NEVE_TUNNEL_HOSTNAME)"
 	@echo "   启动: launchctl bootstrap gui/$$(id -u) $(TUNNEL_PLIST)"
-	@echo "   重载: launchctl bootout gui/$$(id -u)/com.neve.tunnel && launchctl bootstrap gui/$$(id -u) $(TUNNEL_PLIST)"
+	@echo "   重载: launchctl bootout gui/$$(id -u)/com.cloudflared.tunnel && launchctl bootstrap gui/$$(id -u) $(TUNNEL_PLIST)"
 
 # 渲染并安装日志轮转配置 (需要 sudo)
 install-logrotate:
