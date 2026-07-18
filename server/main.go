@@ -94,6 +94,13 @@ func main() {
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
 
+		// 未注册的 /api/* 一律 JSON 404,不走 SPA 兜底:
+		// 避免经隧道访问 API 路径时把前端页面壳回给公网
+		if strings.HasPrefix(path, "/api/") {
+			c.JSON(http.StatusNotFound, gin.H{"error": api.ErrNotFound})
+			return
+		}
+
 		// Serve index.html for root
 		if path == "/" {
 			c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
