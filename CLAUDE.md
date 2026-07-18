@@ -53,7 +53,9 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `Ledger.Issues`(带文件:行号),随 `/api/analytics` 的 `parseIssues` 展示在
   `IssuesBanner`;仅 main.bean 无法打开才是硬错误。
 - **AI 输出必须过 parser 预校验才可落盘**:`server/api/inbox.go` 的 `validateCandidate`
-  在临时目录拼"真实 open 指令 + 候选交易"试解析,任何 issue 都拒绝写入并回喂 AI
+  先经 `checkTransactionOnly` 拒绝任何非交易顶层行(open/include/option/散文——parser
+  会静默忽略或如实执行它们,AI 补一行 open 即可绕过账户白名单),再在临时目录拼
+  "真实 open 指令 + 候选交易"试解析,任何 issue 都拒绝写入并回喂 AI
   修正一次;识别提示词的账户列表由 `server/ai.ExtractAccounts` 从 main.bean **原文**
   提取(保留行尾中文注释,parser 结构化数据会丢注释),不要再手工维护账户清单。
 - **交易口径由后端唯一计算**:`classifyTransaction` 输出

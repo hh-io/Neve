@@ -6,12 +6,14 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -67,7 +69,12 @@ func (s *Server) handleInbox(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxInboxBodyBytes)
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": NewAPIError("INVALID_REQUEST", "请求体读取失败或超出大小限制")})
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": NewAPIError("PAYLOAD_TOO_LARGE", "请求体超出大小限制")})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": NewAPIError("INVALID_REQUEST", "请求体读取失败")})
 		return
 	}
 	var req inboxRequest
@@ -98,14 +105,21 @@ func (s *Server) handleInbox(c *gin.Context) {
 		return
 	}
 
-	if s.inboxPending.Load() >= maxPendingInboxJobs {
+	// 先占坑再检查,避免 Load/Add 之间并发请求同时通过限流
+	if s.inboxPending.Add(1) > maxPendingInboxJobs {
+		s.inboxPending.Add(-1)
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": ErrRateLimited})
 		return
 	}
-	s.inboxPending.Add(1)
 	// 立即 202 返回,识别在后台完成——快捷指令前台只需等这一次上传
 	go func() {
 		defer s.inboxPending.Add(-1)
+		// 自建 goroutine 不在 gin Recovery 保护内,panic 会打崩整个进程,兜住转失败留档
+		defer func() {
+			if r := recover(); r != nil {
+				s.inboxFailed(req, "", fmt.Sprintf("内部错误 (panic): %v", r))
+			}
+		}()
 		s.processInbox(req)
 	}()
 
@@ -166,9 +180,35 @@ func (s *Server) processInbox(req inboxRequest) {
 	s.notify("Neve 记账成功", truncateRunes(txn, 300))
 }
 
+// txnHeaderRe 与 parser 的 txWithPayeeRe/txNoPayeeRe 头部对齐:日期 + 标记 + 引号串
+var txnHeaderRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}\s+[*!]\s+"`)
+
+// checkTransactionOnly 拒绝候选文本中交易以外的顶层内容。parser 对无法识别的顶层行
+// 是静默忽略的,且 open 等指令本身合法——若不拦截,AI 为通过校验自行补一行 open
+// 就能在真实账本里凭空创建账户,前置废话也会原样落盘。
+func checkTransactionOnly(candidate string) error {
+	for _, line := range strings.Split(candidate, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, ";") {
+			continue
+		}
+		// 缩进行是 posting,合法性交给 parser 试解析把关
+		if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+			continue
+		}
+		if !txnHeaderRe.MatchString(line) {
+			return fmt.Errorf("输出只能包含交易记录,发现非交易内容: %q", trimmed)
+		}
+	}
+	return nil
+}
+
 // validateCandidate 复用 parser 做落盘前的质量闸门:在临时目录拼一个最小账本
 // (真实账户 open 指令 + 候选交易)试解析,任何 issue 都视为失败,坏数据进不了 iCloud。
 func validateCandidate(accountLines, candidate string) error {
+	if err := checkTransactionOnly(candidate); err != nil {
+		return err
+	}
 	tmp, err := os.MkdirTemp("", "neve-inbox-*")
 	if err != nil {
 		return fmt.Errorf("创建临时目录失败: %w", err)

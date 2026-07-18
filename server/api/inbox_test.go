@@ -219,6 +219,86 @@ func TestInboxUnrecognized(t *testing.T) {
 	}
 }
 
+func TestInboxRetryStillFails(t *testing.T) {
+	bad := `2026-07-01 * "赛百味" "套餐" #eleme
+  Expenses:NotExist           35.50 CNY
+  Assets:Cash:WeChat         -35.50 CNY`
+	fake := &fakeAI{outs: []string{bad, bad}}
+	_, r, dataDir := newInboxTestServer(t, fake)
+
+	postInbox(r, testToken, validInboxBody())
+
+	waitFor(t, "失败留档目录生成", func() bool {
+		entries, err := os.ReadDir(filepath.Join(dataDir, "failed"))
+		return err == nil && len(entries) == 1
+	})
+	if got := readInbox(t, dataDir); strings.TrimSpace(got) != "" {
+		t.Errorf("重试仍失败不应写入 inbox.bean,实际内容: %q", got)
+	}
+	if fake.callCount() != 2 {
+		t.Errorf("应恰好调用 AI 2 次(首次 + 回喂重试),实际 %d 次", fake.callCount())
+	}
+}
+
+func TestInboxRateLimited(t *testing.T) {
+	s, r, _ := newInboxTestServer(t, &fakeAI{outs: []string{"ERROR"}})
+	s.inboxPending.Store(maxPendingInboxJobs)
+	defer s.inboxPending.Store(0)
+
+	if w := postInbox(r, testToken, validInboxBody()); w.Code != http.StatusTooManyRequests {
+		t.Errorf("在途任务满时应 429,得到 %d", w.Code)
+	}
+	if got := s.inboxPending.Load(); got != maxPendingInboxJobs {
+		t.Errorf("被拒请求应回滚占坑,期望 %d,实际 %d", maxPendingInboxJobs, got)
+	}
+}
+
+func TestInboxBodyTooLarge(t *testing.T) {
+	_, r, _ := newInboxTestServer(t, &fakeAI{outs: []string{"ERROR"}})
+
+	body := append([]byte(`{"image":"`), bytes.Repeat([]byte("A"), maxInboxBodyBytes)...)
+	body = append(body, []byte(`"}`)...)
+	req := httptest.NewRequest(http.MethodPost, "/api/inbox", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testToken)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("超大请求体应 413,得到 %d", w.Code)
+	}
+}
+
+func TestCheckTransactionOnly(t *testing.T) {
+	txn := `2026-07-01 * "赛百味" "套餐" #eleme
+  Expenses:Food:Delivery      35.50 CNY
+  Assets:Cash:WeChat         -35.50 CNY`
+
+	valid := []string{
+		txn,
+		"; 注释\n" + txn,
+		txn + "\n\n" + txn,
+	}
+	for _, in := range valid {
+		if err := checkTransactionOnly(in); err != nil {
+			t.Errorf("合法候选被拒绝: %v\n输入:\n%s", err, in)
+		}
+	}
+
+	// parser 静默忽略无法识别的顶层行,open 指令则会凭空创建账户,都必须在这里拦下
+	invalid := []string{
+		"2020-01-01 open Expenses:Fake CNY\n" + txn,
+		"include \"main.bean\"\n" + txn,
+		"option \"title\" \"x\"\n" + txn,
+		"好的,以下是交易记录:\n" + txn,
+		txn + "\n2026-07-01 balance Assets:Cash:WeChat 0.00 CNY",
+	}
+	for _, in := range invalid {
+		if err := checkTransactionOnly(in); err == nil {
+			t.Errorf("非交易内容未被拒绝:\n%s", in)
+		}
+	}
+}
+
 func TestCleanAIOutput(t *testing.T) {
 	cases := map[string]string{
 		"plain":                          "plain",
