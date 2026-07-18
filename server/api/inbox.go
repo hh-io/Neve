@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -61,9 +62,16 @@ func (s *Server) handleInbox(c *gin.Context) {
 		return
 	}
 
+	// 手动 ReadAll+Unmarshal 而非 ShouldBindJSON:gin 的绑定器会把
+	// validator/mimetype/protobuf 等整套依赖链进二进制(实测 +7MB)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxInboxBodyBytes)
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": NewAPIError("INVALID_REQUEST", "请求体读取失败或超出大小限制")})
+		return
+	}
 	var req inboxRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": ErrInvalidRequest})
 		return
 	}
