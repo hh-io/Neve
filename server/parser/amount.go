@@ -28,6 +28,17 @@ func (a Amount) MarshalJSON() ([]byte, error) {
 	return []byte(a.String()), nil
 }
 
+// UnmarshalJSON 解析"元"为单位的 JSON 数字(debts.json 等配置文件)。
+// 复用 parseAmount 精确转分,顺带拒绝超两位小数与科学计数法,不经 float64 引入误差。
+func (a *Amount) UnmarshalJSON(data []byte) error {
+	v, err := parseAmount(string(data))
+	if err != nil {
+		return err
+	}
+	*a = v
+	return nil
+}
+
 // Yuan 返回以元为单位的 float64,仅用于百分比/均值等比值计算,不参与金额累加。
 func (a Amount) Yuan() float64 {
 	return float64(a) / 100

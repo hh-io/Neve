@@ -1,0 +1,38 @@
+{
+  "revolving": {
+    "Liabilities:Alipay:Huabei": {
+      "name": "花呗",
+      "billingDay": 1,
+      "dueDay": 10
+    },
+    "Liabilities:CreditCard:CMBC": {
+      "name": "招行信用卡",
+      "billingDay": 9,
+      "dueDay": 20
+    },
+    "Liabilities:JD:BNPL": {
+      "name": "京东白条",
+      "billingDay": 25,
+      "dueDay": 9
+    },
+    "Liabilities:Meituan:MP": {
+      "name": "美团月付",
+      "billingDay": 1,
+      "dueDay": 8
+    }
+  },
+  "installments": [
+    {
+      "id": "jd-clo-2025",
+      "name": "京东金条",
+      "account": "Liabilities:JD:CLO",
+      "dueDay": 13,
+      "schedule": [
+        {
+          "effectiveFrom": "2025-11-01",
+          "amount": 2200.00
+        }
+      ]
+    }
+  ]
+}

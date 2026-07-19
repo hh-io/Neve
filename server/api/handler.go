@@ -18,13 +18,18 @@ import (
 // Server holds the API server state
 type Server struct {
 	dataDir string
-	// mu 保护 analytics/lastRefresh;analytics 在 Refresh 时一次算好,
+	// mu 保护 analytics/ledger/lastRefresh;analytics 在 Refresh 时一次算好,
 	// 各端点读同一份缓存,避免每请求重算导致的时间口径不一致
-	mu          sync.RWMutex
-	analytics   *parser.Analytics
+	mu        sync.RWMutex
+	analytics *parser.Analytics
+	// ledger 随 analytics 一起整体替换,供 /api/debts 只读现算;
+	// 拿到旧指针继续算也是一份一致快照,无需额外同步
+	ledger      *parser.Ledger
 	lastRefresh time.Time
 	// budgets.json 的读写不经过账本,单独用一把锁
 	budgetMu sync.Mutex
+	// debts.json 同理
+	debtMu sync.Mutex
 	// refreshMu 串行化 /api/refresh:限流检查与 Refresh 之间存在 TOCTOU,
 	// 并发请求会同时通过检查并重复解析,靠这把锁 + 拿锁后二次检查兜住
 	refreshMu sync.Mutex
@@ -55,6 +60,7 @@ func (s *Server) Refresh() error {
 
 	s.mu.Lock()
 	s.analytics = analytics
+	s.ledger = ledger
 	s.lastRefresh = time.Now()
 	s.mu.Unlock()
 
@@ -69,6 +75,8 @@ func (s *Server) SetupRoutes(r *gin.Engine) {
 		api.POST("/refresh", s.handleRefresh)
 		api.GET("/budgets", s.handleGetBudgets)
 		api.POST("/budgets", s.handleSaveBudgets)
+		api.GET("/debts", s.handleGetDebts)
+		api.POST("/debts", s.handleSaveDebts)
 		api.POST("/inbox", s.handleInbox)
 	}
 }
@@ -177,6 +185,108 @@ func (s *Server) handleSaveBudgets(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "saved"})
+}
+
+// loadDebtsConfig 读取 debts.json;文件不存在或 JSON 损坏时降级为空配置(与 budgets 同策略),
+// 不阻塞页面展示。
+func (s *Server) loadDebtsConfig() *parser.DebtsConfig {
+	empty := func() *parser.DebtsConfig {
+		return &parser.DebtsConfig{
+			Revolving:    map[string]parser.RevolvingConfig{},
+			Installments: []parser.InstallmentConfig{},
+		}
+	}
+
+	s.debtMu.Lock()
+	defer s.debtMu.Unlock()
+
+	data, err := os.ReadFile(filepath.Join(s.dataDir, "debts.json"))
+	if err != nil {
+		return empty()
+	}
+	cfg := empty()
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return empty() // 解析失败时 cfg 可能被写了一半,丢弃重建
+	}
+	if cfg.Revolving == nil {
+		cfg.Revolving = map[string]parser.RevolvingConfig{}
+	}
+	if cfg.Installments == nil {
+		cfg.Installments = []parser.InstallmentConfig{}
+	}
+	return cfg
+}
+
+func (s *Server) handleGetDebts(c *gin.Context) {
+	s.mu.RLock()
+	ledger := s.ledger
+	s.mu.RUnlock()
+	if ledger == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
+		return
+	}
+
+	cfg := s.loadDebtsConfig()
+	// 每次现算:O(交易数) 一次遍历,倒计时永远新鲜,配置变更也无需 /api/refresh
+	c.JSON(http.StatusOK, gin.H{
+		"config": cfg,
+		"report": parser.ComputeDebts(ledger, cfg, time.Now()),
+	})
+}
+
+func (s *Server) handleSaveDebts(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		return
+	}
+
+	var cfg parser.DebtsConfig
+	if err := json.Unmarshal(body, &cfg); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": NewAPIError("INVALID_DEBTS_CONFIG", "JSON 解析失败: "+err.Error()),
+		})
+		return
+	}
+	if cfg.Revolving == nil {
+		cfg.Revolving = map[string]parser.RevolvingConfig{}
+	}
+	if cfg.Installments == nil {
+		cfg.Installments = []parser.InstallmentConfig{}
+	}
+	if errs := cfg.Validate(); len(errs) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   NewAPIError("INVALID_DEBTS_CONFIG", "配置校验未通过"),
+			"details": errs,
+		})
+		return
+	}
+
+	// 落盘规范化后的结构而非原始 body:schedule 排好序,字段顺序稳定
+	cfg.Normalize()
+	data, err := json.MarshalIndent(&cfg, "", "  ")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encode"})
+		return
+	}
+
+	s.debtMu.Lock()
+	err = atomicWriteFile(filepath.Join(s.dataDir, "debts.json"), data)
+	s.debtMu.Unlock()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
+		return
+	}
+
+	// 保存后立刻重算,前端一次往返拿到新结果;账本尚未加载时 report 为 null
+	s.mu.RLock()
+	ledger := s.ledger
+	s.mu.RUnlock()
+	resp := gin.H{"config": &cfg, "report": nil}
+	if ledger != nil {
+		resp["report"] = parser.ComputeDebts(ledger, &cfg, time.Now())
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // atomicWriteFile 先写同目录临时文件再 rename,避免写入中断损坏 budgets.json
