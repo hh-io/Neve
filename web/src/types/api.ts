@@ -158,6 +158,82 @@ export interface IncomeSource {
   count: number
 }
 
+// --- debts.go ---
+
+export interface RevolvingConfig {
+  name: string
+  billingDay: number
+  dueDay: number
+}
+
+export interface InstallmentPhase {
+  effectiveFrom: string // "2026-01-01"
+  amount: Yuan
+}
+
+export interface InstallmentConfig {
+  id: string
+  name: string
+  account: string
+  dueDay: number
+  schedule: InstallmentPhase[]
+}
+
+export interface DebtsConfig {
+  revolving: Record<string, RevolvingConfig>
+  installments: InstallmentConfig[]
+}
+
+export interface DebtsSummary {
+  monthDue: Yuan
+  monthRemaining: Yuan
+  nextDueDate: string // 空串表示本期已全部结清
+  nextDueName: string
+  nextDueInDays: number // 负数 = 已逾期天数
+  overdueCount: number
+}
+
+export interface RevolvingStatus {
+  account: string
+  name: string
+  accountMissing: boolean
+  statementDate: string
+  dueDate: string
+  statementDue: Yuan
+  paidSince: Yuan
+  remaining: Yuan
+  currentBalance: Yuan
+  daysUntilDue: number
+  overdue: boolean
+}
+
+export interface InstallmentStatus {
+  id: string
+  name: string
+  account: string
+  accountMissing: boolean
+  monthlyAmount: Yuan // 0 表示本期尚无生效月供
+  dueDate: string
+  paid: boolean
+  paidAmount: Yuan
+  daysUntilDue: number
+  overdue: boolean
+  currentBalance: Yuan
+}
+
+export interface DebtsReport {
+  summary: DebtsSummary
+  revolving: RevolvingStatus[]
+  installments: InstallmentStatus[]
+  unconfigured: LiabilityStats[]
+}
+
+/** GET/POST /api/debts 的响应;账本尚未加载时 report 为 null。 */
+export interface DebtsResponse {
+  config: DebtsConfig
+  report: DebtsReport | null
+}
+
 export interface Analytics {
   summary: Summary
   parseIssues: ParseIssue[]

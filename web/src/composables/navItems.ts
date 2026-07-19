@@ -1,5 +1,5 @@
 import type { FunctionalComponent } from 'vue'
-import { LayoutGrid, ArrowUpDown, TrendingUp, Wallet, ArrowRightLeft } from '@lucide/vue'
+import { LayoutGrid, ArrowUpDown, TrendingUp, Wallet, HandCoins, ArrowRightLeft } from '@lucide/vue'
 
 export interface NavItem {
   id: string
@@ -13,5 +13,6 @@ export const navItems: NavItem[] = [
   { id: 'spending', label: '收支', icon: ArrowUpDown },
   { id: 'trends', label: '趋势', icon: TrendingUp },
   { id: 'accounts', label: '账户', icon: Wallet },
+  { id: 'debts', label: '待还', icon: HandCoins },
   { id: 'transactions', label: '交易', icon: ArrowRightLeft },
 ]

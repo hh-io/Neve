@@ -35,6 +35,7 @@ Neve 是一个轻量级的个人/家庭财务可视化系统，围绕 [Beancount
 - **定点金额运算** — 金额以「分」为单位的 int64 运算，无浮点误差
 - **AI 无感记账** — 上传账单图片立即返回，识别 / 预校验 / 入账 / 推送全部异步完成；AI 输出必须通过解析器预校验才允许落盘
 - **交易口径后端唯一计算** — 支出 / 收入 / 转账 / 手续费 / 退款冲减由后端统一分类，前端只做展示
+- **负债待还看板** — 信用卡 / 白条等按账单日余额快照自动汇总本期应还，房贷等固定分期按生效日期配置月供，全局倒计时与逾期提醒
 - **精心调校的亮暗双主题** — 手写 CSS 变量设计 token 体系，无 UI 库依赖
 - **单文件部署** — `make build` 产出一个二进制，无数据库、后端唯一依赖 Gin
 
@@ -115,7 +116,7 @@ Neve/
 └── web/                 # Vue 3 + TypeScript 前端
     └── src/
         ├── components/  #   Tab 页面、图表、布局组件
-        ├── composables/ #   模块级单例 (analytics/theme/toast/budgets)
+        ├── composables/ #   模块级单例 (analytics/theme/toast/budgets/debts)
         └── styles/      #   CSS 变量设计 token (亮/暗双主题)
 ```
 
@@ -127,6 +128,8 @@ Neve/
 | `POST` | `/api/refresh` | 重新解析账本并重建缓存（5 秒限流） |
 | `GET` | `/api/budgets` | 获取预算 |
 | `POST` | `/api/budgets` | 保存预算（原子写 `budgets.json`） |
+| `GET` | `/api/debts` | 负债待还配置 + 实时计算的还款报告（账期快照/剩余待还/倒计时） |
+| `POST` | `/api/debts` | 保存待还配置（校验后原子写 `debts.json`，响应附重算报告） |
 | `POST` | `/api/inbox` | 无感记账：上传账单图片立即 202，识别与入账异步完成（Bearer 鉴权，未配置时 404） |
 
 > 仅支持 CNY 单币种；非 CNY、借贷不平衡、未 open 账户的交易会被跳过并记入 `parseIssues`。

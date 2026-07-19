@@ -41,7 +41,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   (维持后端唯一依赖 gin)。
 - 前端 **TypeScript**(`vue-tsc` 校验,契约类型见 `web/src/types/api.ts`),无 UI 库
   (图标用 `@lucide/vue`),无状态管理库(以 composable 模块级单例替代 Pinia:
-  `useAnalytics`/`useTheme`/`useToast`/`useBudgets`),手写 CSS 变量设计系统
+  `useAnalytics`/`useTheme`/`useToast`/`useBudgets`/`useDebts`),手写 CSS 变量设计系统
   (`web/src/styles/variables.css`,亮/暗双主题;token 体系见该文件头部注释)。
 
 ## 正确性约定(改代码前必读)
@@ -65,6 +65,11 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   统计按 posting 级聚合:转账本金不计支出,手续费计入;退款(负 Expenses)按净额冲减。
 - **balance 断言**会真正核对(断言日期当天开始前的余额,官方 beancount 语义),
   失败报 `BALANCE_FAILED`。
+- **负债待还口径**(`server/parser/debts.go` 的 `ComputeDebts`,配置存 `data/debts.json`):
+  额度类"本期应还"= 账单日当天结束时的欠款余额快照;冲减按账单日后转入该账户的
+  **正向 posting**(不限交易 kind,退款/返现也应冲减);分期类"已还"只认 `kind=transfer`。
+  账单日/还款日超出当月天数时**顺延至月末**(`clampedDate`,严禁裸 `time.Date` 进位)。
+  GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。
 - **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
   (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。
@@ -86,6 +91,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/parser.go` — 解析器(正则)+ 校验 + ParseIssue 收集
 - `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)
 - `server/parser/amount.go` — 定点金额类型
+- `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/schedule 口径)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/ai/` — AI 视觉客户端(claude/gemini 原生 HTTP)+ 提示词模板(prompt.md,
@@ -93,6 +99,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `web/src/App.vue` — 布局壳、主题、Tab 分发(数据/主题为 composable 单例)
 - `web/src/types/api.ts` — `/api/analytics` 契约类型(逐字段对照后端 struct JSON tag)
 - `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)
+- `web/src/composables/useDebts.ts` — 待还配置/报告单例(GET/POST /api/debts)
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发
 - `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,亮/暗双主题)
