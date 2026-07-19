@@ -1,298 +1,206 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/vue-3.5-4FC08D?style=flat-square&logo=vue.js" alt="Vue 3">
-  <img src="https://img.shields.io/badge/typescript-6.0-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
-  <img src="https://img.shields.io/badge/go-1.25+-00ADD8?style=flat-square&logo=go" alt="Go">
-  <img src="https://img.shields.io/badge/vite-8.x-646CFF?style=flat-square&logo=vite" alt="Vite">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
-</p>
+<div align="center">
 
-<h1 align="center">❄️ Neve</h1>
+<img src="web/public/neve.svg" width="88" alt="Neve logo">
 
-<p align="center">
-  <strong>基于 Beancount 复式记账的现代个人财务管理系统</strong>
-</p>
+# Neve
 
-<p align="center">
-  一键启动 • 数据即文件
-</p>
+**基于 Beancount 纯文本复式记账的个人财务可视化系统**
+
+数据即文件 · 单文件部署 · AI 无感记账
+
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Built with Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+
+</div>
 
 ---
 
-## ✨ 项目概述
+## 简介
 
-**Neve** 是一个轻量级的个人/家庭财务可视化系统，围绕 [Beancount](https://beancount.github.io/) 纯文本账本格式构建。
+Neve 是一个轻量级的个人/家庭财务可视化系统，围绕 [Beancount](https://beancount.github.io/) 纯文本账本格式构建：Go 后端解析 `.bean` 账本并输出统计，Vue 3 前端展示，前端构建产物 embed 进 Go，最终产出一个单文件二进制 `./neve`。
 
-### 🎯 解决的问题
+它解决三件事：
 
-- 📱 **iOS 快捷指令无缝记账** → 写入 iCloud Drive 的 `.bean` 文件
-- 📊 **优雅的数据可视化** → Apple 风格 Dashboard，随时掌握财务状况
-- 🔒 **数据所有权** → 纯文本格式，永远不会被平台锁定
+- **移动端无感记账** — iPhone 快捷指令拍照上传账单，AI 视觉识别后自动写入 iCloud 中的账本文件；
+- **优雅的数据可视化** — Apple 风格 Dashboard，收支趋势、分类占比、商户排行一目了然；
+- **数据所有权** — 账本是纯文本，永远不被任何平台锁定。
 
-### 💎 核心亮点
+> 本项目由作者与 [Claude Code](https://claude.com/claude-code) 结对开发完成——从架构设计、解析器实现、前端组件到部署脚本，均为人机协作的产物。详见[「与 Claude Code 共同开发」](#与-claude-code-共同开发)。
 
-| 特性 | 描述 |
+## 特性
+
+- **记账正确性校验** — 借贷平衡、账户定义、`balance` 断言真实对账；脏数据显式报错并跳过，不污染统计
+- **定点金额运算** — 金额以「分」为单位的 int64 运算，无浮点误差
+- **AI 无感记账** — 上传账单图片立即返回，识别 / 预校验 / 入账 / 推送全部异步完成；AI 输出必须通过解析器预校验才允许落盘
+- **交易口径后端唯一计算** — 支出 / 收入 / 转账 / 手续费 / 退款冲减由后端统一分类，前端只做展示
+- **精心调校的亮暗双主题** — 手写 CSS 变量设计 token 体系，无 UI 库依赖
+- **单文件部署** — `make build` 产出一个二进制，无数据库、后端唯一依赖 Gin
+
+## 截图
+
+<!-- TODO: 补充截图（建议：Dashboard 亮/暗主题、支出分析、趋势图表） -->
+
+## 快速开始
+
+### 环境要求
+
+| 工具 | 版本 |
 |------|------|
-| 🎨 **Apple 设计语言** | 精心调校的亮/暗双主题 |
-| 📈 **丰富的图表分析** | 收支趋势、分类占比、周消费分布、商户排行 |
-| ✅ **记账正确性校验** | 借贷平衡、账户定义、balance 断言对账,脏数据显式报错不进统计 |
-| 💰 **定点金额运算** | 金额以"分"为单位整数运算,无浮点误差 |
-| 🚀 **单文件部署** | 前端嵌入二进制，一个 `./neve` 即刻运行 |
-| ☁️ **iCloud 原生集成** | 与 iOS 快捷指令配合，实现移动端无应用记账 |
+| [Go](https://go.dev/dl/) | >= 1.25 |
+| [Node.js](https://nodejs.org/) | >= 18 |
+| [pnpm](https://pnpm.io/) | >= 8 |
 
----
-
-## 🛠️ 技术栈概览
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                       Frontend                          │
-│  Vue 3 + TS  •  Vite 8  •  ECharts  •  @lucide/vue      │
-│  设计 token(CSS 变量,双主题)• composable 单例(无 Pinia)│
-├─────────────────────────────────────────────────────────┤
-│                       Backend                           │
-│   Go  •  Gin  •  embed (静态文件嵌入)                   │
-├─────────────────────────────────────────────────────────┤
-│                        Data                             │
-│   Beancount (.bean 纯文本复式记账格式)                  │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🚀 快速开始
-
-### 📋 前置环境 (Prerequisites)
-
-| 工具 | 版本要求 | 安装指南 |
-|------|----------|----------|
-| **Go** | >= 1.25 | [golang.org/dl](https://golang.org/dl/) |
-| **Node.js** | >= 18 | [nodejs.org](https://nodejs.org/) |
-| **pnpm** | >= 8 | `npm install -g pnpm` |
-
-### ⚙️ 环境变量配置
-
-创建 `.env` 文件或直接 export 环境变量：
+### 安装与运行
 
 ```bash
-# .env.example
-NEVE_DATA_DIR=/path/to/your/beancount/data   # Beancount 数据目录 (默认: ./data)
-NEVE_PORT=8080                                # HTTP 服务端口 (默认: 8080)
+git clone https://github.com/hh-io/Neve.git
+cd Neve
 
-# 以下为无感记账入口 (可选,四者齐备才启用 /api/inbox,详见「📸 无感记账」)
-NEVE_INBOX_TOKEN=<随机串>                     # /api/inbox 的 Bearer 令牌
-NEVE_AI_PROVIDER=claude                       # claude | gemini
-NEVE_AI_API_KEY=<key>                         # 对应提供商的 API Key
-NEVE_AI_MODEL=                                # claude 留空默认 claude-opus-4-8;gemini 必填
-NEVE_BARK_URL=https://api.day.app/<key>       # Bark 推送地址 (可选,留空不推送)
+make deps      # 安装前后端依赖
+make build     # 前端(lint+typecheck) → 测试 → 后端,产出 ./neve
+./neve         # 访问 http://localhost:8080
 ```
 
-### 📦 安装依赖
+首次运行没有账本时，可将 `NEVE_DATA_DIR` 指向仓库自带的演示数据 `data.example/`。
+
+### 开发模式
 
 ```bash
-# 克隆仓库
-git clone https://github.com/your-username/neve.git
-cd neve
-
-# 安装所有依赖（前端 + 后端）
-make deps
+make dev-server   # 终端 1:后端 (localhost:8080)
+make dev          # 终端 2:前端热重载 (localhost:5173,/api 代理到 8080)
+make test         # 后端单元测试 (go test -race)
 ```
 
-### ▶️ 开发模式
+## 配置
+
+全部通过环境变量配置：
 
 ```bash
-# 终端 1：启动后端服务
-make dev-server
+NEVE_DATA_DIR=/path/to/beancount/data   # Beancount 数据目录 (默认 ./data)
+NEVE_PORT=8080                          # HTTP 服务端口 (默认 8080)
 
-# 终端 2：启动前端热重载 (http://localhost:5173)
-make dev
+# 以下为无感记账入口,四者齐备才启用 /api/inbox,详见「无感记账」
+NEVE_INBOX_TOKEN=<随机串>               # /api/inbox 的 Bearer 令牌
+NEVE_AI_PROVIDER=claude                 # claude | gemini
+NEVE_AI_API_KEY=<key>                   # 对应提供商的 API Key
+NEVE_AI_MODEL=                          # claude 留空默认 claude-opus-4-8;gemini 必填
+NEVE_BARK_URL=https://api.day.app/<key> # Bark 推送地址 (可选)
 ```
 
-### 🧪 测试
+部署时密钥统一放 gitignore 的 `deploy/local.env`（模板见 `deploy/local.env.example`）。
 
-```bash
-# 后端单元测试（解析器 + 统计逻辑，make build 会自动执行）
-make test
+## 架构
+
 ```
+iOS 快捷指令上传账单图片 ── POST /api/inbox (Bearer 鉴权,立即 202)
+  └─ 异步:AI 视觉识别 → parser 预校验(失败回喂修正一次)
+      → 追加 iCloud 的 data/inbox.bean → 刷新缓存 → Bark 推送结果
 
-### 📦 生产构建
-
-```bash
-# 一键构建：前端 → 测试 → 后端（嵌入静态文件）
-make build
-
-# 运行生产版本
-./neve
+server/parser  解析 main.bean(include 展开)+ 校验 → 统计并缓存
+GET /api/analytics  一次性输出全部数据 → Vue 前端各 Tab 直接消费
 ```
-
-访问 http://localhost:8080 即可使用 🎉
-
----
-
-## 📂 项目架构
 
 ```
 Neve/
-├── 📄 neve                      # 编译后的单文件可执行程序
-├── 📄 Makefile                  # 构建自动化脚本
-│
-├── 📁 data/                     # Beancount 数据目录 (可 iCloud 同步,不入库)
-│   ├── main.bean               # 入口文件 (账户定义 + include)
-│   ├── balance.bean            # 初始余额 + balance 断言
-│   ├── inbox.bean              # 待整理流水 (iOS 快捷指令写入)
-│   └── 2025.bean               # 年度归档交易
-├── 📁 data.example/             # 演示数据 (入库,结构同 data/)
-│
-├── 📁 server/                   # 🔧 Go 后端
-│   ├── main.go                 # 入口 + HTTP 服务 + 静态文件 embed
-│   ├── api/
-│   │   └── handler.go          # REST API 处理器 (analytics 缓存)
-│   └── parser/
-│       ├── amount.go           # 定点金额类型 (分, int64)
-│       ├── parser.go           # Beancount 解析器 (校验 + 错误收集)
-│       ├── analytics.go        # 数据分析 (净资产/分类/趋势/转账识别)
-│       └── *_test.go           # 单元测试
-│
-└── 📁 web/                      # 🎨 Vue 3 + TypeScript 前端
+├── Makefile             # 构建自动化
+├── data/                # Beancount 账本 (iCloud 软链接,不入库)
+├── data.example/        # 演示数据 (入库,结构同 data/)
+├── deploy/              # launchd / cloudflared 部署模板
+├── server/              # Go 后端
+│   ├── api/             #   路由、analytics 缓存、无感记账端点
+│   ├── ai/              #   AI 视觉客户端 (claude/gemini 原生 HTTP) + 提示词
+│   └── parser/          #   Beancount 解析器、定点金额、统计分析
+└── web/                 # Vue 3 + TypeScript 前端
     └── src/
-        ├── App.vue             # 布局壳 + 主题 + Tab 分发
-        ├── types/api.ts        # /api/analytics 契约类型 (对照后端 struct)
-        ├── components/
-        │   ├── tabs/           # 页面标签组件 (Overview/Spending/Trends/Transactions/Accounts)
-        │   ├── layout/         # AppSidebar / MobileNav / ThemeSwitcher
-        │   ├── common/         # AppToast / IssuesBanner
-        │   ├── CategoryTrendChart.vue / WeekdayChart.vue / TransactionCalendar.vue  # 图表
-        │   ├── MerchantRanking.vue / PlatformRanking.vue                            # 排行
-        │   ├── TransactionList.vue      # 交易列表 (changelog-row)
-        │   └── BudgetCard.vue           # 预算卡
-        ├── composables/        # 模块级单例 + 工具 (.ts)
-        │   ├── useAnalytics.ts # analytics 单例 fetch/refresh (429 处理)
-        │   ├── useTheme.ts / useToast.ts / useBudgets.ts  # 主题/Toast/预算单例
-        │   ├── useCategories.ts # 分类中文映射 + 交易展示字段
-        │   ├── useCategoryIcon.ts / navItems.ts           # lucide 图标映射
-        │   ├── useFormatters.ts # 格式化工具
-        │   └── useThemeColor.ts # ECharts 主题取色 (getThemeColor + themeVersion)
-        └── styles/             # 设计 token 系统 (variables/base/layout/components/mobile)
+        ├── components/  #   Tab 页面、图表、布局组件
+        ├── composables/ #   模块级单例 (analytics/theme/toast/budgets)
+        └── styles/      #   CSS 变量设计 token (亮/暗双主题)
 ```
 
----
-
-## 🖼️ 演示截图
-
-<!-- 
-请将截图放置在此处，建议包含：
-- Dashboard 概览页（亮/暗主题各一张）
-- 支出分类饼图
-- 趋势分析图表
--->
-
-> [演示截图 - Dashboard 亮色主题]
-
-> [演示截图 - Dashboard 暗色主题]
-
-> [Gif Demo - 主题切换动画]
-
----
-
-## 📖 API 接口
+## API
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/analytics` | 完整分析数据 (摘要/图表/全量交易/parseIssues/balanceChecks),前端一次拉取全量 |
-| `POST` | `/api/refresh` | 重新解析账本并重建缓存 (5 秒限流) |
+| `GET` | `/api/analytics` | 完整分析数据（摘要/图表/全量交易/解析问题/对账结果），前端一次拉取 |
+| `POST` | `/api/refresh` | 重新解析账本并重建缓存（5 秒限流） |
 | `GET` | `/api/budgets` | 获取预算 |
-| `POST` | `/api/budgets` | 保存预算 (原子写 budgets.json) |
-| `POST` | `/api/inbox` | 无感记账:上传账单图片立即 202,AI 识别与入账异步完成 (Bearer 鉴权,未配置时 404) |
+| `POST` | `/api/budgets` | 保存预算（原子写 `budgets.json`） |
+| `POST` | `/api/inbox` | 无感记账：上传账单图片立即 202，识别与入账异步完成（Bearer 鉴权，未配置时 404） |
 
-> 仅支持 CNY 单币种;非 CNY、借贷不平衡、未 open 账户的交易会被跳过并在 `parseIssues` 中报错。
+> 仅支持 CNY 单币种；非 CNY、借贷不平衡、未 open 账户的交易会被跳过并记入 `parseIssues`。
 
----
+## 无感记账
 
-## 📸 无感记账 (AI 异步入账)
+iPhone 快捷指令只做一次图片上传（约 1–2 秒），其余全部在服务端后台完成：
 
-iPhone 快捷指令只做一次图片上传 (约 1-2 秒),识别、校验、写账全部在服务端后台完成:
+1. 从 `main.bean` 实时提取账户列表拼提示词（无需手工维护账户清单）
+2. 调用 AI 视觉识别（Claude / Gemini，原生 HTTP，不引入 SDK 依赖）
+3. 解析器预校验，失败回喂 AI 修正一次
+4. 追加 `data/inbox.bean` 并刷新缓存
+5. Bark 推送结果；识别失败不污染账本，原始输出与图片留档 `data/failed/<时间戳>/`
 
-```
-iPhone 快捷指令 ──POST /api/inbox (立即 202)──▶ Neve 服务端
-                                                 ├ 1. 从 main.bean 实时提取账户列表拼提示词 (无需手工同步)
-                                                 ├ 2. 调 AI 视觉识别 (Claude / Gemini)
-                                                 ├ 3. parser 预校验;失败回喂 AI 修正一次
-                                                 ├ 4. 追加 data/inbox.bean 并刷新缓存
-                                                 └ 5. Bark 推送结果 (失败告警含 AI 原文,留档 data/failed/)
-```
-
-请求格式 (快捷指令用「获取 URL 内容」发 POST,附 `Authorization: Bearer $NEVE_INBOX_TOKEN` 头):
+请求格式（快捷指令「获取 URL 内容」发 POST，附 `Authorization: Bearer $NEVE_INBOX_TOKEN`）：
 
 ```json
 { "image": "<base64>", "mime": "image/jpeg", "text": "可选补充说明" }
 ```
 
-- `image` 必填 (无 `data:` 前缀);`mime` 支持 jpeg/png/webp/gif,默认 jpeg
-- 识别失败不污染账本:原始输出与图片留档 `data/failed/<时间戳>/`,并推送告警便于手工补记
+快捷指令搭建说明见 `shortcut/`。
 
----
-
-## 🚢 部署指南
+## 部署
 
 ### macOS 后台服务 (launchd)
 
-服务与日志轮转配置以模板形式放在 `deploy/`(占位符 `@NEVE_ROOT@`/`@HOME@`/`@USER@`),
-由 make 按本机路径渲染后安装,仓库中不含硬编码路径。无感记账相关的密钥统一放在
-`deploy/local.env`(从 `local.env.example` 拷贝,已 gitignore),渲染时一并注入:
+服务与日志轮转配置以模板形式放在 `deploy/`，由 make 按本机路径渲染安装：
 
 ```bash
-# 渲染并安装 launchd 配置到 ~/Library/LaunchAgents (只写文件,不启动)
-make install-service
+make install-service    # 渲染 plist 到 ~/Library/LaunchAgents (只写文件,不启动)
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.neve.server.plist
-
-# 渲染并安装日志轮转配置到 /etc/newsyslog.d (需 sudo)
-make install-logrotate
-
-# 查看日志
+make install-logrotate  # 日志轮转 (需 sudo)
 tail -f ~/Library/Logs/neve.log
 ```
 
-改动模板后重新执行 `make install-service`,再 `launchctl bootout gui/$(id -u)/com.neve.server`
-+ `bootstrap` 重载生效。
+> 日期按服务器本地时区归属月份/星期，plist 模板已通过 `TZ` 显式钉死记账时区（默认 `Asia/Singapore`，按需修改），避免系统时区切换导致归属漂移。
 
-> ⚠️ 日期按服务器本地时区归属月份/星期,应通过 `TZ` 显式钉死记账时区
-> (plist 模板已在 EnvironmentVariables 中内置 `TZ=Asia/Singapore`,按需修改),
-> 避免系统时区自动切换导致归属漂移。
+### Cloudflare Tunnel（无感记账需要）
 
-### Cloudflare Tunnel (无感记账需要)
-
-让 iPhone 在任意网络下都能访问 `/api/inbox`。配置模板见 `deploy/cloudflared-config.yml.in`,
-**ingress 只放行 `/api/inbox` 一条路径**——analytics 等无鉴权端点绝不暴露公网:
+让 iPhone 在任意网络下访问 `/api/inbox`。ingress **只放行 `/api/inbox` 一条路径**，无鉴权端点绝不暴露公网：
 
 ```bash
 brew install cloudflared && cloudflared tunnel login
-cloudflared tunnel create neve            # 得到 tunnel UUID,填入 deploy/local.env
-make install-tunnel                       # 渲染 ~/.cloudflared/config.yml
+cloudflared tunnel create neve            # tunnel UUID 填入 deploy/local.env
+make install-tunnel                       # 渲染 config.yml + 常驻 LaunchAgent
 cloudflared tunnel route dns neve inbox.your-domain.com
-
-# 常驻运行:make install-tunnel 已同时渲染用户级 LaunchAgent
-# (deploy/com.cloudflared.tunnel.plist.in,执行 cloudflared tunnel run,与 Neve 同生命周期)
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.cloudflared.tunnel.plist
-
-# 日志
-tail -f ~/Library/Logs/cloudflared.error.log
 ```
 
-> 隧道用本地托管模式(config.yml + credentials),**不要**用仪表盘 token 连接器——
-> 路径级 ingress 限制需要留在版本化的本地配置里。也不要用 `cloudflared service install`:
-> 它生成的 plist 缺 `tunnel run` 子命令,命名隧道会陷入退出重启循环。
-> 改模板后重跑 `make install-tunnel`,再 bootout + bootstrap 重载生效(命令见 make 输出)。
+> 隧道用本地托管模式（config.yml + credentials），不要用仪表盘 token 连接器——路径级 ingress 限制需要留在版本化的本地配置里。没有 Cloudflare 托管域名时可改用 Tailscale 直连。
 
-> 没有托管在 Cloudflare 的域名时,可改用 Tailscale:iPhone 装客户端后快捷指令直连
-> `http://<mac-tailscale-ip>:9999/api/inbox`,服务端配置不变。
+## 与 Claude Code 共同开发
 
----
+这个项目是与 [Claude Code](https://claude.com/claude-code) 深度协作开发的实践：
 
-## 🤝 贡献指南
+- **全程结对** — 从 Beancount 解析器、定点金额类型、交易分类算法，到前端设计 token 体系与图表组件，绝大部分代码由 Claude Code 编写，作者负责需求定义、方案取舍与代码审查；
+- **约定沉淀** — 项目的正确性约定（定点运算、软失败、AI 预校验等）沉淀在 [`CLAUDE.md`](CLAUDE.md) 中，作为每次协作的上下文与红线；
+- **联合署名** — 提交历史中保留 `Co-Authored-By: Claude` 署名，如实记录人机协作过程。
 
-欢迎提交 Issue 和 Pull Request！
+如果你也想体验这种开发方式，可以从 [Claude Code 文档](https://code.claude.com/docs)开始。
 
----
+## 贡献
 
-## 📄 开源协议
+欢迎提交 Issue 和 Pull Request。提交前请：
 
-[MIT License](LICENSE)
+1. 阅读 [`CLAUDE.md`](CLAUDE.md) 中的正确性约定（改代码前必读）；
+2. 运行 `make build` 确保 lint、类型检查与测试全部通过；
+3. 提交信息使用 conventional commit 格式（`type: 描述`）。
+
+## 致谢
+
+- [Beancount](https://beancount.github.io/) — 纯文本复式记账的基石
+- [Claude Code](https://claude.com/claude-code) — 本项目的共同开发者
+
+## 开源协议
+
+[MIT](LICENSE) © hh
