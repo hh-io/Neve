@@ -2,99 +2,18 @@
    Neve Design System - Variables
    Color Tokens & Theme Configuration
 
-   Token 体系(Phase 2 重建):
+   Token 体系(2026 重设计 · 克制专业 / Linear 风):
    - Surface 阶梯:--canvas / --surface-1 / --surface-2 / --surface-3
-   - 发丝线:--hairline / --hairline-strong(1px 层级分隔,深色主题不依赖阴影)
-   - 单一强调色:--accent / --accent-hover / --accent-subtle
+   - 发丝线:--hairline / --hairline-strong(1px 层级分隔,深色不依赖阴影)
+   - 单一强调色:--accent(靛蓝)/ --accent-hover / --accent-subtle
+   - 语义色:--income(绿)/ --expense(红)/ --warning / --info,各配 -light 底色
    - 图表色板:--chart-1..8 + --chart-income / --chart-expense
+   - 热力色阶:--heat-0..4(消费强度顺序标度专用绿渐变,与收入语义绿相互独立)
    - 数字排版:--font-numeric(配合 font-variant-numeric: tabular-nums)
 
-   兼容层:旧语义名(bg / border / brand 系列)保留为新 token 的别名,
-   现有组件与 components.css 无需改动即可继续工作;组件在 Phase 4 逐个切到新名。
+   仅亮/暗双主题。兼容层:旧语义名(bg / border / brand 系列)保留为新 token 的别名,
+   现有组件无需改动即可继续工作。
    ======================================== */
-
-/* ========== Raw Color Tokens (per theme) ========== */
-:root {
-    /* ---------- Light Theme ---------- */
-    --light-bg-primary: #F8F9FC;
-    --light-bg-secondary: #FFFFFF;
-    --light-bg-tertiary: #F1F3F8;
-    --light-surface-3: #FFFFFF;
-    --light-text-primary: #2D3142;
-    --light-text-secondary: #6B7280;
-    --light-text-tertiary: #9CA3AF;
-    --light-border: #E5E7EB;
-    --light-border-hover: #D1D5DB;
-
-    /* Accent - Low Saturation Teal */
-    --light-brand-primary: #5B9A9A;
-    --light-brand-secondary: #7AB5B5;
-    --light-brand-light: #E8F4F4;
-
-    /* Semantic Colors */
-    --light-income: #6B9B7A;
-    --light-income-light: #E8F5EC;
-    --light-expense: #C27B7B;
-    --light-expense-light: #FBEAEA;
-    --light-warning: #C9A856;
-    --light-warning-light: #FDF8E8;
-    --light-info: #7B9BC2;
-    --light-info-light: #EAF0FB;
-
-    /* Chart palette(源自旧 pieColors,浅色低饱和) */
-    --light-chart-1: #C27B7B;
-    --light-chart-2: #7B9BC2;
-    --light-chart-3: #6B9B7A;
-    --light-chart-4: #C9A856;
-    --light-chart-5: #9B7BC2;
-    --light-chart-6: #7BC2B5;
-    --light-chart-7: #C2997B;
-    --light-chart-8: #7B8BC2;
-
-    /* 浅色主题保留极轻阴影 */
-    --light-shadow: rgba(45, 49, 66, 0.08);
-    --light-shadow-lg: rgba(45, 49, 66, 0.12);
-
-    /* ---------- Dark Theme ---------- */
-    --dark-bg-primary: #1A1D26;
-    --dark-bg-secondary: #242834;
-    --dark-bg-tertiary: #2E3342;
-    --dark-surface-3: #363B4B;
-    --dark-text-primary: #F9FAFB;
-    --dark-text-secondary: #D1D5DB;
-    --dark-text-tertiary: #9CA3AF;
-    --dark-border: #3A3F4F;
-    --dark-border-hover: #4A5060;
-
-    /* Accent - Dark */
-    --dark-brand-primary: #81C7C7;
-    --dark-brand-secondary: #6FB3B3;
-    --dark-brand-light: rgba(129, 199, 199, 0.15);
-
-    /* Semantic - Dark */
-    --dark-income: #8BDBA5;
-    --dark-income-light: rgba(139, 219, 165, 0.15);
-    --dark-expense: #F29B9B;
-    --dark-expense-light: rgba(242, 155, 155, 0.15);
-    --dark-warning: #ECD076;
-    --dark-warning-light: rgba(236, 208, 118, 0.15);
-    --dark-info: #9BBDF2;
-    --dark-info-light: rgba(155, 189, 242, 0.15);
-
-    /* Chart palette(深色抬高明度) */
-    --dark-chart-1: #E39A9A;
-    --dark-chart-2: #9BBDE8;
-    --dark-chart-3: #8BC0A0;
-    --dark-chart-4: #E3C878;
-    --dark-chart-5: #BB9BE0;
-    --dark-chart-6: #9BDDCF;
-    --dark-chart-7: #E0BB9B;
-    --dark-chart-8: #9BABE0;
-
-    /* 深色主题去阴影:层级只靠 surface 提升 + 发丝线 */
-    --dark-shadow: transparent;
-    --dark-shadow-lg: transparent;
-}
 
 /* ========== Global Design Tokens (theme-independent) ========== */
 :root {
@@ -109,20 +28,21 @@
     --space-10: 2.5rem;
     --space-12: 3rem;
 
-    /* Card padding(Revolut 式统一留白;移动端在 mobile.css 收窄) */
-    --card-pad: 24px;
+    /* Card padding(统一留白;移动端在 mobile.css 收窄) */
+    --card-pad: 20px;
 
-    /* Border Radius(Linear 式收紧:嵌入件 6 / 控件 8 / 卡片 12 / 图表面板 16) */
+    /* Border Radius(Linear 式收紧:嵌入件 6 / 控件 8 / 卡片 10 / 面板 14) */
     --radius-sm: 6px;
     --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
     --radius-full: 9999px;
 
-    /* Typography */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    /* 金额等数字统一走此栈 + font-variant-numeric: tabular-nums */
-    --font-numeric: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Typography — 系统无衬线(苹方/思源黑),数字走 tabular-nums */
+    --font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
+    --font-numeric: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+    /* 账户代码等定长文本用等宽栈 */
+    --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", "Roboto Mono", Menlo, monospace;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -136,324 +56,138 @@
     --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Sidebar */
-    --sidebar-width: 256px;
+    --sidebar-width: 236px;
 }
 
-/* ========== Theme Mappings ========== */
-/* 每个主题同时导出新 token(canvas / surface / hairline / accent / chart 系列)
-   与旧别名(bg / border / brand 系列),二者指向同一底色,新旧组件共存。 */
-
+/* ========== Light Theme ========== */
 .theme-light,
 :root:not(.theme-dark) {
-    /* new surface ladder */
-    --canvas: var(--light-bg-primary);
-    --surface-1: var(--light-bg-secondary);
-    --surface-2: var(--light-bg-tertiary);
-    --surface-3: var(--light-surface-3);
-    --hairline: var(--light-border);
-    --hairline-strong: var(--light-border-hover);
-    /* new accent */
-    --accent: var(--light-brand-primary);
-    --accent-hover: var(--light-brand-secondary);
-    --accent-subtle: var(--light-brand-light);
+    color-scheme: light;
+
+    /* surface ladder */
+    --canvas: #f6f7f9;
+    --surface-1: #ffffff;
+    --surface-2: #ffffff;
+    --surface-3: #eef0f4;
+    --hairline: rgba(16, 20, 30, 0.09);
+    --hairline-strong: rgba(16, 20, 30, 0.17);
+
+    /* text */
+    --text-primary: #141922;
+    --text-secondary: #5b6474;
+    --text-tertiary: #96a0b0;
+
+    /* accent — indigo */
+    --accent: #4b52e0;
+    --accent-hover: #3a41c9;
+    --accent-subtle: rgba(75, 82, 224, 0.10);
+
+    /* semantic */
+    --income: #12a150;
+    --income-light: rgba(18, 161, 80, 0.11);
+    --expense: #e0392f;
+    --expense-light: rgba(224, 57, 47, 0.10);
+    --warning: #c77400;
+    --warning-light: rgba(199, 116, 0, 0.12);
+    --info: #0b8ec4;
+    --info-light: rgba(11, 142, 196, 0.11);
+
     /* chart palette */
-    --chart-1: var(--light-chart-1);
-    --chart-2: var(--light-chart-2);
-    --chart-3: var(--light-chart-3);
-    --chart-4: var(--light-chart-4);
-    --chart-5: var(--light-chart-5);
-    --chart-6: var(--light-chart-6);
-    --chart-7: var(--light-chart-7);
-    --chart-8: var(--light-chart-8);
-    --chart-income: var(--light-income);
-    --chart-expense: var(--light-expense);
+    --chart-1: #4b52e0;
+    --chart-2: #0d9aad;
+    --chart-3: #8b46d6;
+    --chart-4: #d98200;
+    --chart-5: #0a9384;
+    --chart-6: #d6559a;
+    --chart-7: #2f6fe0;
+    --chart-8: #b89216;
+    --chart-income: #12a150;
+    --chart-expense: #e0392f;
+
+    /* heat scale — 顺序绿渐变(热力图专用,非收入语义绿) */
+    --heat-0: #eef3f0;
+    --heat-1: #bfe6cd;
+    --heat-2: #83cfa1;
+    --heat-3: #41ac74;
+    --heat-4: #128a4e;
+
+    /* elevation(作为颜色值用于 box-shadow) */
+    --shadow: rgba(16, 20, 30, 0.08);
+    --shadow-lg: rgba(16, 20, 30, 0.14);
 
     /* legacy aliases */
-    --bg-primary: var(--light-bg-primary);
-    --bg-secondary: var(--light-bg-secondary);
-    --bg-tertiary: var(--light-bg-tertiary);
-    --text-primary: var(--light-text-primary);
-    --text-secondary: var(--light-text-secondary);
-    --text-tertiary: var(--light-text-tertiary);
-    --border: var(--light-border);
-    --border-hover: var(--light-border-hover);
-    --brand-primary: var(--light-brand-primary);
-    --brand-secondary: var(--light-brand-secondary);
-    --brand-light: var(--light-brand-light);
-    --income: var(--light-income);
-    --income-light: var(--light-income-light);
-    --expense: var(--light-expense);
-    --expense-light: var(--light-expense-light);
-    --warning: var(--light-warning);
-    --warning-light: var(--light-warning-light);
-    --info: var(--light-info);
-    --info-light: var(--light-info-light);
-    --shadow: var(--light-shadow);
-    --shadow-lg: var(--light-shadow-lg);
+    --bg-primary: var(--canvas);
+    --bg-secondary: var(--surface-1);
+    --bg-tertiary: var(--surface-2);
+    --border: var(--hairline);
+    --border-hover: var(--hairline-strong);
+    --brand-primary: var(--accent);
+    --brand-secondary: var(--accent-hover);
+    --brand-light: var(--accent-subtle);
 }
 
+/* ========== Dark Theme ========== */
 .theme-dark {
-    --canvas: var(--dark-bg-primary);
-    --surface-1: var(--dark-bg-secondary);
-    --surface-2: var(--dark-bg-tertiary);
-    --surface-3: var(--dark-surface-3);
-    --hairline: var(--dark-border);
-    --hairline-strong: var(--dark-border-hover);
-    --accent: var(--dark-brand-primary);
-    --accent-hover: var(--dark-brand-secondary);
-    --accent-subtle: var(--dark-brand-light);
-    --chart-1: var(--dark-chart-1);
-    --chart-2: var(--dark-chart-2);
-    --chart-3: var(--dark-chart-3);
-    --chart-4: var(--dark-chart-4);
-    --chart-5: var(--dark-chart-5);
-    --chart-6: var(--dark-chart-6);
-    --chart-7: var(--dark-chart-7);
-    --chart-8: var(--dark-chart-8);
-    --chart-income: var(--dark-income);
-    --chart-expense: var(--dark-expense);
+    color-scheme: dark;
 
-    --bg-primary: var(--dark-bg-primary);
-    --bg-secondary: var(--dark-bg-secondary);
-    --bg-tertiary: var(--dark-bg-tertiary);
-    --text-primary: var(--dark-text-primary);
-    --text-secondary: var(--dark-text-secondary);
-    --text-tertiary: var(--dark-text-tertiary);
-    --border: var(--dark-border);
-    --border-hover: var(--dark-border-hover);
-    --brand-primary: var(--dark-brand-primary);
-    --brand-secondary: var(--dark-brand-secondary);
-    --brand-light: var(--dark-brand-light);
-    --income: var(--dark-income);
-    --income-light: var(--dark-income-light);
-    --expense: var(--dark-expense);
-    --expense-light: var(--dark-expense-light);
-    --warning: var(--dark-warning);
-    --warning-light: var(--dark-warning-light);
-    --info: var(--dark-info);
-    --info-light: var(--dark-info-light);
-    --shadow: var(--dark-shadow);
-    --shadow-lg: var(--dark-shadow-lg);
-}
+    /* surface ladder */
+    --canvas: #0b0d10;
+    --surface-1: #131720;
+    --surface-2: #191e28;
+    --surface-3: #222836;
+    --hairline: rgba(255, 255, 255, 0.07);
+    --hairline-strong: rgba(255, 255, 255, 0.14);
 
-/* ========== Stripe Theme (stripe/DESIGN.md) ========== */
-.theme-stripe {
-    /* new surface ladder */
-    --canvas: #f6f9fc;          /* Canvas Soft - cool off-white page background */
-    --surface-1: #ffffff;       /* Canvas - card background */
-    --surface-2: #eff3f8;       /* slightly darker cool tint for sub-surfaces */
-    --surface-3: #e3e8ee;       /* hairline gray border-like tint */
-    --hairline: #e3e8ee;        /* 1px solid card/table border */
-    --hairline-strong: #a8c3de; /* input hairline */
-    
-    /* new accent - Stripe Electric Indigo */
-    --accent: #533afd;
-    --accent-hover: #4434d4;
-    --accent-subtle: rgba(83, 58, 253, 0.08);
-    
-    /* chart palette (Stripe signature energetic tones) */
-    --chart-1: #533afd;         /* electric indigo */
-    --chart-2: #ea2261;         /* ruby pink-red */
-    --chart-3: #f96bee;         /* magenta */
-    --chart-4: #9b6829;         /* amber */
-    --chart-5: #00a3e0;         /* ice cyan */
-    --chart-6: #24b47e;         /* mint green */
-    --chart-7: #1c1e54;         /* deep navy */
-    --chart-8: #64748d;         /* slate gray */
-    
-    --chart-income: #24b47e;    /* mint success green */
-    --chart-expense: #ea2261;   /* ruby pink-red expense */
+    /* text */
+    --text-primary: #e7ebf2;
+    --text-secondary: #98a2b3;
+    --text-tertiary: #646d7d;
+
+    /* accent — indigo */
+    --accent: #6d78f5;
+    --accent-hover: #828cff;
+    --accent-subtle: rgba(109, 120, 245, 0.16);
+
+    /* semantic */
+    --income: #3fce7c;
+    --income-light: rgba(63, 206, 124, 0.14);
+    --expense: #f26d6d;
+    --expense-light: rgba(242, 109, 109, 0.14);
+    --warning: #f5a524;
+    --warning-light: rgba(245, 165, 36, 0.15);
+    --info: #4cc4e6;
+    --info-light: rgba(76, 196, 230, 0.14);
+
+    /* chart palette(深色抬高明度) */
+    --chart-1: #6d78f5;
+    --chart-2: #28c0d6;
+    --chart-3: #b07cf6;
+    --chart-4: #f5a524;
+    --chart-5: #12b5a4;
+    --chart-6: #ef7bb0;
+    --chart-7: #4d8bf7;
+    --chart-8: #e5c04b;
+    --chart-income: #3fce7c;
+    --chart-expense: #f26d6d;
+
+    /* heat scale — 顺序绿渐变(热力图专用,非收入语义绿) */
+    --heat-0: #182028;
+    --heat-1: #1f4d33;
+    --heat-2: #2c7a4c;
+    --heat-3: #38a866;
+    --heat-4: #4cd884;
+
+    /* 深色去阴影:层级只靠 surface 提升 + 发丝线;保留极轻值供浮层用 */
+    --shadow: rgba(0, 0, 0, 0.40);
+    --shadow-lg: rgba(0, 0, 0, 0.55);
 
     /* legacy aliases */
-    --bg-primary: #f6f9fc;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #eff3f8;
-    --text-primary: #0d253d;    /* Stripe Signature Deep Navy */
-    --text-secondary: #273951;  /* ink-secondary */
-    --text-tertiary: #64748d;   /* ink-mute */
-    --border: #e3e8ee;
-    --border-hover: #a8c3de;
-    --brand-primary: #533afd;
-    --brand-secondary: #4434d4;
-    --brand-light: rgba(83, 58, 253, 0.08);
-    
-    --income: #24b47e;
-    --income-light: rgba(36, 180, 126, 0.08);
-    --expense: #ea2261;
-    --expense-light: rgba(234, 34, 97, 0.08);
-    --warning: #9b6829;         /* amber */
-    --warning-light: rgba(155, 104, 41, 0.08);
-    --info: #00a3e0;
-    --info-light: rgba(0, 163, 224, 0.08);
-    
-    /* Stripe shadow system - subtle shadow-blue shadows */
-    --shadow: rgba(0, 55, 112, 0.08) 0 1px 3px;
-    --shadow-lg: rgba(0, 55, 112, 0.08) 0 8px 24px, rgba(0, 55, 112, 0.04) 0 2px 6px;
-    
-    /* Radius override - Stripi tight radius geometry */
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 12px;          /* card radius */
-    --radius-xl: 9999px;        /* button pill-shape */
-    
-    /* Typography override - Sohne/SF Pro style thin and clean */
-    --font-family: "sohne-var", "SF Pro Display", "Inter", -apple-system, sans-serif;
-    --font-numeric: "sohne-var", "SF Pro Display", "Inter", -apple-system, sans-serif;
+    --bg-primary: var(--canvas);
+    --bg-secondary: var(--surface-1);
+    --bg-tertiary: var(--surface-2);
+    --border: var(--hairline);
+    --border-hover: var(--hairline-strong);
+    --brand-primary: var(--accent);
+    --brand-secondary: var(--accent-hover);
+    --brand-light: var(--accent-subtle);
 }
-
-/* Specific component overrides for Stripe theme to ensure absolute fidelity and premium UI feel */
-.theme-stripe .btn-primary {
-    background-color: var(--accent) !important;
-    color: #ffffff !important;
-    border-color: var(--accent) !important;
-    font-weight: 400 !important;
-    border-radius: 9999px !important; /* Force pill shape for Stripi buttons */
-    box-shadow: 0 1px 3px rgba(0, 55, 112, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08) !important;
-}
-
-.theme-stripe .btn-primary:hover {
-    background-color: var(--accent-hover) !important;
-    box-shadow: 0 4px 12px rgba(83, 58, 253, 0.18) !important;
-}
-
-.theme-stripe .theme-trigger.active {
-    color: var(--accent) !important;
-}
-
-/* Stripe Editorial-Density Display Typography: Thin weight + Tight Tracking */
-.theme-stripe h1,
-.theme-stripe h2,
-.theme-stripe h3,
-.theme-stripe .page-title h2 {
-    font-weight: 300 !important;
-    letter-spacing: -0.04em !important;
-}
-
-.theme-stripe .stat-value-hero {
-    font-weight: 300 !important;
-    letter-spacing: -0.03em !important;
-}
-
-/* Tabular Numerics for financial-data signature */
-.theme-stripe .tabular-nums,
-.theme-stripe .stat-value,
-.theme-stripe .transaction-amount {
-    font-feature-settings: "tnum" 1, "ss01" 1 !important;
-    letter-spacing: -0.02em !important;
-}
-
-/* Sidebar styling for Stripe theme: Familar Dark-app Shell (Brand Dark 900)。
-   紧邻的主内容区是近白 canvas,深藏青侧边栏若用纯白文字+硬边框,明暗断层过于突兀;
-   主要文字降到 92% 白、分割线换成朝右的柔和阴影(shadow-blue 色系),弱化断层同时不破坏
-   DESIGN.md 里 brand-dark-900 + on-primary 的既定配色。 */
-.theme-stripe .sidebar {
-    background-color: #1c1e54 !important;
-    border-right: none !important;
-    box-shadow: rgba(0, 55, 112, 0.16) 4px 0 24px 0 !important;
-}
-
-.theme-stripe .sidebar .logo-text h1 {
-    color: rgba(255, 255, 255, 0.92) !important;
-    font-weight: 300 !important;
-    letter-spacing: -0.03em !important;
-}
-
-.theme-stripe .sidebar .logo-text p {
-    color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Sidebar Navigation Items in Dark Console mode */
-.theme-stripe .nav-item {
-    color: rgba(185, 185, 249, 0.5) !important; /* lower contrast for unactive state */
-    border-radius: 9999px !important; /* Pill style items */
-    margin: 2px 0;
-}
-
-.theme-stripe .nav-item:hover:not(.active) {
-    color: rgba(255, 255, 255, 0.85) !important;
-    background-color: rgba(255, 255, 255, 0.04) !important;
-}
-
-.theme-stripe .nav-item.active {
-    color: rgba(255, 255, 255, 0.92) !important;
-    background-color: rgba(83, 58, 253, 0.16) !important;
-    font-weight: 500 !important;
-}
-
-.theme-stripe .nav-item.active::before {
-    background: var(--accent) !important; /* Indigo indicator */
-    width: 4px !important;
-    height: 16px !important;
-    border-radius: 0 4px 4px 0 !important;
-}
-
-.theme-stripe .nav-item .nav-icon {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 9999px !important; /* Round icon frames */
-}
-
-.theme-stripe .nav-item.active .nav-icon,
-.theme-stripe .nav-item:hover .nav-icon {
-    background-color: transparent !important;
-}
-
-/* User avatar and profile card inside dark sidebar */
-.theme-stripe .user-card {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 8px !important;
-}
-
-.theme-stripe .user-card:hover {
-    background-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-.theme-stripe .user-name {
-    color: rgba(255, 255, 255, 0.92) !important;
-}
-
-.theme-stripe .user-email {
-    color: rgba(255, 255, 255, 0.4) !important;
-}
-
-.theme-stripe .user-avatar {
-    background: var(--accent) !important;
-    color: #ffffff !important;
-}
-
-.theme-stripe .nav-divider {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-.theme-stripe .user-section {
-    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Stats card inside dark sidebar shell */
-.theme-stripe .stats-card {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-.theme-stripe .stats-card:hover {
-    border-color: rgba(83, 58, 253, 0.4) !important;
-}
-
-.theme-stripe .stats-icon-wrapper {
-    background-color: rgba(83, 58, 253, 0.16) !important;
-    color: rgba(255, 255, 255, 0.92) !important;
-}
-
-.theme-stripe .stats-label,
-.theme-stripe .stats-subtitle,
-.theme-stripe .stats-unit {
-    color: rgba(255, 255, 255, 0.4) !important;
-}
-
-.theme-stripe .stats-value {
-    color: rgba(255, 255, 255, 0.92) !important;
-}
-
-
-
-
-

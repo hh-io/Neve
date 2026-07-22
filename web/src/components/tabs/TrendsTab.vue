@@ -322,9 +322,9 @@ const heatmapOption = computed(() => {
       orient: 'horizontal',
       left: 'center',
       bottom: 0,
-      // GitHub 式绿色顺序渐变(热力图为顺序标度,不取分类色板)
+      // 顺序绿渐变走热力专用色阶 token(热力图为顺序标度,不取分类色板;与收入语义绿独立)
       inRange: {
-        color: ['#ebedf0', '#c6e48b', '#7bc96f', '#239a3b', '#196127']
+        color: ['--heat-0', '--heat-1', '--heat-2', '--heat-3', '--heat-4'].map(getThemeColor)
       },
       text: ['High', 'Low'],
       calculable: false,

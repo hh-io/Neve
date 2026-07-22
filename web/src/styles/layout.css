@@ -38,66 +38,23 @@
     gap: var(--space-3);
 }
 
-.logo-icon {
-    width: 40px;
-    height: 40px;
+/* 品牌标:靛蓝圆角方块 + 白色「N」monogram */
+.logo-mark {
+    width: 34px;
+    height: 34px;
     border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    background: var(--accent);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    box-shadow: 0 4px 12px rgba(91, 154, 154, 0.3);
-}
-
-.logo-icon-new {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 20px;
-    font-weight: 600;
-    position: relative;
-    transition: all var(--transition-slow);
-    background: linear-gradient(145deg, #1E2433, #0F1219);
-    box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        0 8px 24px rgba(99, 102, 241, 0.2),
-        0 0 40px rgba(99, 102, 241, 0.15);
-}
-
-.logo-icon-new::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 8px;
-    background: radial-gradient(ellipse, rgba(99, 102, 241, 0.6) 0%, transparent 70%);
-    filter: blur(4px);
-    animation: logoGlow 2s ease-in-out infinite alternate;
-    z-index: -1;
-}
-
-@keyframes logoGlow {
-    0% {
-        opacity: 0.4;
-        width: 20px;
-    }
-
-    100% {
-        opacity: 0.8;
-        width: 28px;
-    }
+    flex-shrink: 0;
 }
 
 .logo-text h1 {
     font-size: var(--font-size-lg);
-    font-weight: 600;
+    font-weight: 650;
+    letter-spacing: 0.01em;
     color: var(--text-primary);
 }
 
@@ -142,37 +99,24 @@
     text-align: left;
 }
 
-.nav-item:hover {
-    color: var(--brand-primary);
-    background-color: var(--brand-light);
+.nav-item:hover:not(.active) {
+    color: var(--text-primary);
+    background-color: var(--surface-2);
 }
 
 .nav-item.active {
-    color: var(--brand-primary);
-    background-color: var(--brand-light);
-}
-
-.nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 24px;
-    background: var(--brand-primary);
-    border-radius: 0 4px 4px 0;
+    color: var(--accent);
+    background-color: var(--accent-subtle);
+    font-weight: 600;
 }
 
 .nav-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    background-color: var(--bg-tertiary);
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all var(--transition-base);
+    flex-shrink: 0;
 }
 
 .nav-icon span {
@@ -181,16 +125,11 @@
     justify-content: center;
 }
 
-.nav-item.active .nav-icon,
-.nav-item:hover .nav-icon {
-    background-color: var(--brand-light);
-}
-
 .nav-icon svg {
     width: 18px;
     height: 18px;
     stroke: currentColor;
-    stroke-width: 2;
+    stroke-width: 1.75;
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;

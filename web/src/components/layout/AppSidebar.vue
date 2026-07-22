@@ -2,12 +2,12 @@
   <aside class="sidebar">
     <!-- Logo -->
     <div class="logo-section animate-fade-in-up">
-      <div class="logo-icon-new">
-        <MountainSnow :size="20" />
+      <div class="logo-mark">
+        <AppLogo :size="20" />
       </div>
       <div class="logo-text">
         <h1>Neve</h1>
-        <p>智能记账系统</p>
+        <p>财务看板</p>
       </div>
     </div>
 
@@ -60,7 +60,8 @@
 </template>
 
 <script setup lang="ts">
-import { MountainSnow, PiggyBank, Trophy } from '@lucide/vue';
+import { PiggyBank, Trophy } from '@lucide/vue';
+import AppLogo from './AppLogo.vue';
 import { navItems } from '../../composables/navItems';
 
 defineProps<{

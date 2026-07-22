@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Check, Monitor, Moon, Sparkles, Sun } from '@lucide/vue';
+import { Check, Monitor, Moon, Sun } from '@lucide/vue';
 import type { ThemeMode } from '../../composables/useTheme';
 
 const props = defineProps<{ modelValue: ThemeMode }>();
@@ -41,7 +41,6 @@ const options: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: 'light', label: '亮色模式', icon: Sun },
   { value: 'dark', label: '暗色模式', icon: Moon },
   { value: 'system', label: '跟随系统', icon: Monitor },
-  { value: 'stripe', label: 'Stripe 主题', icon: Sparkles },
 ];
 
 const open = ref(false);

@@ -1,18 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1E2433"/>
-      <stop offset="100%" style="stop-color:#0F1219"/>
-    </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  <rect width="32" height="32" rx="8" fill="url(#bgGrad)"/>
-  <ellipse cx="16" cy="30" rx="8" ry="3" fill="#6366F1" opacity="0.4" filter="url(#glow)"/>
-  <text x="16" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">N</text>
+  <rect width="32" height="32" rx="7" fill="#4b52e0"/>
+  <g stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M11 24V9"/>
+    <path d="M11 10L21 22"/>
+    <path d="M21 24V12"/>
+  </g>
 </svg>
