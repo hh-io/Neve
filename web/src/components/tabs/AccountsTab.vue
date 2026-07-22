@@ -4,11 +4,15 @@
     <div class="ac-summary">
       <div class="card ac-sum-card">
         <span class="ac-sum-label">总资产</span>
-        <span class="ac-sum-value ac-sum-value--income tabular-nums">{{ formatMoney(summary?.totalAssets || 0) }}</span>
+        <span class="ac-sum-value ac-sum-value--income tabular-nums">{{
+          formatMoney(summary?.totalAssets || 0)
+        }}</span>
       </div>
       <div class="card ac-sum-card">
         <span class="ac-sum-label">总负债</span>
-        <span class="ac-sum-value ac-sum-value--expense tabular-nums">-{{ formatMoney(Math.abs(summary?.totalLiabilities || 0)) }}</span>
+        <span class="ac-sum-value ac-sum-value--expense tabular-nums"
+          >-{{ formatMoney(Math.abs(summary?.totalLiabilities || 0)) }}</span
+        >
       </div>
       <div class="card ac-sum-card">
         <span class="ac-sum-label">净资产</span>
@@ -20,9 +24,16 @@
     <section v-for="group in accountGroups" :key="group.key" class="section-card">
       <div class="section-head">
         <h3 class="section-title">
-          <component :is="group.icon" :size="16" class="sec-ic" />{{ group.title }}
+          <component
+            :is="group.icon"
+            :size="16"
+            class="sec-ic"
+            :style="{ color: group.iconColor }"
+          />{{ group.title }}
         </h3>
-        <span class="ac-group-total tabular-nums" :style="{ color: group.totalColor }">{{ group.total }}</span>
+        <span class="ac-group-total tabular-nums" :style="{ color: group.totalColor }">{{
+          group.total
+        }}</span>
       </div>
       <div>
         <div v-for="acc in group.rows" :key="acc.account" class="ac-row">
@@ -36,7 +47,9 @@
             </div>
             <div class="ac-row-account tabular-nums">{{ acc.account }}</div>
           </div>
-          <div class="ac-row-balance tabular-nums" :style="{ color: acc.color }">{{ acc.balance }}</div>
+          <div class="ac-row-balance tabular-nums" :style="{ color: acc.color }">
+            {{ acc.balance }}
+          </div>
         </div>
       </div>
     </section>
@@ -44,67 +57,91 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { FunctionalComponent } from 'vue';
-import type { AccountBalance } from '../../types/api';
-import { formatMoney } from '../../composables/useFormatters';
-import { useAnalytics } from '../../composables/useAnalytics';
-import { Wallet, Landmark, CreditCard, LineChart, ShoppingBag, Utensils, PiggyBank } from '@lucide/vue';
+import { computed } from 'vue'
+import type { FunctionalComponent } from 'vue'
+import type { AccountBalance } from '../../types/api'
+import { formatMoney } from '../../composables/useFormatters'
+import { useAnalytics } from '../../composables/useAnalytics'
+import {
+  Wallet,
+  Landmark,
+  CreditCard,
+  LineChart,
+  ShoppingBag,
+  Utensils,
+  PiggyBank,
+  TrendingUp,
+  TrendingDown,
+} from '@lucide/vue'
 
-const { analytics } = useAnalytics();
+const { analytics } = useAnalytics()
 
-const summary = computed(() => analytics.value?.summary);
+const summary = computed(() => analytics.value?.summary)
 
 interface AccountRow {
-  account: string;
-  name: string;
-  tag: string;
-  icon: FunctionalComponent;
-  balance: string;
-  color: string;
+  account: string
+  name: string
+  tag: string
+  icon: FunctionalComponent
+  balance: string
+  color: string
 }
 interface AccountGroup {
-  key: string;
-  title: string;
-  icon: FunctionalComponent;
-  total: string;
-  totalColor: string;
-  rows: AccountRow[];
+  key: string
+  title: string
+  icon: FunctionalComponent
+  iconColor: string
+  total: string
+  totalColor: string
+  rows: AccountRow[]
 }
 
 const accountGroups = computed<AccountGroup[]>(() => {
-  const accounts = analytics.value?.accountBalances || [];
+  const accounts = analytics.value?.accountBalances || []
   const defs = [
-    { key: 'Assets', title: '资产', icon: Wallet, accentColor: 'var(--income)' },
-    { key: 'Liabilities', title: '负债', icon: CreditCard, accentColor: 'var(--expense)' },
-  ];
+    {
+      key: 'Assets',
+      title: '资产',
+      icon: TrendingUp,
+      iconColor: 'var(--income)',
+      accentColor: 'var(--income)',
+    },
+    {
+      key: 'Liabilities',
+      title: '负债',
+      icon: TrendingDown,
+      iconColor: 'var(--expense)',
+      accentColor: 'var(--expense)',
+    },
+  ]
 
   return defs
-    .map(def => {
+    .map((def) => {
       const rows = accounts
-        .filter(acc => acc.account.split(':')[0] === def.key)
-        .map<AccountRow>(acc => ({
+        .filter((acc) => acc.account.split(':')[0] === def.key)
+        .map<AccountRow>((acc) => ({
           account: acc.account,
           name: getAccountName(acc),
           tag: getAccountTag(acc),
           icon: getAccountIcon(acc),
           balance: formatMoney(acc.balance),
           color: acc.balance < 0 ? 'var(--expense)' : 'var(--text-primary)',
-        }));
+        }))
       const totalNum = accounts
-        .filter(acc => acc.account.split(':')[0] === def.key)
-        .reduce((sum, acc) => sum + acc.balance, 0);
+        .filter((acc) => acc.account.split(':')[0] === def.key)
+        .reduce((sum, acc) => sum + acc.balance, 0)
       return {
         key: def.key,
         title: def.title,
         icon: def.icon,
+        iconColor: def.iconColor,
         total: (totalNum < 0 ? '-' : '') + formatMoney(Math.abs(totalNum)),
         totalColor: def.accentColor,
         rows,
-      };
+      }
     })
-    .filter(g => g.rows.length > 0);
-});
+    .filter((g) => g.rows.length > 0)
+})
 
 function getAccountName(account: AccountBalance): string {
   const fullMap: Record<string, string> = {
@@ -125,13 +162,13 @@ function getAccountName(account: AccountBalance): string {
     'Liabilities:Meituan:MP': '美团月付',
     'Liabilities:Loan:ECMB': 'E招贷',
     'Liabilities:Loan:Mortgage': '房贷',
-  };
+  }
   if (fullMap[account.account]) {
-    return fullMap[account.account];
+    return fullMap[account.account]
   }
 
-  const parts = account.account.split(':');
-  const lastPart = parts[parts.length - 1];
+  const parts = account.account.split(':')
+  const lastPart = parts[parts.length - 1]
   const shortMap: Record<string, string> = {
     CMB: '招商银行',
     ICBC: '工商银行',
@@ -149,33 +186,46 @@ function getAccountName(account: AccountBalance): string {
     JDBalance: '京东余额',
     Mortgage: '房贷',
     ECMB: 'E招贷',
-  };
-  return shortMap[lastPart] || lastPart;
+  }
+  return shortMap[lastPart] || lastPart
 }
 
 function getAccountTag(account: AccountBalance): string {
-  const path = account.account;
-  if (path.includes('CreditCard')) return '信用卡';
-  if (path.includes('Bank')) return '储蓄卡';
-  if (path.includes('Cash')) return '现金余额';
-  if (path.includes('Investment')) return '投资理财';
-  if (path.includes('Huabei') || path.includes('BNPL') || path.includes('CLO') || path.includes('MP')) return '消费信贷';
-  if (path.includes('Loan') || path.includes('Mortgage')) return '贷款';
+  const path = account.account
+  if (path.includes('CreditCard')) return '信用卡'
+  if (path.includes('Bank')) return '储蓄卡'
+  if (path.includes('Cash')) return '现金余额'
+  if (path.includes('Investment')) return '投资理财'
+  if (
+    path.includes('Huabei') ||
+    path.includes('BNPL') ||
+    path.includes('CLO') ||
+    path.includes('MP')
+  )
+    return '消费信贷'
+  if (path.includes('Loan') || path.includes('Mortgage')) return '贷款'
 
-  const parts = path.split(':');
-  return parts.length > 1 ? parts[1] : '其他';
+  const parts = path.split(':')
+  return parts.length > 1 ? parts[1] : '其他'
 }
 
 function getAccountIcon(account: AccountBalance): FunctionalComponent {
-  const path = account.account;
-  if (path.includes('CreditCard')) return CreditCard;
-  if (path.includes('Bank')) return Landmark;
-  if (path.includes('WeChat') || path.includes('Alipay')) return Wallet;
-  if (path.includes('Investment')) return LineChart;
-  if (path.includes('Huabei') || path.includes('BNPL') || path.includes('CLO') || path.includes('JDECard') || path.includes('JDBalance')) return ShoppingBag;
-  if (path.includes('Meituan')) return Utensils;
-  if (path.includes('Loan') || path.includes('Mortgage')) return Landmark;
-  return PiggyBank;
+  const path = account.account
+  if (path.includes('CreditCard')) return CreditCard
+  if (path.includes('Bank')) return Landmark
+  if (path.includes('WeChat') || path.includes('Alipay')) return Wallet
+  if (path.includes('Investment')) return LineChart
+  if (
+    path.includes('Huabei') ||
+    path.includes('BNPL') ||
+    path.includes('CLO') ||
+    path.includes('JDECard') ||
+    path.includes('JDBalance')
+  )
+    return ShoppingBag
+  if (path.includes('Meituan')) return Utensils
+  if (path.includes('Loan') || path.includes('Mortgage')) return Landmark
+  return PiggyBank
 }
 </script>
 
@@ -233,8 +283,12 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
   transition: background var(--transition-base);
 }
 
-.ac-row:last-child { border-bottom: none; }
-.ac-row:hover { background: var(--surface-2); }
+.ac-row:last-child {
+  border-bottom: none;
+}
+.ac-row:hover {
+  background: var(--surface-2);
+}
 
 .ac-row-icon {
   width: 34px;
@@ -287,6 +341,8 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
 }
 
 @media (max-width: 768px) {
-  .ac-summary { grid-template-columns: 1fr; }
+  .ac-summary {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
