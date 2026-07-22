@@ -207,7 +207,7 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 <style scoped>
 .tx-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 380px;
   gap: var(--space-4);
   align-items: start;
 }

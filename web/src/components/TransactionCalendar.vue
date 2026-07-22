@@ -250,18 +250,18 @@ function formatAmount(amount: number): number | string {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: 3px;
 }
 
 .date-cell {
-  height: 52px;
-  padding: 4px;
-  border-radius: var(--radius-sm);
+  height: 62px;
+  padding: 5px 4px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 1px;
+  gap: 2px;
   background: var(--surface-2);
   transition: background 0.15s ease, border-color 0.15s ease;
   overflow: hidden;
@@ -294,10 +294,10 @@ function formatAmount(amount: number): number | string {
 }
 
 .date-num {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .date-num.empty {
@@ -306,18 +306,18 @@ function formatAmount(amount: number): number | string {
 }
 
 .expense-amount {
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--expense);
-  line-height: 1;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .income-amount {
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--income);
-  line-height: 1;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
