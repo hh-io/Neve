@@ -1,150 +1,108 @@
 <template>
-  <div class="animate-fade-in-up">
-    <!-- Filters -->
-    <div class="filter-bar card-static section-mb">
-      <!-- Search -->
-      <div class="search-wrap">
-        <Search :size="16" color="var(--text-tertiary)" class="search-icon" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="搜索商家、备注..."
-          class="search-input"
-        />
-      </div>
-
-      <!-- Category Filter -->
-      <select v-model="categoryFilter" class="filter-select">
-        <option value="">所有分类</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ getCategoryLabel(cat) }}</option>
-      </select>
-
-      <!-- Type Filter(药丸分段) -->
-      <div class="filter-pills">
-        <button
-          v-for="opt in typeOptions"
-          :key="opt.value"
-          class="filter-pill"
-          :class="{ active: typeFilter === opt.value }"
-          @click="typeFilter = opt.value"
-        >{{ opt.label }}</button>
-      </div>
-
-      <!-- Reset -->
-      <button v-if="hasFilters" class="btn btn-ghost btn-clear" @click="resetFilters">
-        清除
-      </button>
-    </div>
-
-    <!-- Transaction List -->
-    <div class="tx-panel card-static">
-      <!-- Header -->
-      <div class="tx-panel-header">
-        <div class="tx-panel-title">
-          <div class="tx-panel-icon">
-            <ArrowRightLeft :size="16" color="var(--accent)" />
-          </div>
-          <span class="tx-panel-label">交易明细</span>
+  <div class="animate-fade-in-up tx-layout">
+    <!-- 左列:筛选 + 按日分组 -->
+    <div class="tx-main">
+      <!-- 筛选行 -->
+      <div class="tx-filters">
+        <div class="filter-pills">
+          <button
+            v-for="opt in typeOptions"
+            :key="opt.value"
+            class="filter-pill"
+            :class="{ active: typeFilter === opt.value }"
+            @click="typeFilter = opt.value"
+          >{{ opt.label }}</button>
         </div>
-        <span class="badge">共 {{ filteredTransactions.length }} 条</span>
+        <div class="tx-filters-spacer"></div>
+        <div class="tx-select-wrap">
+          <select v-model="categoryFilter" class="tx-select">
+            <option value="">所有分类</option>
+            <option v-for="cat in categories" :key="cat" :value="cat">{{ getCategoryLabel(cat) }}</option>
+          </select>
+          <ChevronDown :size="14" class="tx-select-caret" />
+        </div>
+        <div class="tx-search">
+          <Search :size="15" class="tx-search-icon" />
+          <input v-model="searchQuery" type="text" placeholder="搜索交易…" class="tx-search-input" />
+        </div>
       </div>
 
-      <!-- Empty State -->
-      <div v-if="processedTransactions.length === 0" class="tx-empty-state">
-        暂无匹配的交易记录
-      </div>
+      <!-- 空态 -->
+      <div v-if="processedTransactions.length === 0" class="tx-empty">暂无匹配的交易记录</div>
 
-      <!-- Scrollable Transaction List -->
-      <div v-else class="transaction-scroll-container">
-        <div v-for="group in groupedTransactions" :key="group.dateLabel" class="tx-group">
-          <!-- Date Header -->
-          <div class="tx-date-header">
-            <span class="date-label">{{ group.dateLabel }}</span>
-            <span class="date-total">
-              <span v-if="group.income > 0" class="date-income-text">+¥{{ group.income.toFixed(2) }}</span>
-              <span v-if="group.expense > 0" class="date-expense-text ml-2">-¥{{ group.expense.toFixed(2) }}</span>
-            </span>
+      <!-- 按日分组 -->
+      <template v-else>
+        <section v-for="group in groupedTransactions" :key="group.dateStr" class="section-card">
+          <div class="tx-day-head">
+            <span class="tx-day-date tabular-nums">{{ group.dateLabel }}</span>
+            <span class="tx-day-sum tabular-nums">支出 ¥{{ group.expense.toFixed(0) }} · 收入 ¥{{ group.income.toFixed(0) }}</span>
           </div>
-
-          <!-- Transactions in Group -->
-          <div
-            v-for="(tx, index) in group.items"
-            :key="`${tx.date}-${index}`"
-            class="transaction-row"
-          >
-            <!-- Icon -->
-            <div :class="['tx-icon', tx.iconClass]">
-              <component
-                :is="getCategoryIcon(tx.category)"
-                :size="20"
-                :color="tx.iconColor"
-              />
-            </div>
-            
-            <!-- Main Content -->
-            <div class="tx-content">
-              <!-- Top Row: Payee & Tags -->
-              <div class="tx-top">
-                <span class="tx-payee">{{ tx.payee || '未知交易' }}</span>
-                <div class="tx-tags">
-                  <span
-                    v-for="tag in (tx.tags || [])"
-                    :key="tag"
-                    class="tx-tag"
-                    :style="{ backgroundColor: getTagColor(tag) }"
-                  >#{{ tag }}</span>
+          <div>
+            <div
+              v-for="(tx, index) in group.items"
+              :key="`${tx.date}-${index}`"
+              class="tx-row"
+            >
+              <div class="tx-row-icon" :class="tx.iconClass">
+                <component :is="getCategoryIcon(tx.category)" :size="16" :color="tx.iconColor" />
+              </div>
+              <div class="tx-row-info">
+                <div class="tx-row-name">{{ tx.payee || '未知交易' }}</div>
+                <div class="tx-row-meta">
+                  <span class="tx-row-cat">{{ tx.isTransfer ? '转账' : getCategoryLabel(tx.category) }}</span>
+                  <span v-if="tx.narration" class="tx-row-narr">{{ tx.narration }}</span>
+                  <span class="tx-row-acct">{{ tx.accountShort }}</span>
                 </div>
               </div>
-              
-              <!-- Bottom Row: Category, Narration -->
-              <div class="tx-bottom">
-                <span class="tx-category-badge">{{ tx.isTransfer ? '转账' : getCategoryLabel(tx.category) }}</span>
-                <span v-if="tx.narration" class="tx-narration">{{ tx.narration }}</span>
+              <div class="tx-row-amount-col">
+                <div class="tx-row-amount tabular-nums" :class="tx.amountClass">{{ tx.amountText }}</div>
+                <div v-if="tx.isTransfer && tx.feeAmount > 0" class="tx-row-fee tabular-nums">手续费 ¥{{ tx.feeAmount.toFixed(2) }}</div>
               </div>
             </div>
-            
-            <!-- Amount & Account (Right Side) -->
-            <div class="tx-amount-col">
-              <div :class="['tx-amount', tx.amountClass]">{{ tx.amountText }}</div>
-              <div v-if="tx.isTransfer && tx.feeAmount > 0" class="tx-fee">手续费 ¥{{ tx.feeAmount.toFixed(2) }}</div>
-              <div class="tx-account">{{ tx.accountShort }}</div>
-            </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="pagination">
-        <button class="btn btn-secondary btn-sm" :disabled="currentPage === 1" @click="currentPage--">
-          ‹ 上一页
-        </button>
-        <div class="page-info">
-          <span class="current-page">{{ currentPage }}</span>
-          <span class="page-separator">/</span>
-          <span class="total-pages">{{ totalPages }}</span>
+        <!-- 分页 -->
+        <div v-if="totalPages > 1" class="tx-pagination">
+          <button class="btn btn-secondary btn-sm" :disabled="currentPage === 1" @click="currentPage--">‹ 上一页</button>
+          <div class="tx-page-info tabular-nums">
+            <span class="tx-current-page">{{ currentPage }}</span>
+            <span>/</span>
+            <span>{{ totalPages }}</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" :disabled="currentPage === totalPages" @click="currentPage++">下一页 ›</button>
         </div>
-        <button class="btn btn-secondary btn-sm" :disabled="currentPage === totalPages" @click="currentPage++">
-          下一页 ›
-        </button>
-      </div>
+      </template>
     </div>
+
+    <!-- 右列:粘性月历 -->
+    <section class="section-card tx-cal">
+      <div class="section-head">
+        <h3 class="section-title"><Calendar :size="16" class="sec-ic" />交易日历</h3>
+      </div>
+      <div class="section-body">
+        <TransactionCalendar :dailyData="dailyTrend" />
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Search, ArrowRightLeft } from '@lucide/vue';
+import { Search, ChevronDown, Calendar } from '@lucide/vue';
 import type { ProcessedTransaction } from '../../composables/useCategories';
 import {
   getCategoryLabel,
   processTransaction,
   getRelativeDateLabel,
-  getTagColor
 } from '../../composables/useCategories';
 import { getCategoryIcon } from '../../composables/useCategoryIcon';
 import { useAnalytics } from '../../composables/useAnalytics';
+import TransactionCalendar from '../TransactionCalendar.vue';
 
 const { analytics } = useAnalytics();
+
+const dailyTrend = computed(() => analytics.value?.dailyTrend || []);
 
 interface DateGroup {
   dateStr: string;
@@ -156,8 +114,8 @@ interface DateGroup {
 
 const typeOptions = [
   { value: '', label: '全部' },
-  { value: 'expense', label: '支出' },
   { value: 'income', label: '收入' },
+  { value: 'expense', label: '支出' },
   { value: 'transfer', label: '转账' }
 ] as const;
 
@@ -178,37 +136,28 @@ const categories = computed(() => {
   return Array.from(cats).sort();
 });
 
-const hasFilters = computed(() => searchQuery.value || categoryFilter.value || typeFilter.value);
-
-function resetFilters() {
-  searchQuery.value = '';
-  categoryFilter.value = '';
-  typeFilter.value = '';
-  currentPage.value = 1;
-}
-
 const filteredTransactions = computed(() => {
   let result = processedTransactions.value;
-  
+
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
-    result = result.filter(t => 
+    result = result.filter(t =>
       (t.payee && t.payee.toLowerCase().includes(q)) ||
       (t.narration && t.narration.toLowerCase().includes(q)) ||
       (t.category && t.category.toLowerCase().includes(q))
     );
   }
-  
+
   if (categoryFilter.value) {
     result = result.filter(t => t.category === categoryFilter.value);
   }
-  
+
   if (typeFilter.value) {
     if (typeFilter.value === 'expense') result = result.filter(t => !t.isIncome && !t.isTransfer);
     else if (typeFilter.value === 'income') result = result.filter(t => t.isIncome);
     else if (typeFilter.value === 'transfer') result = result.filter(t => t.isTransfer);
   }
-  
+
   return result;
 });
 
@@ -256,243 +205,150 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
+.tx-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-4);
+  align-items: start;
 }
 
-.search-wrap {
-  flex: 1;
-  min-width: 200px;
+.tx-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* ===== 筛选行 ===== */
+.tx-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.tx-filters-spacer { flex: 1; }
+
+.tx-select-wrap {
   position: relative;
 }
 
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
-  border: 1px solid var(--hairline);
+.tx-select {
+  appearance: none;
+  padding: 6px 28px 6px 12px;
   border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  outline: none;
-  transition: border-color var(--transition-base);
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-}
-
-.filter-select {
-  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-primary);
+  background: var(--surface-1);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  min-width: 100px;
-  outline: none;
   cursor: pointer;
 }
 
-.btn-clear {
-  font-size: var(--font-size-sm);
+.tx-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.badge {
-  padding: var(--space-1) var(--space-2);
-  background: var(--surface-2);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+.tx-select-caret {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
 }
 
-.tx-panel {
-  padding: var(--space-4);
-  height: calc(100vh - 340px);
-  min-height: 350px;
+.tx-search {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  align-items: center;
 }
 
-.tx-panel-header {
+.tx-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.tx-search-input {
+  padding: 6px 12px 6px 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  width: 180px;
+}
+
+.tx-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* ===== 日分组 ===== */
+.tx-day-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-3);
-  padding-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--hairline);
+  background: var(--surface-2);
 }
 
-.tx-panel-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.tx-panel-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  background: var(--accent-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.tx-panel-label {
+.tx-day-date {
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
-  font-size: var(--font-size-base);
 }
 
-.tx-empty-state {
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--text-tertiary);
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.transaction-scroll-container {
-  overflow-y: auto;
-  padding-right: var(--space-2);
-  flex: 1;
-  /* Ensure a minimum height if flex content is small, but flex:1 usually handles it */
-  min-height: 0; 
-}
-
-.transaction-scroll-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.transaction-scroll-container::-webkit-scrollbar-track {
-  background: var(--surface-2);
-  border-radius: 3px;
-}
-
-.transaction-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--hairline);
-  border-radius: 3px;
-}
-
-.transaction-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-}
-
-/* Group & Headers */
-.tx-group {
-  margin-bottom: var(--space-4);
-}
-
-.tx-date-header {
-  position: sticky;
-  top: 0;
-  background-color: var(--surface-1);
-  z-index: 10;
-  padding: var(--space-2) var(--space-1);
+.tx-day-sum {
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
-  font-weight: 500;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
-.date-total {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.date-income-text {
-  color: var(--income);
-}
-
-.date-expense-text {
-  color: var(--expense);
-}
-
-.ml-2 { margin-left: 8px; }
-
-/* Transaction Row */
-.transaction-row {
+.tx-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--hairline);
   transition: background var(--transition-base);
-  margin-bottom: 2px;
 }
 
-.transaction-row:hover {
-  background: var(--surface-2);
-}
+.tx-row:last-child { border-bottom: none; }
+.tx-row:hover { background: var(--surface-2); }
 
-.tx-icon {
-  width: 40px;
-  height: 40px;
+.tx-row-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.tx-content {
+.tx-row-info {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
-.tx-top {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.tx-payee {
-  font-weight: 500;
+.tx-row-name {
+  font-size: var(--font-size-sm);
+  font-weight: 550;
   color: var(--text-primary);
-  font-size: var(--font-size-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tx-tags {
-  display: flex;
-  gap: 4px;
-}
-
-.tx-tag {
-  padding: 0px 4px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  white-space: nowrap;
-  /* 背景为运行时固定浅色药丸(getTagColor),文字用固定深色,保证三主题下均可读 */
-  color: #374151;
-}
-
-.tx-bottom {
+.tx-row-meta {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   white-space: nowrap;
@@ -500,92 +356,67 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
   text-overflow: ellipsis;
 }
 
-.tx-category-badge {
+.tx-row-cat {
   padding: 1px 6px;
-  background: var(--surface-2);
+  background: var(--surface-3);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  margin-right: 6px;
-  font-size: 11px;
 }
 
-.tx-narration {
-  color: var(--text-secondary);
+.tx-row-narr {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tx-account {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-}
+.tx-row-acct { color: var(--text-tertiary); }
 
-.tx-amount-col {
+.tx-row-amount-col {
+  flex: none;
   text-align: right;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end; /* Align amount and account to right */
 }
 
-.tx-amount {
+.tx-row-amount {
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  font-size: var(--font-size-base);
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
 }
 
-.text-income {
-  color: var(--income);
-}
-
-.text-expense {
-  color: var(--expense);
-}
-
-.text-transfer {
-  color: var(--text-secondary);
-}
-
-.bg-income-light {
-  background: var(--income-light);
-}
-
-.bg-expense-light {
-  background: var(--expense-light);
-}
-
-.bg-brand-light {
-  background: var(--accent-subtle);
-}
-
-.tx-fee {
+.tx-row-fee {
   font-size: 10px;
   color: var(--text-tertiary);
 }
 
-/* Pagination */
-.pagination {
+/* 交易类型色(图标底 + 金额字) */
+.bg-income-light { background: var(--income-light); }
+.bg-expense-light { background: var(--expense-light); }
+.bg-brand-light { background: var(--accent-subtle); }
+.text-income { color: var(--income); }
+.text-expense { color: var(--expense); }
+.text-transfer { color: var(--text-secondary); }
+
+.tx-empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* ===== 分页 ===== */
+.tx-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-2);
 }
 
-.page-info {
+.tx-page-info {
   display: flex;
   align-items: center;
   gap: var(--space-1);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
 }
 
-.current-page {
+.tx-current-page {
   font-weight: 600;
   color: var(--accent);
 }
@@ -593,5 +424,16 @@ watch([searchQuery, categoryFilter, typeFilter], () => {
 .btn-sm {
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-xs);
+}
+
+/* ===== 粘性日历 ===== */
+.tx-cal {
+  position: sticky;
+  top: var(--space-5);
+}
+
+@media (max-width: 1024px) {
+  .tx-layout { grid-template-columns: 1fr; }
+  .tx-cal { position: static; }
 }
 </style>

@@ -185,6 +185,53 @@
     color: var(--text-secondary);
 }
 
+/* ========== Section Card(设计稿卡片:带下边框标题头 + 内容区,全 Tab 通用) ========== */
+.section-card {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--hairline);
+}
+
+.section-title {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 620;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.section-title .sec-ic {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.section-count {
+    color: var(--text-tertiary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.section-sub {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.section-body {
+    padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
 /* ========== Filter Pills(Revolut 式分段药丸:轨道 surface-2,选中 surface-1 提升) ========== */
 .filter-pills {
     display: inline-flex;

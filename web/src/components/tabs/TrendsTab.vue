@@ -1,167 +1,99 @@
 <template>
-  <div class="animate-fade-in-up">
-    <!-- Trend Period Selector -->
-    <div class="card-static section-mb period-bar">
-      <div class="period-title">
-        <div class="panel-icon bg-brand-light period-icon">
-          <LineChartIcon :size="18" color="var(--accent)" />
+  <div class="animate-fade-in-up tr">
+    <!-- 月度收支走势 -->
+    <section class="section-card">
+      <div class="section-head">
+        <h3 class="section-title">收支走势</h3>
+        <div class="filter-pills">
+          <button
+            v-for="period in periods"
+            :key="period.value"
+            class="filter-pill"
+            :class="{ active: selectedPeriod === period.value }"
+            @click="selectedPeriod = period.value"
+          >
+            {{ period.label }}
+          </button>
         </div>
-        <span class="period-label">趋势周期</span>
       </div>
-      <div class="filter-pills">
-        <button
-          v-for="period in periods"
-          :key="period.value"
-          class="filter-pill"
-          :class="{ active: selectedPeriod === period.value }"
-          @click="selectedPeriod = period.value"
-        >
-          {{ period.label }}
-        </button>
+      <div class="section-body tr-trend-body">
+        <v-chart v-if="trendData && trendData.length > 0" class="tr-trend" :option="trendChartOption" autoresize />
+        <div v-else class="tr-empty tr-empty-trend">暂无趋势数据</div>
       </div>
+    </section>
+
+    <!-- 分类消费环比 + 按星期几分布 -->
+    <div class="tr-row">
+      <section class="section-card">
+        <div class="section-head">
+          <h3 class="section-title">分类消费环比</h3>
+        </div>
+        <div class="section-body">
+          <CategoryTrend v-if="categoryTrends.length > 0" :data="categoryTrends" />
+          <div v-else class="tr-empty tr-empty-sm">暂无分类趋势数据</div>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <div class="section-head">
+          <h3 class="section-title">按星期几的消费分布</h3>
+        </div>
+        <div class="section-body">
+          <WeekdayChart v-if="weekdayDistribution.length > 0" :data="weekdayDistribution" />
+          <div v-else class="tr-empty tr-empty-sm">暂无周消费数据</div>
+        </div>
+      </section>
     </div>
 
-    <!-- Main Trend Chart + Transaction Calendar (Side by Side) -->
-    <div class="grid-7-3 section-mb">
-      <!-- Main Trend Chart -->
-      <div class="card-static panel">
-        <div class="panel-head">
-          <div class="panel-head-left">
-            <div class="panel-icon bg-info-light">
-              <TrendingUp :size="20" color="var(--info)" />
-            </div>
-            <span class="panel-title">收支趋势</span>
-          </div>
-          <div class="series-legend">
-            <button
-              class="series-toggle"
-              :class="{ off: !seriesVisible.income }"
-              @click="toggleSeries('income')"
-            >
-              <span class="series-dot dot-income"></span>
-              <span class="series-name">收入</span>
-            </button>
-            <button
-              class="series-toggle"
-              :class="{ off: !seriesVisible.expense }"
-              @click="toggleSeries('expense')"
-            >
-              <span class="series-dot dot-expense"></span>
-              <span class="series-name">支出</span>
-            </button>
-          </div>
-        </div>
-        <div class="chart-xl">
-          <v-chart v-if="trendData && trendData.length > 0" :option="trendChartOption" autoresize />
-          <div v-else class="chart-empty chart-empty-full">暂无趋势数据</div>
-        </div>
+    <!-- 消费日历热力图 -->
+    <section class="section-card">
+      <div class="section-head">
+        <h3 class="section-title">消费日历热力图</h3>
+        <span class="section-sub">每格 = 当日支出强度 · {{ currentYear }} 年</span>
       </div>
+      <div class="section-body tr-heat-body">
+        <v-chart v-if="heatmapOption" class="tr-heat" :option="heatmapOption" autoresize />
+        <div v-else class="tr-empty tr-empty-heat">暂无足够数据生成热力图</div>
+      </div>
+    </section>
 
-      <!-- Transaction Calendar -->
-      <div class="card-static panel">
-        <div class="panel-head">
-          <div class="panel-head-left">
-            <div class="panel-icon bg-brand-light">
-              <Calendar :size="20" color="var(--accent)" />
-            </div>
-            <span class="panel-title">交易日历</span>
-          </div>
+    <!-- 年度报告排行 -->
+    <div class="tr-row">
+      <section class="section-card">
+        <div class="section-head">
+          <h3 class="section-title"><Trophy :size="16" class="sec-ic" />年度“剁手”商户 Top 5</h3>
         </div>
-        <TransactionCalendar :dailyData="dailyTrend" />
-      </div>
-    </div>
+        <div class="section-body">
+          <div v-if="topPayees.length > 0">
+            <div v-for="item in topPayees" :key="item.name" class="tr-report-row">
+              <div class="tr-report-left">
+                <span class="tr-report-rank">{{ item.rank }}</span>
+                <span class="tr-report-name">{{ item.name }}</span>
+              </div>
+              <span class="tr-report-value tabular-nums">¥{{ Number(item.amount).toFixed(2) }}</span>
+            </div>
+          </div>
+          <div v-else class="tr-empty tr-empty-sm">暂无商户排行数据</div>
+        </div>
+      </section>
 
-    <!-- Expense Heatmap -->
-    <div class="card-static section-mb panel">
-      <div class="panel-head">
-        <div class="panel-head-left">
-          <div class="panel-icon bg-warning-light">
-            <Calendar :size="20" color="var(--warning)" />
-          </div>
-          <span class="panel-title">消费日历热力图</span>
+      <section class="section-card">
+        <div class="section-head">
+          <h3 class="section-title"><Tag :size="16" class="sec-ic" />高频生活标签 Top 5</h3>
         </div>
-      </div>
-      <div class="chart-heatmap">
-        <v-chart v-if="heatmapOption" :option="heatmapOption" autoresize />
-        <div v-else class="chart-empty chart-empty-full">暂无足够数据生成热力图</div>
-      </div>
-    </div>
-
-    <!-- Weekday Distribution -->
-    <div class="grid-1-1 section-mb">
-      <div class="card-static panel">
-        <div class="panel-head">
-          <div class="panel-head-left">
-            <div class="panel-icon bg-warning-light">
-              <Calendar :size="20" color="var(--warning)" />
+        <div class="section-body">
+          <div v-if="topTags.length > 0">
+            <div v-for="item in topTags" :key="item.name" class="tr-report-row">
+              <div class="tr-report-left">
+                <span class="tr-report-rank">{{ item.rank }}</span>
+                <span class="tr-report-name">#{{ item.name }}</span>
+              </div>
+              <span class="tr-report-value tabular-nums">{{ item.value }}</span>
             </div>
-            <span class="panel-title">周消费分布</span>
           </div>
+          <div v-else class="tr-empty tr-empty-sm">暂无标签排行数据</div>
         </div>
-        <WeekdayChart v-if="weekdayDistribution.length > 0" :data="weekdayDistribution" />
-        <div v-else class="chart-sm chart-empty">暂无周消费数据</div>
-      </div>
-
-      <!-- Category Trend -->
-      <div class="card-static panel">
-        <div class="panel-head">
-          <div class="panel-head-left">
-            <div class="panel-icon bg-expense-light">
-              <Tag :size="20" color="var(--expense)" />
-            </div>
-            <span class="panel-title">分类消费环比</span>
-          </div>
-        </div>
-        <CategoryTrend v-if="categoryTrends.length > 0" :data="categoryTrends" />
-        <div v-else class="chart-sm chart-empty">暂无分类趋势数据</div>
-      </div>
-    </div>
-
-    <!-- Annual Report Style Rankings -->
-    <div class="grid-1-1 section-mb">
-      <!-- Top Payees -->
-      <div class="card-static panel">
-        <div class="panel-head">
-          <div class="panel-head-left">
-            <div class="panel-icon bg-brand-light">
-              <Trophy :size="20" color="var(--accent)" />
-            </div>
-            <span class="panel-title">年度“剁手”商户 Top 5</span>
-          </div>
-        </div>
-        <div v-if="topPayees.length > 0">
-          <div v-for="item in topPayees" :key="item.name" class="report-row">
-            <div class="report-left">
-              <span class="report-rank" :style="{ color: getRankColor(item.rank) }">#{{ item.rank }}</span>
-              <span class="report-name">{{ item.name }}</span>
-            </div>
-            <span class="report-value">¥{{ Number(item.amount).toFixed(2) }}</span>
-          </div>
-        </div>
-        <div v-else class="report-empty">暂无商户排行数据</div>
-      </div>
-
-      <!-- Top Tags -->
-      <div class="card-static panel">
-        <div class="panel-head">
-          <div class="panel-head-left">
-            <div class="panel-icon bg-info-light">
-              <Tag :size="20" color="var(--info)" />
-            </div>
-            <span class="panel-title">高频生活标签 Top 5</span>
-          </div>
-        </div>
-        <div v-if="topTags.length > 0">
-          <div v-for="item in topTags" :key="item.name" class="report-row">
-            <div class="report-left">
-              <span class="report-rank" :style="{ color: getRankColor(item.rank) }">#{{ item.rank }}</span>
-              <span class="report-name">#{{ item.name }}</span>
-            </div>
-            <span class="report-value">{{ item.value }}</span>
-          </div>
-        </div>
-        <div v-else class="report-empty">暂无标签排行数据</div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -175,10 +107,9 @@ import { GridComponent, TooltipComponent, LegendComponent, CalendarComponent, Vi
 import { CanvasRenderer } from 'echarts/renderers';
 import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
-import TransactionCalendar from '../TransactionCalendar.vue';
 import type { DailyData, WeeklyData, MonthlyData } from '../../types/api';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
-import { LineChart as LineChartIcon, TrendingUp, Calendar, Tag, Trophy } from '@lucide/vue';
+import { Tag, Trophy } from '@lucide/vue';
 import { useAnalytics } from '../../composables/useAnalytics';
 
 use([LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
@@ -188,6 +119,7 @@ const { analytics } = useAnalytics();
 const dailyTrend = computed(() => analytics.value?.dailyTrend || []);
 const weekdayDistribution = computed(() => analytics.value?.weekdayDistribution || []);
 const categoryTrends = computed(() => analytics.value?.categoryTrends || []);
+const currentYear = new Date().getFullYear();
 
 type Period = 'day' | 'week' | 'month';
 const periods: { value: Period; label: string }[] = [
@@ -196,16 +128,6 @@ const periods: { value: Period; label: string }[] = [
   { value: 'month', label: '月' },
 ];
 const selectedPeriod = ref<Period>('day');
-
-// Series visibility state
-const seriesVisible = ref({
-  income: true,
-  expense: true
-});
-
-const toggleSeries = (series: 'income' | 'expense') => {
-  seriesVisible.value[series] = !seriesVisible.value[series];
-};
 
 // Get the appropriate trend data based on selected period
 const trendData = computed<(DailyData | WeeklyData | MonthlyData)[]>(() => {
@@ -251,7 +173,16 @@ const trendChartOption = computed(() => {
       borderColor: getThemeColor('--hairline'),
       textStyle: { color: getThemeColor('--text-primary') }
     },
-    grid: { left: 50, right: 20, top: 20, bottom: 30 },
+    legend: {
+      data: ['收入', '支出'],
+      top: 0,
+      right: 0,
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: axisColor, fontSize: 12 }
+    },
+    grid: { left: 50, right: 20, top: 30, bottom: 30 },
     xAxis: {
       type: 'category',
       data: data.map(d => formatLabel(d)),
@@ -275,10 +206,10 @@ const trendChartOption = computed(() => {
         smooth: true,
         symbol: 'circle',
         symbolSize: selectedPeriod.value === 'day' ? 4 : 6,
-        lineStyle: { color: incomeColor, width: 2, opacity: seriesVisible.value.income ? 1 : 0 },
-        itemStyle: { color: incomeColor, opacity: seriesVisible.value.income ? 1 : 0 },
-        areaStyle: seriesVisible.value.income ? { color: areaGradient(incomeColor) } : { opacity: 0 },
-        data: seriesVisible.value.income ? data.map(d => d.income) : data.map(() => null)
+        lineStyle: { color: incomeColor, width: 2 },
+        itemStyle: { color: incomeColor },
+        areaStyle: { color: areaGradient(incomeColor) },
+        data: data.map(d => d.income)
       },
       {
         name: '支出',
@@ -286,10 +217,10 @@ const trendChartOption = computed(() => {
         smooth: true,
         symbol: 'circle',
         symbolSize: selectedPeriod.value === 'day' ? 4 : 6,
-        lineStyle: { color: expenseColor, width: 2, opacity: seriesVisible.value.expense ? 1 : 0 },
-        itemStyle: { color: expenseColor, opacity: seriesVisible.value.expense ? 1 : 0 },
-        areaStyle: seriesVisible.value.expense ? { color: areaGradient(expenseColor) } : { opacity: 0 },
-        data: seriesVisible.value.expense ? data.map(d => Math.abs(d.expense)) : data.map(() => null)
+        lineStyle: { color: expenseColor, width: 2 },
+        itemStyle: { color: expenseColor },
+        areaStyle: { color: areaGradient(expenseColor) },
+        data: data.map(d => Math.abs(d.expense))
       }
     ]
   };
@@ -335,7 +266,7 @@ const heatmapOption = computed(() => {
       left: 30,
       right: 30,
       cellSize: ['auto', 16],
-      range: new Date().getFullYear(), // Current Year
+      range: currentYear, // Current Year
       itemStyle: {
         color: 'transparent',
         borderColor: getThemeColor('--hairline'),
@@ -373,105 +304,40 @@ const topTags = computed(() =>
     .slice(0, 5)
     .map((item, index) => ({ rank: index + 1, name: item.tag, value: `${item.count}次` }))
 );
-
-function getRankColor(rank: number): string {
-  if (rank === 1) return '#FFD700'; // Gold
-  if (rank === 2) return '#C0C0C0'; // Silver
-  if (rank === 3) return '#CD7F32'; // Bronze
-  return 'var(--text-tertiary)';
-}
 </script>
 
 <style scoped>
-/* 周期选择条 */
-.period-bar {
-  padding: var(--space-4);
+.tr {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-4);
 }
 
-.period-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.tr-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-4);
 }
 
-.period-icon {
-  width: 36px;
-  height: 36px;
-}
+.tr-trend-body { padding: var(--space-5); }
+.tr-trend { height: 300px; }
 
-.period-label {
-  font-weight: 500;
-  color: var(--text-primary);
-}
+.tr-heat-body { padding: var(--space-4) var(--space-5) var(--space-3); }
+.tr-heat { height: 200px; }
 
-/* 收支趋势图例(可切换显隐) */
-.series-legend {
-  display: flex;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-}
-
-.series-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: var(--surface-2);
-  border: none;
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  transition: opacity var(--transition-base), background var(--transition-base);
-}
-
-.series-toggle.off {
-  opacity: 0.4;
-  background: transparent;
-}
-
-.series-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.dot-income {
-  background: var(--income);
-}
-
-.dot-expense {
-  background: var(--expense);
-}
-
-/* 图表容器高度 */
-.chart-xl {
-  height: 380px;
-}
-
-.chart-heatmap {
-  height: 180px;
-}
-
-.chart-sm {
-  height: 200px;
-}
-
-.chart-empty {
+.tr-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);
 }
 
-.chart-empty-full {
-  height: 100%;
-}
+.tr-empty-trend { height: 300px; }
+.tr-empty-heat { height: 200px; }
+.tr-empty-sm { height: 190px; }
 
 /* 年度报告排行行 */
-.report-row {
+.tr-report-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -479,31 +345,32 @@ function getRankColor(rank: number): string {
   border-bottom: 1px solid var(--hairline);
 }
 
-.report-left {
+.tr-report-row:last-child { border-bottom: none; }
+
+.tr-report-left {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.report-rank {
-  font-weight: bold;
-  min-width: 20px;
-}
-
-.report-name {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.report-value {
-  font-weight: 600;
-  color: var(--text-primary);
+.tr-report-rank {
+  width: 18px;
+  text-align: right;
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
-.report-empty {
-  padding: var(--space-4);
-  text-align: center;
-  color: var(--text-tertiary);
+.tr-report-name {
+  color: var(--text-primary);
+  font-weight: 550;
+}
+
+.tr-report-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (max-width: 1024px) {
+  .tr-row { grid-template-columns: 1fr; }
 }
 </style>

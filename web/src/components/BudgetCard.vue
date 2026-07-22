@@ -1,85 +1,105 @@
 <template>
-  <div class="card-static budget-card">
-    <div class="budget-header">
-      <h3 class="budget-title">本月预算</h3>
-      <button class="edit-btn" @click="showEdit = !showEdit">
-        {{ showEdit ? '完成' : '设置' }}
-      </button>
-    </div>
-
-    <!-- Edit Mode -->
-    <div v-if="showEdit" class="budget-edit">
-      <div v-for="(budget, cat) in budgets" :key="cat" class="budget-edit-row">
-        <span class="budget-cat">{{ cat }}</span>
-        <input
-          type="number"
-          :value="budget"
-          class="budget-input"
-          placeholder="0"
-          @change="updateBudget(cat, ($event.target as HTMLInputElement).value)"
-        />
-        <button class="delete-btn" title="删除" @click="deleteBudget(cat)">×</button>
+  <div class="bg">
+    <!-- 汇总:预算总额 / 已使用 / 剩余可用 -->
+    <div class="bg-summary">
+      <div class="card bg-sum-card">
+        <span class="bg-sum-label">本月预算总额</span>
+        <span class="bg-sum-value tabular-nums">¥{{ totalBudget.toFixed(0) }}</span>
       </div>
-      <div class="budget-edit-row add-row">
-        <input 
-          v-model="newCategory" 
-          class="budget-select"
-          placeholder="输入分类名称..."
-          list="category-suggestions"
-        />
-        <datalist id="category-suggestions">
-          <option v-for="cat in availableCategories" :key="cat" :value="cat" />
-        </datalist>
-        <button class="add-btn" :disabled="!newCategory" @click="addBudget">+</button>
+      <div class="card bg-sum-card">
+        <span class="bg-sum-label">已使用</span>
+        <span class="bg-sum-value tabular-nums">¥{{ totalSpent.toFixed(0) }}</span>
       </div>
-    </div>
-
-    <!-- Display Mode -->
-    <div v-else class="budget-list">
-      <div v-for="(budget, cat) in budgets" :key="cat" class="budget-item">
-        <div class="budget-info">
-          <span class="budget-category">{{ cat }}</span>
-          <span class="budget-amount">
-            ¥{{ getSpent(cat).toFixed(0) }} / ¥{{ budget }}
-          </span>
-        </div>
-        <div class="budget-progress-wrap">
-          <div 
-            class="budget-progress" 
-            :style="{ width: Math.min(getProgress(cat), 100) + '%' }"
-            :class="{ over: getProgress(cat) > 100, warning: getProgress(cat) > 80 }"
-          ></div>
-        </div>
-        <span class="budget-percent" :class="{ over: getProgress(cat) > 100 }">
-          {{ getProgress(cat).toFixed(0) }}%
+      <div class="card bg-sum-card" :class="{ 'bg-sum-alert': overCount > 0 }">
+        <span class="bg-sum-label">剩余可用 · <span class="tabular-nums">{{ overCount }}</span> 项超支</span>
+        <span class="bg-sum-value tabular-nums" :style="{ color: budgetLeft < 0 ? 'var(--expense)' : 'var(--text-primary)' }">
+          ¥{{ budgetLeft.toFixed(0) }}
         </span>
       </div>
-      <div v-if="Object.keys(budgets).length === 0" class="empty-state">
-        点击"设置"添加预算
-      </div>
     </div>
 
-    <!-- Total -->
-    <div v-if="Object.keys(budgets).length > 0 && !showEdit" class="budget-total">
-      <div class="total-row">
-        <span>总预算</span>
-        <span>¥{{ totalSpent.toFixed(0) }} / ¥{{ totalBudget }}</span>
+    <!-- 分类预算进度 -->
+    <section class="section-card">
+      <div class="section-head">
+        <h3 class="section-title">分类预算进度</h3>
+        <button class="bg-edit-btn" @click="showEdit = !showEdit">
+          <component :is="showEdit ? Check : Pencil" :size="14" />
+          {{ showEdit ? '完成' : '编辑配置' }}
+        </button>
       </div>
-      <div class="budget-progress-wrap">
-        <div 
-          class="budget-progress" 
-          :style="{ width: Math.min(totalProgress, 100) + '%' }"
-          :class="{ over: totalProgress > 100, warning: totalProgress > 80 }"
-        ></div>
+
+      <!-- 编辑 -->
+      <div v-if="showEdit" class="section-body bg-edit">
+        <div class="bg-edit-labels">
+          <span>分类</span><span>月度预算</span><span></span>
+        </div>
+        <div v-for="(budget, cat) in budgets" :key="cat" class="bg-edit-row">
+          <span class="bg-edit-cat">
+            <component :is="getCategoryIcon(cat)" :size="15" class="bg-edit-cat-ic" />
+            {{ getCategoryLabel(cat) }}
+            <span class="bg-edit-spent tabular-nums">已花 ¥{{ getSpent(cat).toFixed(0) }}</span>
+          </span>
+          <div class="bg-input-wrap">
+            <span class="bg-input-prefix">¥</span>
+            <input
+              type="number"
+              min="0"
+              :value="budget"
+              class="bg-input tabular-nums"
+              @input="updateBudget(cat, ($event.target as HTMLInputElement).value)"
+            />
+          </div>
+          <button class="bg-del-btn" title="删除分类" @click="deleteBudget(cat)">
+            <Trash2 :size="15" />
+          </button>
+        </div>
+        <!-- 新增分类 -->
+        <div class="bg-edit-add">
+          <div class="bg-select-wrap">
+            <select v-model="newCategory" class="bg-select">
+              <option value="" disabled>选择分类</option>
+              <option v-for="cat in availableCategories" :key="cat" :value="cat">{{ getCategoryLabel(cat) }}</option>
+            </select>
+            <ChevronDown :size="15" class="bg-select-caret" />
+          </div>
+          <div class="bg-input-wrap">
+            <span class="bg-input-prefix">¥</span>
+            <input v-model.number="newAmount" type="number" min="0" placeholder="金额" class="bg-input tabular-nums" />
+          </div>
+          <button class="bg-add-btn" title="添加" :disabled="!newCategory || !newAmount" @click="addBudget">
+            <Plus :size="16" />
+          </button>
+        </div>
       </div>
-    </div>
+
+      <!-- 视图 -->
+      <div v-else-if="budgetRows.length > 0" class="section-body bg-bars">
+        <div v-for="row in budgetRows" :key="row.cat" class="bg-bar-item">
+          <div class="bg-bar-head">
+            <span class="bg-bar-name">
+              <component :is="getCategoryIcon(row.cat)" :size="15" class="bg-bar-ic" />
+              {{ getCategoryLabel(row.cat) }}
+              <span v-if="row.over" class="bg-over-badge">超支</span>
+            </span>
+            <span class="bg-bar-nums tabular-nums">¥{{ row.spent.toFixed(0) }} / ¥{{ row.limit.toFixed(0) }}</span>
+          </div>
+          <div class="progress-bar bg-bar-track">
+            <div class="progress-fill" :style="{ width: Math.min(row.pct, 100) + '%', background: row.color }"></div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="section-body bg-empty">点击“编辑配置”添加预算分类</div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { Pencil, Check, Plus, Trash2, ChevronDown } from '@lucide/vue';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useBudgets } from '../composables/useBudgets';
+import { getCategoryLabel } from '../composables/useCategories';
+import { getCategoryIcon } from '../composables/useCategoryIcon';
 
 const { analytics } = useAnalytics();
 const { budgets, loadBudgets, saveBudgets } = useBudgets();
@@ -89,6 +109,7 @@ const allCategories = computed(() => expenseByCategory.value.map(e => e.category
 
 const showEdit = ref(false);
 const newCategory = ref('');
+const newAmount = ref<number | null>(null);
 
 onMounted(loadBudgets);
 
@@ -110,6 +131,22 @@ function getProgress(category: string): number {
   return (spent / budget) * 100;
 }
 
+// 进度条颜色:超支红 / 临界(>80%)黄 / 正常靛蓝
+function barColor(pct: number): string {
+  if (pct > 100) return 'var(--expense)';
+  if (pct > 80) return 'var(--warning)';
+  return 'var(--accent)';
+}
+
+const budgetRows = computed(() =>
+  Object.keys(budgets.value).map(cat => {
+    const spent = getSpent(cat);
+    const limit = budgets.value[cat];
+    const pct = getProgress(cat);
+    return { cat, spent, limit, pct, over: pct > 100, color: barColor(pct) };
+  })
+);
+
 function updateBudget(category: string, value: string) {
   const num = parseFloat(value);
   if (num > 0) {
@@ -120,9 +157,10 @@ function updateBudget(category: string, value: string) {
 }
 
 function addBudget() {
-  if (newCategory.value && !budgets.value[newCategory.value]) {
-    budgets.value[newCategory.value] = 1000;
+  if (newCategory.value && newAmount.value && !budgets.value[newCategory.value]) {
+    budgets.value[newCategory.value] = newAmount.value;
     newCategory.value = '';
+    newAmount.value = null;
   }
 }
 
@@ -130,202 +168,247 @@ function deleteBudget(category: string) {
   delete budgets.value[category];
 }
 
-const totalBudget = computed(() => {
-  return Object.values(budgets.value).reduce((sum, b) => sum + b, 0);
-});
-
-const totalSpent = computed(() => {
-  return Object.keys(budgets.value).reduce((sum, cat) => sum + getSpent(cat), 0);
-});
-
-const totalProgress = computed(() => {
-  return totalBudget.value > 0 ? (totalSpent.value / totalBudget.value) * 100 : 0;
-});
+const totalBudget = computed(() => Object.values(budgets.value).reduce((sum, b) => sum + b, 0));
+const totalSpent = computed(() => Object.keys(budgets.value).reduce((sum, cat) => sum + getSpent(cat), 0));
+const budgetLeft = computed(() => totalBudget.value - totalSpent.value);
+const overCount = computed(() => Object.keys(budgets.value).filter(cat => getProgress(cat) > 100).length);
 </script>
 
 <style scoped>
-.budget-card {
-  min-height: 200px;
-  padding: var(--card-pad);
-}
-
-.budget-header {
+.bg {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.budget-title {
-  margin: 0;
-  font-size: var(--font-size-base);
-  font-weight: 600;
+/* ===== 汇总卡 ===== */
+.bg-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.bg-sum-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bg-sum-alert { border-color: var(--warning); }
+
+.bg-sum-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.bg-sum-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+}
+
+/* ===== 编辑按钮 ===== */
+.bg-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base);
+}
+
+.bg-edit-btn:hover {
+  border-color: var(--hairline-strong);
   color: var(--text-primary);
 }
 
-.edit-btn {
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  background: var(--accent-subtle);
-  color: var(--accent);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.budget-list {
+/* ===== 进度条视图 ===== */
+.bg-bars {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-5);
 }
 
-.budget-item {
-  display: grid;
-  grid-template-columns: 1fr 120px 50px;
+.bg-bar-head {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.bg-bar-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 550;
+  color: var(--text-primary);
+}
+
+.bg-bar-ic { color: var(--text-tertiary); }
+
+.bg-over-badge {
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--expense-light);
+  color: var(--expense);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bg-bar-nums {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.bg-bar-track { height: 8px; }
+
+/* ===== 编辑视图 ===== */
+.bg-edit {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
 }
 
-.budget-info {
-  display: flex;
-  flex-direction: column;
+.bg-edit-labels,
+.bg-edit-row,
+.bg-edit-add {
+  display: grid;
+  grid-template-columns: 1fr 160px 40px;
+  gap: var(--space-3);
+  align-items: center;
 }
 
-.budget-category {
-  font-weight: 500;
-  font-size: var(--font-size-sm);
-}
-
-.budget-amount {
-  font-size: 12px;
+.bg-edit-labels {
+  font-size: var(--font-size-xs);
   color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
+  padding: 0 var(--space-1);
 }
 
-.budget-progress-wrap {
-  height: 6px;
-  background: var(--surface-2);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.budget-progress {
-  height: 100%;
-  background: var(--income);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.budget-progress.warning {
-  background: var(--warning);
-}
-
-.budget-progress.over {
-  background: var(--expense);
-}
-
-.budget-percent {
+.bg-edit-cat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  text-align: right;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  color: var(--text-primary);
 }
 
-.budget-percent.over {
-  color: var(--expense);
+.bg-edit-cat-ic { color: var(--text-tertiary); }
+
+.bg-edit-spent {
+  color: var(--text-tertiary);
+  font-weight: 400;
+  font-size: var(--font-size-xs);
 }
 
-.budget-total {
-  margin-top: var(--space-4);
+.bg-edit-add {
+  margin-top: var(--space-2);
   padding-top: var(--space-4);
   border-top: 1px dashed var(--hairline);
 }
 
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.bg-input-wrap,
+.bg-select-wrap {
+  position: relative;
 }
 
-/* Edit Mode */
-.budget-edit {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.budget-edit-row {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-.budget-cat {
-  flex: 1;
+.bg-input-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
   font-size: var(--font-size-sm);
 }
 
-.budget-input {
-  width: 100px;
-  padding: var(--space-2);
+.bg-input {
+  width: 100%;
+  padding: 9px 12px 9px 26px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  text-align: right;
-  background: var(--surface-1);
+  background: var(--surface-2);
   color: var(--text-primary);
+  font-size: var(--font-size-sm);
 }
 
-.budget-select {
-  flex: 1;
-  padding: var(--space-2);
+.bg-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.bg-select {
+  width: 100%;
+  padding: 9px 30px 9px 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  background: var(--surface-1);
+  background: var(--surface-2);
   color: var(--text-primary);
-}
-
-.add-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: var(--accent);
-  color: white;
-  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
   cursor: pointer;
-  font-size: 18px;
+  appearance: none;
 }
 
-.add-btn:disabled {
-  background: var(--text-tertiary);
+.bg-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.empty-state {
-  text-align: center;
-  padding: var(--space-6);
+.bg-select-caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.bg-del-btn,
+.bg-add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.bg-del-btn {
+  border: 1px solid var(--hairline);
+  background: transparent;
   color: var(--text-tertiary);
 }
 
-.delete-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: var(--expense-light);
+.bg-del-btn:hover {
+  border-color: var(--expense);
   color: var(--expense);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: all var(--transition-fast);
+  background: var(--expense-light);
 }
 
-.delete-btn:hover {
-  background: var(--expense);
-  color: white;
+.bg-add-btn {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.bg-add-btn:hover { background: var(--accent-hover); }
+.bg-add-btn:disabled { background: var(--text-tertiary); cursor: not-allowed; }
+
+.bg-empty {
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .bg-summary { grid-template-columns: 1fr; }
 }
 </style>
