@@ -10,7 +10,7 @@
       <div class="mobile-nav-icon">
         <component :is="item.icon" />
       </div>
-      <span class="mobile-nav-label">{{ item.label }}</span>
+      <span class="mobile-nav-label">{{ item.short }}</span>
     </button>
   </nav>
 </template>

@@ -39,7 +39,7 @@
         <div class="nav-icon">
           <Target />
         </div>
-        <span>预算</span>
+        <span>预算管理</span>
       </button>
     </nav>
 

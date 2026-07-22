@@ -56,6 +56,18 @@
       </div>
     </div>
 
+    <!-- 消费日历热力图 -->
+    <section class="card ov-panel">
+      <div class="ov-panel-head">
+        <h3>消费日历热力图</h3>
+        <span class="ov-panel-sub">每格 = 当日支出强度 · {{ currentYear }} 年</span>
+      </div>
+      <div class="ov-heat-body">
+        <v-chart v-if="heatmapOption" class="ov-heat-chart" :option="heatmapOption" autoresize />
+        <div v-else class="chart-empty">暂无足够数据生成热力图</div>
+      </div>
+    </section>
+
     <!-- 支出分类环形图 + 最近交易 -->
     <div class="ov-row3">
       <section class="card ov-panel">
@@ -97,8 +109,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { use } from 'echarts/core';
-import { PieChart } from 'echarts/charts';
-import { TooltipComponent } from 'echarts/components';
+import { PieChart, HeatmapChart } from 'echarts/charts';
+import { TooltipComponent, CalendarComponent, VisualMapComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
 import {
@@ -111,9 +123,10 @@ import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { useAnalytics } from '../../composables/useAnalytics';
 import TransactionList from '../TransactionList.vue';
 
-use([PieChart, TooltipComponent, CanvasRenderer]);
+use([PieChart, HeatmapChart, TooltipComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
 
 const { analytics } = useAnalytics();
+const currentYear = new Date().getFullYear();
 
 const summary = computed(() => analytics.value?.summary);
 const netWorth = computed(() => summary.value?.netWorth || 0);
@@ -125,6 +138,7 @@ const transactions = computed(() => analytics.value?.transactions || []);
 const monthlyTrend = computed(() => analytics.value?.monthlyTrend || []);
 const expenseByCategory = computed(() => analytics.value?.expenseByCategory || []);
 const dailyAverage = computed(() => analytics.value?.dailyAverage || 0);
+const dailyTrend = computed(() => analytics.value?.dailyTrend || []);
 
 // 环比变化(基于月度趋势)
 const balanceChange = computed(() => {
@@ -262,6 +276,51 @@ const expensePieOption = computed(() => {
       emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: getThemeColor('--text-primary') } },
       data,
     }],
+  };
+});
+
+// 消费日历热力图(与趋势页同口径:顺序绿标度,与收入语义绿独立)
+const heatmapOption = computed(() => {
+  void themeVersion.value;
+  const heatmapData = dailyTrend.value.map(d => [d.date, Math.abs(d.expense)] as [string, number]);
+  if (heatmapData.length === 0) return null;
+  const maxExpense = Math.max(...heatmapData.map(d => d[1]));
+  return {
+    tooltip: {
+      formatter: (p: { data: [string, number] }) => `${p.data[0]}: ¥${p.data[1].toFixed(2)}`,
+      backgroundColor: getThemeColor('--surface-1'),
+      borderColor: getThemeColor('--hairline'),
+      textStyle: { color: getThemeColor('--text-primary') }
+    },
+    visualMap: {
+      min: 0,
+      max: maxExpense,
+      type: 'continuous',
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      inRange: { color: ['--heat-0', '--heat-1', '--heat-2', '--heat-3', '--heat-4'].map(getThemeColor) },
+      calculable: false,
+      show: false
+    },
+    calendar: {
+      top: 30,
+      left: 30,
+      right: 30,
+      cellSize: ['auto', 16],
+      range: currentYear,
+      itemStyle: { color: 'transparent', borderColor: getThemeColor('--hairline'), borderWidth: 1 },
+      yearLabel: { show: false },
+      dayLabel: { nameMap: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], color: getThemeColor('--text-tertiary') },
+      monthLabel: { nameMap: 'en', color: getThemeColor('--text-tertiary') },
+      splitLine: { show: false }
+    },
+    series: {
+      type: 'heatmap',
+      coordinateSystem: 'calendar',
+      data: heatmapData,
+      itemStyle: { borderRadius: 2, borderColor: getThemeColor('--surface-1'), borderWidth: 1 }
+    }
   };
 });
 </script>
@@ -487,6 +546,14 @@ const expensePieOption = computed(() => {
   width: 42px;
   text-align: right;
   color: var(--text-tertiary);
+}
+
+.ov-heat-body {
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+
+.ov-heat-chart {
+  height: 200px;
 }
 
 .chart-empty {

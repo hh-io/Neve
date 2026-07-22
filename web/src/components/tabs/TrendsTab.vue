@@ -45,18 +45,6 @@
       </section>
     </div>
 
-    <!-- 消费日历热力图 -->
-    <section class="section-card">
-      <div class="section-head">
-        <h3 class="section-title">消费日历热力图</h3>
-        <span class="section-sub">每格 = 当日支出强度 · {{ currentYear }} 年</span>
-      </div>
-      <div class="section-body tr-heat-body">
-        <v-chart v-if="heatmapOption" class="tr-heat" :option="heatmapOption" autoresize />
-        <div v-else class="tr-empty tr-empty-heat">暂无足够数据生成热力图</div>
-      </div>
-    </section>
-
     <!-- 年度报告排行 -->
     <div class="tr-row">
       <section class="section-card">
@@ -102,8 +90,8 @@
 import { ref, computed } from 'vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
-import { LineChart, HeatmapChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent } from 'echarts/components';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
@@ -112,14 +100,13 @@ import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { Tag, Trophy } from '@lucide/vue';
 import { useAnalytics } from '../../composables/useAnalytics';
 
-use([LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
+use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
 const { analytics } = useAnalytics();
 
 const dailyTrend = computed(() => analytics.value?.dailyTrend || []);
 const weekdayDistribution = computed(() => analytics.value?.weekdayDistribution || []);
 const categoryTrends = computed(() => analytics.value?.categoryTrends || []);
-const currentYear = new Date().getFullYear();
 
 type Period = 'day' | 'week' | 'month';
 const periods: { value: Period; label: string }[] = [
@@ -226,70 +213,6 @@ const trendChartOption = computed(() => {
   };
 });
 
-// Heatmap Logic
-const heatmapOption = computed(() => {
-  void themeVersion.value;
-  const data = dailyTrend.value;
-  // Map to [date, expense]
-  const heatmapData = data.map(d => [d.date, Math.abs(d.expense)] as [string, number]);
-
-  if (heatmapData.length === 0) return null;
-
-  const maxExpense = Math.max(...heatmapData.map(d => d[1]));
-
-  return {
-    tooltip: {
-      formatter: (p: { data: [string, number] }) => {
-        return `${p.data[0]}: ¥${p.data[1].toFixed(2)}`;
-      },
-      backgroundColor: getThemeColor('--surface-1'),
-      borderColor: getThemeColor('--hairline'),
-      textStyle: { color: getThemeColor('--text-primary') }
-    },
-    visualMap: {
-      min: 0,
-      max: maxExpense,
-      type: 'continuous',
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 0,
-      // 顺序绿渐变走热力专用色阶 token(热力图为顺序标度,不取分类色板;与收入语义绿独立)
-      inRange: {
-        color: ['--heat-0', '--heat-1', '--heat-2', '--heat-3', '--heat-4'].map(getThemeColor)
-      },
-      text: ['High', 'Low'],
-      calculable: false,
-      show: false // hide legend to save space
-    },
-    calendar: {
-      top: 30,
-      left: 30,
-      right: 30,
-      cellSize: ['auto', 16],
-      range: currentYear, // Current Year
-      itemStyle: {
-        color: 'transparent',
-        borderColor: getThemeColor('--hairline'),
-        borderWidth: 1
-      },
-      yearLabel: { show: false },
-      dayLabel: { nameMap: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], color: getThemeColor('--text-tertiary') },
-      monthLabel: { nameMap: 'en', color: getThemeColor('--text-tertiary') },
-      splitLine: { show: false }
-    },
-    series: {
-      type: 'heatmap',
-      coordinateSystem: 'calendar',
-      data: heatmapData,
-      itemStyle: {
-        borderRadius: 2,
-        borderColor: getThemeColor('--surface-1'), // Gap color
-        borderWidth: 1
-      }
-    }
-  };
-});
-
 // Ranking:直接消费后端全量口径的排行,避免与 SpendingTab 的排行数据打架
 const topPayees = computed(() =>
   (analytics.value?.merchantRanking || [])
@@ -322,9 +245,6 @@ const topTags = computed(() =>
 .tr-trend-body { padding: var(--space-5); }
 .tr-trend { height: 300px; }
 
-.tr-heat-body { padding: var(--space-4) var(--space-5) var(--space-3); }
-.tr-heat { height: 200px; }
-
 .tr-empty {
   display: flex;
   align-items: center;
@@ -333,7 +253,6 @@ const topTags = computed(() =>
 }
 
 .tr-empty-trend { height: 300px; }
-.tr-empty-heat { height: 200px; }
 .tr-empty-sm { height: 190px; }
 
 /* 年度报告排行行 */
