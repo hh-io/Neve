@@ -15,27 +15,18 @@
           </span>
           <span class="ov-stat-hint">{{ s.hint }}</span>
         </div>
-        <!-- 底部补充区(四卡统一:发丝线 + 一行次要信息) -->
+        <!-- 底部补充区(四卡统一:发丝线 + 可选占比条 + 两列 label/value) -->
         <div class="ov-stat-extra">
-          <template v-if="s.key === 'net'">
-            <span class="ov-extra-col">
-              <span class="ov-extra-label">资产</span>
-              <span class="ov-extra-val ov-val-income tabular-nums">{{ formatMoney(totalAssets) }}</span>
-            </span>
-            <span class="ov-extra-col ov-extra-col-right">
-              <span class="ov-extra-label">负债</span>
-              <span class="ov-extra-val ov-val-expense tabular-nums">{{ formatMoney(totalLiabilities) }}</span>
-            </span>
-          </template>
-          <span v-else-if="s.key === 'income'" class="ov-extra-muted">
-            <span class="tabular-nums">{{ incomeCount }}</span> 笔 · 均 <span class="tabular-nums">{{ formatMoney(incomeAvg) }}</span>
-          </span>
-          <span v-else-if="s.key === 'expense'" class="ov-extra-muted">
-            <span class="tabular-nums">{{ expenseCount }}</span> 笔 · 均 <span class="tabular-nums">{{ formatMoney(expenseAvg) }}</span>
-          </span>
-          <span v-else-if="s.key === 'savings'" class="ov-extra-muted">
-            日均结余 <span class="tabular-nums" :style="{ color: dailySavings < 0 ? 'var(--expense)' : 'var(--income)' }">{{ formatMoney(dailySavings) }}</span>
-          </span>
+          <div v-if="s.bar" class="ov-stat-bar">
+            <div class="ov-bar-a" :style="{ width: s.bar.a }"></div>
+            <div class="ov-bar-b" :style="{ width: s.bar.b }"></div>
+          </div>
+          <div class="ov-supp">
+            <div v-for="it in s.supp" :key="it.label" class="ov-supp-item">
+              <span class="ov-supp-label">{{ it.label }}</span>
+              <span class="ov-supp-value tabular-nums" :style="{ color: it.color }">{{ it.value }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -230,6 +221,23 @@ const expenseCount = computed(() => monthTransactions.value.filter(t => t.kind =
 const incomeAvg = computed(() => incomeCount.value > 0 ? monthlyIncome.value / incomeCount.value : 0);
 const expenseAvg = computed(() => expenseCount.value > 0 ? monthlyExpense.value / expenseCount.value : 0);
 const dailySavings = computed(() => dayOfMonth.value > 0 ? monthlySavings.value / dayOfMonth.value : 0);
+const projectedSavings = computed(() => dailySavings.value * daysInMonth.value);
+// 资产/负债占比条:资产段宽度
+const assetPct = computed(() => {
+  const gross = totalAssets.value + totalLiabilities.value;
+  return gross > 0 ? (totalAssets.value / gross) * 100 : 100;
+});
+// 月结余环比(结余 = 收入 - 支出,取月度趋势末两月)
+const savingsChange = computed(() => {
+  const t = monthlyTrend.value;
+  if (t.length < 2) return 0;
+  const cur = (t[t.length - 1]?.income || 0) - Math.abs(t[t.length - 1]?.expense || 0);
+  const prev = (t[t.length - 2]?.income || 0) - Math.abs(t[t.length - 2]?.expense || 0);
+  if (prev === 0) return cur > 0 ? 100 : 0;
+  return ((cur - prev) / Math.abs(prev)) * 100;
+});
+// 带 +/- 号的金额(formatMoney 已带负号,正数补 +)
+const signedMoney = (n: number) => (n >= 0 ? '+' : '') + formatMoney(n);
 
 // 环比 chip:pos 表示数值方向,good 表示对财务是否有利
 function pct(n: number): string {
@@ -239,6 +247,8 @@ const statCards = computed(() => {
   const nwUp = balanceChange.value >= 0;
   const incUp = incomeChange.value >= 0;
   const expUp = expenseChange.value >= 0; // 支出上升=不利
+  const balUp = savingsChange.value >= 0;
+  const balColor = monthlySavings.value < 0 ? 'var(--expense)' : 'var(--income)';
   return [
     {
       key: 'net', label: '净资产', icon: Landmark,
@@ -246,26 +256,42 @@ const statCards = computed(() => {
       valueColor: netWorth.value < 0 ? 'var(--expense)' : 'var(--text-primary)',
       delta: pct(balanceChange.value), trendIcon: nwUp ? ArrowUpRight : ArrowDownRight,
       chipCls: nwUp ? 'chip-income' : 'chip-expense', hint: '环比上月',
+      bar: { a: `${assetPct.value}%`, b: `${100 - assetPct.value}%` },
+      supp: [
+        { label: '资产', value: formatMoney(totalAssets.value), color: 'var(--income)' },
+        { label: '负债', value: formatMoney(totalLiabilities.value), color: 'var(--expense)' },
+      ],
     },
     {
       key: 'income', label: '本月收入', icon: ArrowDownToLine,
       value: formatMoney(monthlyIncome.value), valueColor: 'var(--income)',
       delta: pct(incomeChange.value), trendIcon: incUp ? ArrowUpRight : ArrowDownRight,
       chipCls: incUp ? 'chip-income' : 'chip-expense', hint: '环比上月',
+      supp: [
+        { label: '收入笔数', value: `${incomeCount.value} 笔`, color: 'var(--text-primary)' },
+        { label: '笔均', value: formatMoney(incomeAvg.value), color: 'var(--text-primary)' },
+      ],
     },
     {
       key: 'expense', label: '本月支出', icon: ArrowUpFromLine,
       value: formatMoney(monthlyExpense.value), valueColor: 'var(--expense)',
       delta: pct(expenseChange.value), trendIcon: expUp ? ArrowUpRight : ArrowDownRight,
       chipCls: expUp ? 'chip-expense' : 'chip-income', hint: '环比上月',
+      supp: [
+        { label: '消费笔数', value: `${expenseCount.value} 笔`, color: 'var(--text-primary)' },
+        { label: '笔均', value: formatMoney(expenseAvg.value), color: 'var(--text-primary)' },
+      ],
     },
     {
       key: 'savings', label: '月结余', icon: PiggyBank,
       value: formatMoney(monthlySavings.value),
       valueColor: monthlySavings.value < 0 ? 'var(--expense)' : 'var(--text-primary)',
-      delta: `${savingsRate.value}%`, trendIcon: savingsRate.value >= 0 ? ArrowUpRight : ArrowDownRight,
-      chipCls: savingsRate.value >= 20 ? 'chip-income' : savingsRate.value >= 0 ? 'chip-warning' : 'chip-expense',
-      hint: '储蓄率',
+      delta: pct(savingsChange.value), trendIcon: balUp ? ArrowUpRight : ArrowDownRight,
+      chipCls: balUp ? 'chip-income' : 'chip-expense', hint: '环比上月',
+      supp: [
+        { label: '日均结余', value: signedMoney(dailySavings.value), color: balColor },
+        { label: '预计月末', value: signedMoney(projectedSavings.value), color: balColor },
+      ],
     },
   ];
 });
@@ -411,38 +437,51 @@ const heatmapOption = computed(() => {
   color: var(--text-tertiary);
 }
 
-/* 统计卡底部补充区(四卡等高对齐) */
+/* 统计卡底部补充区(四卡统一:发丝线 + 可选占比条 + 两列 label/value) */
 .ov-stat-extra {
   margin-top: var(--space-4);
-  padding-top: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--hairline);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 34px;
-  font-size: var(--font-size-xs);
 }
 
-.ov-extra-col {
+.ov-stat-bar {
+  display: flex;
+  height: 4px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--surface-3);
+  margin-bottom: var(--space-3);
+}
+
+.ov-bar-a { background: var(--income); }
+.ov-bar-b { background: var(--expense); }
+
+.ov-supp {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.ov-supp-item {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
-.ov-extra-col-right { align-items: flex-end; }
+.ov-supp-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
 
-.ov-extra-label { color: var(--text-tertiary); }
-
-.ov-extra-val {
-  font-weight: 600;
+.ov-supp-value {
   font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
-
-.ov-val-income { color: var(--income); }
-.ov-val-expense { color: var(--expense); }
-
-.ov-extra-muted { color: var(--text-tertiary); }
-.ov-extra-muted .tabular-nums { color: var(--text-secondary); }
 
 /* ===== chip ===== */
 .chip {
