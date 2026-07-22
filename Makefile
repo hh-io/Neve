@@ -97,8 +97,9 @@ run: build
 	@echo "🚀 启动 $(BINARY_NAME)..."
 	@./$(BINARY_NAME)
 
-# 开发模式：启动前端热重载服务器
-dev: dev-web
+# 开发模式：同时启动前后端开发服务器
+dev:
+	@$(MAKE) -j2 dev-server dev-web
 
 # 前端开发模式
 dev-web:
@@ -167,8 +168,9 @@ help:
 	@echo ""
 	@echo "  运行命令:"
 	@echo "    make run         构建并运行生产二进制"
-	@echo "    make dev         启动前端开发服务器 (热重载)"
-	@echo "    make dev-server  启动后端开发服务器"
+	@echo "    make dev         同时启动前后端开发服务器"
+	@echo "    make dev-web     仅启动前端开发服务器 (热重载)"
+	@echo "    make dev-server  仅启动后端开发服务器"
 	@echo ""
 	@echo "  部署命令:"
 	@echo "    make install-service    渲染并安装 launchd 服务配置 (含 deploy/local.env 密钥)"
