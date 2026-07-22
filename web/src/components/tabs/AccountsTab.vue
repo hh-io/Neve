@@ -4,11 +4,11 @@
     <div class="ac-summary">
       <div class="card ac-sum-card">
         <span class="ac-sum-label">总资产</span>
-        <span class="ac-sum-value tabular-nums" style="color: var(--income)">{{ formatMoney(summary?.totalAssets || 0) }}</span>
+        <span class="ac-sum-value ac-sum-value--income tabular-nums">{{ formatMoney(summary?.totalAssets || 0) }}</span>
       </div>
       <div class="card ac-sum-card">
         <span class="ac-sum-label">总负债</span>
-        <span class="ac-sum-value tabular-nums" style="color: var(--expense)">-{{ formatMoney(Math.abs(summary?.totalLiabilities || 0)) }}</span>
+        <span class="ac-sum-value ac-sum-value--expense tabular-nums">-{{ formatMoney(Math.abs(summary?.totalLiabilities || 0)) }}</span>
       </div>
       <div class="card ac-sum-card">
         <span class="ac-sum-label">净资产</span>
@@ -208,6 +208,14 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
 .ac-sum-value {
   font-size: var(--font-size-2xl);
   font-weight: 700;
+}
+
+.ac-sum-value--income {
+  color: var(--income);
+}
+
+.ac-sum-value--expense {
+  color: var(--expense);
 }
 
 /* ===== 分组账户 ===== */

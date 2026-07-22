@@ -26,9 +26,9 @@
         <div class="section-head">
           <h3 class="section-title">资金流向</h3>
           <div class="sp-flow-legend">
-            <span class="sp-flow-tag"><span class="sp-flow-dot" style="background: var(--income)"></span>收入</span>
-            <span class="sp-flow-tag"><span class="sp-flow-dot" style="background: var(--accent)"></span>账户</span>
-            <span class="sp-flow-tag"><span class="sp-flow-dot" style="background: var(--expense)"></span>支出</span>
+            <span class="sp-flow-tag"><span class="sp-flow-dot sp-flow-dot--income"></span>收入</span>
+            <span class="sp-flow-tag"><span class="sp-flow-dot sp-flow-dot--account"></span>账户</span>
+            <span class="sp-flow-tag"><span class="sp-flow-dot sp-flow-dot--expense"></span>支出</span>
           </div>
         </div>
         <div class="sp-flow-body">
@@ -313,6 +313,18 @@ const sankeyOption = computed(() => {
   width: 8px;
   height: 8px;
   border-radius: 2px;
+}
+
+.sp-flow-dot--income {
+  background: var(--income);
+}
+
+.sp-flow-dot--account {
+  background: var(--accent);
+}
+
+.sp-flow-dot--expense {
+  background: var(--expense);
 }
 
 .sp-flow-body {
