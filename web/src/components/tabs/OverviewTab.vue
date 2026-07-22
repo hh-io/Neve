@@ -15,6 +15,28 @@
           </span>
           <span class="ov-stat-hint">{{ s.hint }}</span>
         </div>
+        <!-- 底部补充区(四卡统一:发丝线 + 一行次要信息) -->
+        <div class="ov-stat-extra">
+          <template v-if="s.key === 'net'">
+            <span class="ov-extra-col">
+              <span class="ov-extra-label">资产</span>
+              <span class="ov-extra-val ov-val-income tabular-nums">{{ formatMoney(totalAssets) }}</span>
+            </span>
+            <span class="ov-extra-col ov-extra-col-right">
+              <span class="ov-extra-label">负债</span>
+              <span class="ov-extra-val ov-val-expense tabular-nums">{{ formatMoney(totalLiabilities) }}</span>
+            </span>
+          </template>
+          <span v-else-if="s.key === 'income'" class="ov-extra-muted">
+            <span class="tabular-nums">{{ incomeCount }}</span> 笔 · 均 <span class="tabular-nums">{{ formatMoney(incomeAvg) }}</span>
+          </span>
+          <span v-else-if="s.key === 'expense'" class="ov-extra-muted">
+            <span class="tabular-nums">{{ expenseCount }}</span> 笔 · 均 <span class="tabular-nums">{{ formatMoney(expenseAvg) }}</span>
+          </span>
+          <span v-else-if="s.key === 'savings'" class="ov-extra-muted">
+            日均结余 <span class="tabular-nums" :style="{ color: dailySavings < 0 ? 'var(--expense)' : 'var(--income)' }">{{ formatMoney(dailySavings) }}</span>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -195,6 +217,20 @@ const savingsCaption = computed(() => {
   return '入不敷出 · 需注意';
 });
 
+// 统计卡底部补充信息:资产/负债明细、本月收支笔数与笔均、日均结余
+const totalAssets = computed(() => summary.value?.totalAssets || 0);
+const monthPrefix = (() => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+})();
+// 笔数/笔均按本月口径统计,与本月收入/支出金额对齐(交易日期前缀匹配当前年月)
+const monthTransactions = computed(() => transactions.value.filter(t => (t.date || '').slice(0, 7) === monthPrefix));
+const incomeCount = computed(() => monthTransactions.value.filter(t => t.kind === 'income' || t.kind === 'mixed').length);
+const expenseCount = computed(() => monthTransactions.value.filter(t => t.kind === 'expense').length);
+const incomeAvg = computed(() => incomeCount.value > 0 ? monthlyIncome.value / incomeCount.value : 0);
+const expenseAvg = computed(() => expenseCount.value > 0 ? monthlyExpense.value / expenseCount.value : 0);
+const dailySavings = computed(() => dayOfMonth.value > 0 ? monthlySavings.value / dayOfMonth.value : 0);
+
 // 环比 chip:pos 表示数值方向,good 表示对财务是否有利
 function pct(n: number): string {
   return `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
@@ -374,6 +410,39 @@ const heatmapOption = computed(() => {
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
 }
+
+/* 统计卡底部补充区(四卡等高对齐) */
+.ov-stat-extra {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  font-size: var(--font-size-xs);
+}
+
+.ov-extra-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ov-extra-col-right { align-items: flex-end; }
+
+.ov-extra-label { color: var(--text-tertiary); }
+
+.ov-extra-val {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.ov-val-income { color: var(--income); }
+.ov-val-expense { color: var(--expense); }
+
+.ov-extra-muted { color: var(--text-tertiary); }
+.ov-extra-muted .tabular-nums { color: var(--text-secondary); }
 
 /* ===== chip ===== */
 .chip {
