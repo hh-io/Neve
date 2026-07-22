@@ -37,7 +37,7 @@
         @click="$emit('update:activeTab', 'budget')"
       >
         <div class="nav-icon">
-          <PiggyBank />
+          <Target />
         </div>
         <span>预算</span>
       </button>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { PiggyBank, Trophy } from '@lucide/vue';
+import { Target, Trophy } from '@lucide/vue';
 import AppLogo from './AppLogo.vue';
 import { navItems } from '../../composables/navItems';
 
