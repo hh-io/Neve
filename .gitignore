@@ -21,8 +21,10 @@ web/dist/
 
 
 shortcut/*
+design/*
 
 # 部署密钥 (模板见 deploy/local.env.example)
 deploy/local.env
 
 project-alias.zsh
+redesign-prompt.md
