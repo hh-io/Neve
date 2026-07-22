@@ -59,7 +59,7 @@ func TestClassifyTransaction(t *testing.T) {
 			name: "还款+手续费",
 			tx: mkTx("2026-07-10",
 				po("Assets:Cash:WeChat", -500500),
-				po("Liabilities:CreditCard:CMBC", 500000),
+				po("Liabilities:CreditCard:CMB", 500000),
 				po("Expenses:Financial:ServiceFee", 500)),
 			wantKind: "transfer", wantDisplay: 500000, wantTransfer: 500000, wantFee: 500,
 			wantCategory: "Financial",
@@ -168,7 +168,7 @@ func TestAnalyzeAt(t *testing.T) {
 	ledger := parseMain(t, `
 2025-12-01 * "系统初始化" "期初余额"
   Assets:Cash:WeChat      1000.00 CNY
-  Liabilities:CreditCard:CMBC -500.00 CNY
+  Liabilities:CreditCard:CMB -500.00 CNY
   Equity:Opening-Balances
 
 2026-06-20 * "老板" "六月工资" #salary
@@ -181,7 +181,7 @@ func TestAnalyzeAt(t *testing.T) {
 
 2026-07-10 * "招商银行" "信用卡还款"
   Assets:Cash:WeChat      -500.00 CNY
-  Liabilities:CreditCard:CMBC 495.00 CNY
+  Liabilities:CreditCard:CMB 495.00 CNY
   Expenses:Financial:ServiceFee 5.00 CNY
 
 2026-07-11 * "拼多多" "退款-咖啡"

@@ -16,7 +16,7 @@
   Liabilities:JD:BNPL                 -1863.78  CNY ; 京东白条
   Liabilities:Meituan:MP              -218.86   CNY ; 美团月付
   
-  Liabilities:CreditCard:CMBC         -17590.81 CNY ; 招行信用卡
+  Liabilities:CreditCard:CMB         -17590.81 CNY ; 招行信用卡
   
   ;; --- 平衡项 (净资产) ---
   Equity:Opening-Balances
@@ -28,4 +28,4 @@
 ;; 作用：告诉系统“我确认这一天银行卡里确实是这么多钱”
 ;; 断言核对的是该日期当天开始前的余额,对不上会在页面顶部报错提醒查账
 2025-12-05 balance Assets:Cash:WeChat        18562.46 CNY
-2026-07-01 balance Assets:Bank:CMBC          75000.00 CNY
+2026-07-01 balance Assets:Bank:CMB          75000.00 CNY

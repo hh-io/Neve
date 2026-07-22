@@ -14,7 +14,7 @@ var testNow = time.Date(2026, 7, 15, 12, 0, 0, 0, time.Local)
 const openHeader = `option "operating_currency" "CNY"
 2020-01-01 open Assets:Cash:WeChat CNY
 2020-01-01 open Assets:Cash:Alipay CNY
-2020-01-01 open Liabilities:CreditCard:CMBC CNY
+2020-01-01 open Liabilities:CreditCard:CMB CNY
 2020-01-01 open Expenses:Food:Coffee CNY
 2020-01-01 open Expenses:Financial:ServiceFee CNY
 2020-01-01 open Income:Salary CNY
@@ -143,7 +143,7 @@ func TestAutoBalance(t *testing.T) {
 	ledger := parseMain(t, `
 2026-07-10 * "初始化" "余额"
   Assets:Cash:WeChat      100.00 CNY
-  Liabilities:CreditCard:CMBC -30.00 CNY
+  Liabilities:CreditCard:CMB -30.00 CNY
   Equity:Opening-Balances
 `)
 	if len(ledger.Issues) != 0 {

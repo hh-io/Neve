@@ -30,7 +30,10 @@
             <component :is="acc.icon" :size="16" />
           </div>
           <div class="ac-row-info">
-            <div class="ac-row-name">{{ acc.name }}</div>
+            <div class="ac-row-header">
+              <span class="ac-row-name">{{ acc.name }}</span>
+              <span class="ac-row-tag">{{ acc.tag }}</span>
+            </div>
             <div class="ac-row-account tabular-nums">{{ acc.account }}</div>
           </div>
           <div class="ac-row-balance tabular-nums" :style="{ color: acc.color }">{{ acc.balance }}</div>
@@ -55,6 +58,7 @@ const summary = computed(() => analytics.value?.summary);
 interface AccountRow {
   account: string;
   name: string;
+  tag: string;
   icon: FunctionalComponent;
   balance: string;
   color: string;
@@ -82,6 +86,7 @@ const accountGroups = computed<AccountGroup[]>(() => {
         .map<AccountRow>(acc => ({
           account: acc.account,
           name: getAccountName(acc),
+          tag: getAccountTag(acc),
           icon: getAccountIcon(acc),
           balance: formatMoney(acc.balance),
           color: acc.balance < 0 ? 'var(--expense)' : 'var(--text-primary)',
@@ -102,10 +107,33 @@ const accountGroups = computed<AccountGroup[]>(() => {
 });
 
 function getAccountName(account: AccountBalance): string {
+  const fullMap: Record<string, string> = {
+    'Assets:Bank:CMB': '招商银行',
+    'Liabilities:CreditCard:CMB': '招行信用卡',
+    'Assets:Bank:ICBC': '工商银行',
+    'Assets:Bank:PSBC': '邮储银行',
+    'Assets:Cash:WeChat': '微信零钱',
+    'Assets:Cash:Alipay': '支付宝余额',
+    'Assets:Cash:JDECard': '京东E卡',
+    'Assets:Cash:JDBalance': '京东余额',
+    'Assets:Investment:Stock': '股票账户',
+    'Assets:Investment:Fund': '基金/理财',
+    'Assets:Investment:Crypto': '加密货币',
+    'Liabilities:Alipay:Huabei': '花呗',
+    'Liabilities:JD:BNPL': '京东白条',
+    'Liabilities:JD:CLO': '京东金条',
+    'Liabilities:Meituan:MP': '美团月付',
+    'Liabilities:Loan:ECMB': 'E招贷',
+    'Liabilities:Loan:Mortgage': '房贷',
+  };
+  if (fullMap[account.account]) {
+    return fullMap[account.account];
+  }
+
   const parts = account.account.split(':');
-  const name = parts[parts.length - 1];
-  const nameMap: Record<string, string> = {
-    CMBC: '招商银行',
+  const lastPart = parts[parts.length - 1];
+  const shortMap: Record<string, string> = {
+    CMB: '招商银行',
     ICBC: '工商银行',
     PSBC: '邮储银行',
     WeChat: '微信零钱',
@@ -117,8 +145,25 @@ function getAccountName(account: AccountBalance): string {
     Stock: '股票',
     Fund: '基金',
     Crypto: '加密货币',
+    JDECard: '京东E卡',
+    JDBalance: '京东余额',
+    Mortgage: '房贷',
+    ECMB: 'E招贷',
   };
-  return nameMap[name] || name;
+  return shortMap[lastPart] || lastPart;
+}
+
+function getAccountTag(account: AccountBalance): string {
+  const path = account.account;
+  if (path.includes('CreditCard')) return '信用卡';
+  if (path.includes('Bank')) return '储蓄卡';
+  if (path.includes('Cash')) return '现金余额';
+  if (path.includes('Investment')) return '投资理财';
+  if (path.includes('Huabei') || path.includes('BNPL') || path.includes('CLO') || path.includes('MP')) return '消费信贷';
+  if (path.includes('Loan') || path.includes('Mortgage')) return '贷款';
+
+  const parts = path.split(':');
+  return parts.length > 1 ? parts[1] : '其他';
 }
 
 function getAccountIcon(account: AccountBalance): FunctionalComponent {
@@ -127,9 +172,9 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
   if (path.includes('Bank')) return Landmark;
   if (path.includes('WeChat') || path.includes('Alipay')) return Wallet;
   if (path.includes('Investment')) return LineChart;
-  if (path.includes('Huabei')) return ShoppingBag;
-  if (path.includes('BNPL') || path.includes('CLO')) return ShoppingBag;
+  if (path.includes('Huabei') || path.includes('BNPL') || path.includes('CLO') || path.includes('JDECard') || path.includes('JDBalance')) return ShoppingBag;
   if (path.includes('Meituan')) return Utensils;
+  if (path.includes('Loan') || path.includes('Mortgage')) return Landmark;
   return PiggyBank;
 }
 </script>
@@ -200,10 +245,25 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
   min-width: 0;
 }
 
+.ac-row-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .ac-row-name {
   font-size: var(--font-size-sm);
   font-weight: 550;
   color: var(--text-primary);
+}
+
+.ac-row-tag {
+  font-size: var(--font-size-xs);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
 .ac-row-account {

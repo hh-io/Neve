@@ -6,7 +6,7 @@ option "operating_currency" "CNY"
 
 
 ;; 2. 资产账户 
-2020-01-01 open Assets:Bank:CMBC                       CNY ; 招商银行
+2020-01-01 open Assets:Bank:CMB                        CNY ; 招商银行
 2020-01-01 open Assets:Bank:ICBC                       CNY ; 工商银行
 2020-01-01 open Assets:Bank:PSBC                       CNY ; 邮储银行
 2020-01-01 open Assets:Cash:WeChat                     CNY ; 微信零钱
@@ -15,7 +15,7 @@ option "operating_currency" "CNY"
 2020-01-01 open Liabilities:JD:BNPL                    CNY ; 京东白条 (buy now, pay later)
 2020-01-01 open Liabilities:Meituan:MP                 CNY ; 美团月付
 2020-01-01 open Liabilities:Alipay:Huabei              CNY ; 支付宝花呗
-2020-01-01 open Liabilities:CreditCard:CMBC            CNY ; 招行信用卡
+2020-01-01 open Liabilities:CreditCard:CMB             CNY ; 招行信用卡
 
 2020-01-01 open Expenses:Unknown                       CNY ; 容错账户
 2020-01-01 open Equity:Opening-Balances                CNY ; 权益账户 (用于初始化余额)    

@@ -22,7 +22,7 @@ func debtLedger(accounts []string, txs ...Transaction) *Ledger {
 	return l
 }
 
-const ccAccount = "Liabilities:CreditCard:CMBC"
+const ccAccount = "Liabilities:CreditCard:CMB"
 
 func revolvingCfg(billingDay, dueDay int) *DebtsConfig {
 	return &DebtsConfig{
@@ -214,13 +214,13 @@ func TestComputeDebtsInstallment(t *testing.T) {
 		}},
 	}
 	ledger := debtLedger(
-		[]string{mortgage, "Assets:Bank:CMBC"},
+		[]string{mortgage, "Assets:Bank:CMB"},
 		mkTx("2023-06-01",
 			po(mortgage, -100000000),
 			po("Equity:Opening-Balances", 100000000)),
 		// 本期窗口 (6/20, 7/20] 内的月供:本金转入负债,利息走 Expenses
 		mkTx("2026-07-18",
-			po("Assets:Bank:CMBC", -550000),
+			po("Assets:Bank:CMB", -550000),
 			po(mortgage, 543210),
 			po("Expenses:Financial:Interest", 6790)),
 	)
@@ -318,9 +318,9 @@ func TestComputeDebtsSummaryPriority(t *testing.T) {
 			po(huabei, -5000)),
 	)
 	report := ComputeDebts(ledger, cfg, atDate("2026-07-23"))
-	// 逾期的排最前:CMBC due 7/20 早于花呗 7/28
-	if report.Summary.NextDueDate != "2026-07-20" || report.Summary.NextDueName != "CMBC" {
-		t.Errorf("NextDue = %s %q, want 2026-07-20 CMBC", report.Summary.NextDueDate, report.Summary.NextDueName)
+	// 逾期的排最前:CMB due 7/20 早于花呗 7/28
+	if report.Summary.NextDueDate != "2026-07-20" || report.Summary.NextDueName != "CMB" {
+		t.Errorf("NextDue = %s %q, want 2026-07-20 CMB", report.Summary.NextDueDate, report.Summary.NextDueName)
 	}
 	if report.Summary.OverdueCount != 1 {
 		t.Errorf("OverdueCount = %d, want 1", report.Summary.OverdueCount)
@@ -412,7 +412,7 @@ func TestDebtsConfigValidate(t *testing.T) {
 			Revolving: map[string]RevolvingConfig{ccAccount: {BillingDay: 9, DueDay: 0}},
 		}, true},
 		{"非 Liabilities 账户", DebtsConfig{
-			Revolving: map[string]RevolvingConfig{"Assets:Bank:CMBC": {BillingDay: 9, DueDay: 20}},
+			Revolving: map[string]RevolvingConfig{"Assets:Bank:CMB": {BillingDay: 9, DueDay: 20}},
 		}, true},
 		{"schedule 为空", DebtsConfig{
 			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20}},

@@ -37,7 +37,7 @@
 4. **Account (账户) 选择**:
 
    - **支出账户**: 根据商品内容推断 (如 `Expenses:Food:Delivery` 或 `Expenses:Shopping:Digital`)。
-   - **资金来源**: 根据支付图标或文字推断 (如 `Assets:Cash:WeChat`, `Assets:Cash:Alipay`, `Liabilities:CreditCard:CMBC`)。无法确定时默认使用 `Expenses:Unknown`。
+   - **资金来源**: 根据支付图标或文字推断 (如 `Assets:Cash:WeChat`, `Assets:Cash:Alipay`, `Liabilities:CreditCard:CMB`)。无法确定时默认使用 `Expenses:Unknown`。
    - **只能使用下方【已知账户列表】中出现过的账户**，禁止编造新账户。
 
 5. **交易日期**:
@@ -88,7 +88,7 @@
 ```
 2025-08-01 * "微信" "信用卡还款"
   Assets:Cash:WeChat               -5005.00 CNY ; [资产] 微信实际少了5005
-  Liabilities:CreditCard:CMBC       5000.00 CNY ; [负债] 但银行只认5000，债只消了5000
+  Liabilities:CreditCard:CMB       5000.00 CNY ; [负债] 但银行只认5000，债只消了5000
   Expenses:Financial:ServiceFee        5.00 CNY ; [支出] 5块钱被微信收走了
 ```
 

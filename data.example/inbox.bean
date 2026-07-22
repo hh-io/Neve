@@ -2,7 +2,7 @@
 
 2026-03-10 * "公司" "三月工资"
   Income:Salary                    -15000.00 CNY
-  Assets:Bank:CMBC                  15000.00 CNY
+  Assets:Bank:CMB                  15000.00 CNY
 
 2026-03-14 * "海底捞" "朋友聚餐" #alipay
   Expenses:Food:Dine-in               328.00 CNY
@@ -18,7 +18,7 @@
 
 2026-04-10 * "公司" "四月工资"
   Income:Salary                    -15000.00 CNY
-  Assets:Bank:CMBC                  15000.00 CNY
+  Assets:Bank:CMB                  15000.00 CNY
 
 2026-04-18 * "滴滴出行" "打车" #wechat
   Expenses:Transport:Taxi              31.60 CNY
@@ -30,7 +30,7 @@
 
 2026-05-10 * "公司" "五月工资"
   Income:Salary                    -15000.00 CNY
-  Assets:Bank:CMBC                  15000.00 CNY
+  Assets:Bank:CMB                  15000.00 CNY
 
 2026-05-20 * "京东" "机械键盘" #jd
   Expenses:Shopping:Digital           499.00 CNY
@@ -42,7 +42,7 @@
 
 2026-06-10 * "公司" "六月工资"
   Income:Salary                    -15000.00 CNY
-  Assets:Bank:CMBC                  15000.00 CNY
+  Assets:Bank:CMB                  15000.00 CNY
 
 2026-06-15 * "猫眼电影" "电影票" #meituan
   Expenses:Entertainment               78.00 CNY
@@ -62,7 +62,7 @@
 
 2026-07-10 * "招商银行" "信用卡还款(含手续费)" #alipay
   Assets:Cash:Alipay                -2005.00 CNY
-  Liabilities:CreditCard:CMBC        2000.00 CNY
+  Liabilities:CreditCard:CMB        2000.00 CNY
   Expenses:Financial:ServiceFee         5.00 CNY
 
 2026-07-12 * "微信" "零钱提现到支付宝" #wechat
@@ -75,4 +75,4 @@
 
 2026-07-14 * "公司" "七月工资"
   Income:Salary                    -15000.00 CNY
-  Assets:Bank:CMBC                  15000.00 CNY
+  Assets:Bank:CMB                  15000.00 CNY

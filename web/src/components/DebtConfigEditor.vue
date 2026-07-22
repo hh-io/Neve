@@ -39,7 +39,7 @@
       <input
         v-model="newAccount"
         class="editor-input"
-        placeholder="账户名,如 Liabilities:CreditCard:CMBC"
+        placeholder="账户名,如 Liabilities:CreditCard:CMB"
         list="debt-account-suggestions"
       />
       <datalist id="debt-account-suggestions">
