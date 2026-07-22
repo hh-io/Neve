@@ -8,7 +8,7 @@
 
 数据即文件 · 单文件部署 · AI 无感记账
 
-[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
@@ -49,8 +49,8 @@ Neve 是一个轻量级的个人/家庭财务可视化系统，围绕 [Beancount
 
 | 工具 | 版本 |
 |------|------|
-| [Go](https://go.dev/dl/) | >= 1.25 |
-| [Node.js](https://nodejs.org/) | >= 18 |
+| [Go](https://go.dev/dl/) | >= 1.26 |
+| [Node.js](https://nodejs.org/) | >= 20.19（Vite 8 要求） |
 | [pnpm](https://pnpm.io/) | >= 8 |
 
 ### 安装与运行

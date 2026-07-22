@@ -15,7 +15,7 @@ cd web && pnpm run lint        # ESLint flat/recommended
 cd web && pnpm run typecheck   # vue-tsc --noEmit
 ```
 
-前端包管理用 pnpm(`web/pnpm-lock.yaml`)。Go 1.25+,唯一依赖 gin,无数据库。
+前端包管理用 pnpm(`web/pnpm-lock.yaml`)。Go 1.26+,唯一依赖 gin,无数据库。
 
 ## 架构与数据流
 
