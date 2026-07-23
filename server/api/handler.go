@@ -214,6 +214,8 @@ func (s *Server) loadDebtsConfig() *parser.DebtsConfig {
 	if cfg.Installments == nil {
 		cfg.Installments = []parser.InstallmentConfig{}
 	}
+	// 老文件的额度类条目没有 installments 字段,回显给前端补成 [] 而非 null
+	cfg.Normalize()
 	return cfg
 }
 

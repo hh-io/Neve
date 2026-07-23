@@ -87,6 +87,29 @@
                 <div class="debt-fig-remain tabular-nums" :style="{ color: d.remainColor }">{{ d.remainAmount }}</div>
               </div>
             </div>
+            <div v-if="d.inst" class="debt-inst">
+              <button class="debt-inst-toggle" @click="toggleInst(d.key)">
+                <span>含本期分期 <span class="tabular-nums">{{ d.inst.thisPeriod }}</span> · 未出账 <span class="tabular-nums">{{ d.inst.unbilled }}</span></span>
+                <ChevronDown :size="14" class="debt-inst-chevron" :class="{ 'debt-inst-chevron-open': expandedInst.has(d.key) }" />
+              </button>
+              <div v-if="expandedInst.has(d.key)" class="debt-inst-details">
+                <div v-for="item in d.inst.items" :key="item.name + item.firstBillMonth" class="debt-inst-item" :class="{ 'debt-inst-dimmed': item.dimmed }">
+                  <div class="debt-inst-item-head">
+                    <span class="debt-inst-name">{{ item.name }}</span>
+                    <span v-if="item.dimmed" class="debt-badge badge-idle">已出账完毕</span>
+                    <span class="tabular-nums debt-inst-periods">{{ item.progressText }}</span>
+                  </div>
+                  <div class="progress-bar debt-inst-bar">
+                    <div class="progress-fill debt-inst-fill" :style="{ width: item.pct + '%' }"></div>
+                  </div>
+                  <div class="debt-inst-item-cap">
+                    <span>每期 <span class="tabular-nums">{{ item.monthlyText }}</span></span>
+                    <span>未出账 <span class="tabular-nums">{{ item.remainText }}</span></span>
+                  </div>
+                </div>
+                <div class="debt-inst-balance">当前欠款 <span class="tabular-nums">{{ d.inst.balance }}</span> · 其中未出账 <span class="tabular-nums">{{ d.inst.unbilled }}</span></div>
+              </div>
+            </div>
             <div class="debt-card-progress">
               <div class="progress-bar debt-bar">
                 <div class="progress-fill" :style="{ width: d.pct + '%', background: d.barColor }"></div>
@@ -156,7 +179,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { CreditCard, Landmark, AlertTriangle, Pencil, CalendarClock, CalendarRange } from '@lucide/vue';
+import { CreditCard, Landmark, AlertTriangle, Pencil, CalendarClock, CalendarRange, ChevronDown } from '@lucide/vue';
 import type { DebtsConfig, RevolvingStatus, InstallmentStatus } from '../../types/api';
 import { formatMoney } from '../../composables/useFormatters';
 import { useDebts } from '../../composables/useDebts';
@@ -212,6 +235,13 @@ function installmentBadge(ins: InstallmentStatus): { text: string; cls: string }
   return { text: '待还', cls: 'badge-idle' };
 }
 
+// 内嵌分期的展开态,按账户 key 记录
+const expandedInst = ref(new Set<string>());
+function toggleInst(key: string) {
+  if (expandedInst.value.has(key)) expandedInst.value.delete(key);
+  else expandedInst.value.add(key);
+}
+
 const revolvingCards = computed(() => revolving.value.map((rv) => {
   const settled = rv.remaining <= 0 || rv.statementDue <= 0;
   const overdue = rv.overdue && rv.remaining > 0;
@@ -231,6 +261,20 @@ const revolvingCards = computed(() => revolving.value.map((rv) => {
     dueDate: shortDate(rv.dueDate),
     status: revolvingBadge(rv),
     countdown: countdownFor(overdue, settled, rv.daysUntilDue),
+    inst: rv.installments.length ? {
+      thisPeriod: formatMoney(rv.installmentThisPeriod),
+      unbilled: formatMoney(rv.installmentUnbilled),
+      balance: formatMoney(rv.currentBalance),
+      items: rv.installments.map((it) => ({
+        name: it.name,
+        firstBillMonth: it.firstBillMonth,
+        progressText: `${it.billedPeriods}/${it.months} 期`,
+        pct: it.months > 0 ? Math.min((it.billedPeriods / it.months) * 100, 100) : 0,
+        monthlyText: formatMoney(it.monthlyAmount),
+        remainText: formatMoney(it.unbilledAmount),
+        dimmed: it.finished && it.thisPeriodAmount <= 0,
+      })),
+    } : null,
   };
 }));
 
@@ -485,6 +529,85 @@ async function onSave(next: DebtsConfig) {
 .debt-fig-remain {
   font-size: var(--font-size-lg);
   font-weight: 700;
+}
+
+/* ===== 内嵌分期(信用卡免息分期) ===== */
+.debt-inst {
+  margin-top: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.debt-inst-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.debt-inst-chevron {
+  color: var(--text-tertiary);
+  transition: transform var(--transition-fast);
+}
+
+.debt-inst-chevron-open { transform: rotate(180deg); }
+
+.debt-inst-details {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.debt-inst-item-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-1);
+}
+
+.debt-inst-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debt-inst-periods { color: var(--text-tertiary); }
+
+.debt-inst-bar { height: 4px; }
+
+.debt-inst-fill { background: var(--accent); }
+
+.debt-inst-dimmed { opacity: 0.55; }
+
+.debt-inst-item-cap {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.debt-inst-balance {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--hairline);
 }
 
 .debt-card-progress {

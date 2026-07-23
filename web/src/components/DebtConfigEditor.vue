@@ -34,6 +34,34 @@
         </label>
         <button class="delete-btn" title="删除" @click="removeRevolving(account)">×</button>
       </div>
+
+      <!-- 内嵌分期:未出账部分从本期应还中扣减。报告只算当期,改删即时生效,无需 append-only -->
+      <div v-if="rc.installments.length" class="inst-list">
+        <div v-for="(ri, ii) in rc.installments" :key="ii" class="editor-row-fields">
+          <label class="field field-grow">
+            <span>分期名称</span>
+            <input v-model="ri.name" class="editor-input" placeholder="如 妙控键盘 24 期免息" />
+          </label>
+          <label class="field">
+            <span>总金额(元)</span>
+            <input v-model.number="ri.totalAmount" type="number" min="0.01" step="0.01" class="editor-input amount-input" />
+          </label>
+          <label class="field">
+            <span>期数</span>
+            <input v-model.number="ri.months" type="number" min="1" class="editor-input day-input" />
+          </label>
+          <label class="field">
+            <span>每期(元)</span>
+            <input v-model.number="ri.monthlyAmount" type="number" min="0.01" step="0.01" class="editor-input amount-input" />
+          </label>
+          <label class="field">
+            <span>首期账单月</span>
+            <input v-model="ri.firstBillMonth" type="month" class="editor-input" />
+          </label>
+          <button class="delete-btn delete-btn-sm" title="删除该分期" @click="rc.installments.splice(ii, 1)">×</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost inst-add-btn" @click="addRevInstallment(rc)">+ 添加分期</button>
     </div>
     <div class="editor-add-row">
       <input
@@ -107,7 +135,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { Settings2 } from '@lucide/vue';
-import type { DebtsConfig, InstallmentConfig } from '../types/api';
+import type { DebtsConfig, InstallmentConfig, RevolvingConfig } from '../types/api';
 import { formatMoney } from '../composables/useFormatters';
 import { useAnalytics } from '../composables/useAnalytics';
 
@@ -129,6 +157,8 @@ const phaseDrafts = reactive<Record<string, { from: string; amount: number | nul
 
 onMounted(() => {
   local.value.installments.forEach(ensureDraft);
+  // 老配置(加此功能前保存的)回显可能没有 installments 字段
+  Object.values(local.value.revolving).forEach(rc => { rc.installments ??= []; });
   if (props.prefill && !local.value.revolving[props.prefill]) {
     newAccount.value = props.prefill;
   }
@@ -151,8 +181,14 @@ function ensureDraft(ins: InstallmentConfig) {
 function addRevolving() {
   const account = newAccount.value.trim();
   if (!account || local.value.revolving[account]) return;
-  local.value.revolving[account] = { name: '', billingDay: 1, dueDay: 10 };
+  local.value.revolving[account] = { name: '', billingDay: 1, dueDay: 10, installments: [] };
   newAccount.value = '';
+}
+
+function addRevInstallment(rc: RevolvingConfig) {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  rc.installments.push({ name: '', totalAmount: 0, months: 12, monthlyAmount: 0, firstBillMonth: month });
 }
 
 function removeRevolving(account: string) {
@@ -320,5 +356,19 @@ function submit() {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.inst-list {
+  margin-top: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inst-add-btn {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
 }
 </style>

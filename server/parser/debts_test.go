@@ -432,12 +432,186 @@ func TestDebtsConfigValidate(t *testing.T) {
 			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
 				Schedule: []InstallmentPhase{{EffectiveFrom: "2023-06-01", Amount: 0}}}},
 		}, true},
+		{"内嵌分期合法", revolvingWithInst(
+			RevolvingInstallment{Name: "妙控键盘", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
+		), false},
+		{"内嵌分期缺名称", revolvingWithInst(
+			RevolvingInstallment{TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
+		), true},
+		{"内嵌分期总额非正", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 0, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
+		), true},
+		{"内嵌分期期数非正", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 104900, Months: 0, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
+		), true},
+		{"内嵌分期每期非正", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 104900, Months: 24, MonthlyAmount: 0, FirstBillMonth: "2025-11"},
+		), true},
+		{"内嵌分期月份带斜杠", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025/11"},
+		), true},
+		{"内嵌分期月份越界", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-13"},
+		), true},
+		// 43.71×12=524.52 与 1049.00 偏差超一期:期数填错
+		{"内嵌分期金额不匹配·偏小", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 104900, Months: 12, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
+		), true},
+		// 43.71×48=2098.08 与 1049.00 偏差超一期
+		{"内嵌分期金额不匹配·偏大", revolvingWithInst(
+			RevolvingInstallment{Name: "x", TotalAmount: 104900, Months: 48, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
+		), true},
 	}
 	for _, c := range cases {
 		errs := c.cfg.Validate()
 		if (len(errs) > 0) != c.wantErr {
 			t.Errorf("%s: Validate() = %v, wantErr = %v", c.name, errs, c.wantErr)
 		}
+	}
+}
+
+func revolvingWithInst(items ...RevolvingInstallment) DebtsConfig {
+	return DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {BillingDay: 9, DueDay: 20, Installments: items},
+		},
+	}
+}
+
+func TestComputeDebtsRevolvingInstallmentGolden(t *testing.T) {
+	// 黄金用例:妙控键盘 1049.00 元 24 期免息,每期 43.71,首期账单月 2025-11。
+	// 2026-07-09 账单日已出账 9 期,未出账 = 1049.00 - 9×43.71 = 655.61
+	ledger := debtLedger(
+		[]string{ccAccount},
+		mkTx("2025-10-15",
+			po("Expenses:Digital:Device", 104900),
+			po(ccAccount, -104900)),
+	)
+	cfg := revolvingWithInst(RevolvingInstallment{
+		Name: "妙控键盘", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11",
+	})
+
+	report := ComputeDebts(ledger, &cfg, atDate("2026-07-15"))
+	rv := report.Revolving[0]
+
+	if rv.InstallmentUnbilled != 65561 {
+		t.Errorf("InstallmentUnbilled = %v, want 65561", rv.InstallmentUnbilled)
+	}
+	if rv.InstallmentThisPeriod != 4371 {
+		t.Errorf("InstallmentThisPeriod = %v, want 4371", rv.InstallmentThisPeriod)
+	}
+	// 快照 104900 - 未出账 65561
+	if rv.StatementDue != 39339 {
+		t.Errorf("StatementDue = %v, want 39339", rv.StatementDue)
+	}
+	if report.Summary.MonthDue != 39339 || report.Summary.MonthRemaining != 39339 {
+		t.Errorf("Summary = %v/%v, want 39339/39339", report.Summary.MonthDue, report.Summary.MonthRemaining)
+	}
+	if len(rv.Installments) != 1 {
+		t.Fatalf("Installments 条目数 = %d, want 1", len(rv.Installments))
+	}
+	ist := rv.Installments[0]
+	if ist.BilledPeriods != 9 || ist.UnbilledAmount != 65561 || ist.ThisPeriodAmount != 4371 || ist.Finished {
+		t.Errorf("分期状态 = %+v, want 9 期 / 65561 / 4371 / 未完毕", ist)
+	}
+	// 当前欠款不受分期扣减影响,仍是账面全额
+	if rv.CurrentBalance != 104900 {
+		t.Errorf("CurrentBalance = %v, want 104900", rv.CurrentBalance)
+	}
+}
+
+func TestRevolvingInstallmentStatuses(t *testing.T) {
+	// 10000 分 3 期,每期 3334,尾差 3332 落最后一期
+	plan := RevolvingInstallment{Name: "p", TotalAmount: 10000, Months: 3, MonthlyAmount: 3334, FirstBillMonth: "2026-05"}
+
+	cases := []struct {
+		name       string
+		statement  string
+		billed     int
+		unbilled   Amount
+		thisPeriod Amount
+		finished   bool
+	}{
+		{"首期在未来", "2026-04-09", 0, 10000, 0, false},
+		{"首期当月", "2026-05-09", 1, 6666, 3334, false},
+		{"尾差期", "2026-07-09", 3, 0, 3332, true},
+		{"出账完毕后", "2026-08-09", 3, 0, 0, true},
+	}
+	for _, c := range cases {
+		statuses, unbilled, thisPeriod := revolvingInstallmentStatuses([]RevolvingInstallment{plan}, atDate(c.statement))
+		st := statuses[0]
+		if st.BilledPeriods != c.billed || unbilled != c.unbilled || thisPeriod != c.thisPeriod || st.Finished != c.finished {
+			t.Errorf("%s: billed=%d unbilled=%v thisPeriod=%v finished=%v, want %d/%v/%v/%v",
+				c.name, st.BilledPeriods, unbilled, thisPeriod, st.Finished, c.billed, c.unbilled, c.thisPeriod, c.finished)
+		}
+	}
+
+	// 跨年:2025-11 起到 2026-01 账单为第 3 期
+	longPlan := RevolvingInstallment{Name: "y", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11"}
+	statuses, _, _ := revolvingInstallmentStatuses([]RevolvingInstallment{longPlan}, atDate("2026-01-09"))
+	if statuses[0].BilledPeriods != 3 {
+		t.Errorf("跨年 BilledPeriods = %d, want 3", statuses[0].BilledPeriods)
+	}
+
+	// 多笔分期未出账求和
+	_, unbilled, thisPeriod := revolvingInstallmentStatuses([]RevolvingInstallment{plan, longPlan}, atDate("2026-05-09"))
+	if wantUnbilled := Amount(6666 + 104900 - 7*4371); unbilled != wantUnbilled {
+		t.Errorf("多笔 unbilled = %v, want %v", unbilled, wantUnbilled)
+	}
+	if thisPeriod != 3334+4371 {
+		t.Errorf("多笔 thisPeriod = %v, want %v", thisPeriod, 3334+4371)
+	}
+
+	// 非法月份跳过该条,不让整份报告失败
+	broken := RevolvingInstallment{Name: "b", TotalAmount: 10000, Months: 3, MonthlyAmount: 3334, FirstBillMonth: "bad"}
+	statuses, unbilled, _ = revolvingInstallmentStatuses([]RevolvingInstallment{broken, plan}, atDate("2026-05-09"))
+	if len(statuses) != 1 || unbilled != 6666 {
+		t.Errorf("非法月份未被跳过: %d 条 / unbilled %v", len(statuses), unbilled)
+	}
+}
+
+func TestComputeDebtsInstallmentUnbilledClamp(t *testing.T) {
+	// 未出账金额超过快照(已提前大额还款):本期应还钳 0,不逾期、不进 NextDue
+	ledger := debtLedger(
+		[]string{ccAccount, "Assets:Cash:Alipay"},
+		mkTx("2025-10-15",
+			po("Expenses:Digital:Device", 104900),
+			po(ccAccount, -104900)),
+		mkTx("2026-06-01",
+			po("Assets:Cash:Alipay", -80000),
+			po(ccAccount, 80000)),
+	)
+	cfg := revolvingWithInst(RevolvingInstallment{
+		Name: "妙控键盘", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11",
+	})
+
+	// 还款日 6/20 已过,但本期应还为 0,不应判逾期
+	report := ComputeDebts(ledger, &cfg, atDate("2026-06-25"))
+	rv := report.Revolving[0]
+	if rv.StatementDue != 0 || rv.Remaining != 0 || rv.Overdue {
+		t.Errorf("钳制后 = %v/%v/overdue=%v, want 0/0/false", rv.StatementDue, rv.Remaining, rv.Overdue)
+	}
+	if report.Summary.NextDueDate != "" || report.Summary.OverdueCount != 0 {
+		t.Errorf("已结清仍有 NextDue=%q / Overdue=%d", report.Summary.NextDueDate, report.Summary.OverdueCount)
+	}
+}
+
+func TestDebtsConfigNormalizeRevolvingInstallments(t *testing.T) {
+	cfg := revolvingWithInst(
+		RevolvingInstallment{Name: "b", TotalAmount: 10000, Months: 3, MonthlyAmount: 3334, FirstBillMonth: "2026-05"},
+		RevolvingInstallment{Name: "a", TotalAmount: 10000, Months: 3, MonthlyAmount: 3334, FirstBillMonth: "2025-11"},
+	)
+	cfg.Normalize()
+	got := cfg.Revolving[ccAccount].Installments
+	if got[0].FirstBillMonth != "2025-11" || got[1].FirstBillMonth != "2026-05" {
+		t.Errorf("Normalize 未按首期账单月排序: %s, %s", got[0].FirstBillMonth, got[1].FirstBillMonth)
+	}
+
+	// nil 补空:GET 回显给前端恒为 [] 而非 null
+	empty := DebtsConfig{Revolving: map[string]RevolvingConfig{ccAccount: {BillingDay: 9, DueDay: 20}}}
+	empty.Normalize()
+	if empty.Revolving[ccAccount].Installments == nil {
+		t.Error("Normalize 未把 nil Installments 补为空 slice")
 	}
 }
 
@@ -450,6 +624,18 @@ func TestAmountUnmarshalJSON(t *testing.T) {
 	}
 	if got := cfg.Installments[0].Schedule[0].Amount; got != 543210 {
 		t.Errorf("amount = %v(分), want 543210", got)
+	}
+
+	// 额度类内嵌分期的金额同样按元→分解析
+	var cfg2 DebtsConfig
+	data2 := []byte(`{"revolving":{"Liabilities:CreditCard:CMB":{"billingDay":9,"dueDay":20,
+		"installments":[{"name":"妙控键盘","totalAmount":1049.00,"months":24,"monthlyAmount":43.71,"firstBillMonth":"2025-11"}]}}}`)
+	if err := json.Unmarshal(data2, &cfg2); err != nil {
+		t.Fatalf("unmarshal revolving installments: %v", err)
+	}
+	ri := cfg2.Revolving["Liabilities:CreditCard:CMB"].Installments[0]
+	if ri.TotalAmount != 104900 || ri.MonthlyAmount != 4371 {
+		t.Errorf("内嵌分期金额 = %v/%v(分), want 104900/4371", ri.TotalAmount, ri.MonthlyAmount)
 	}
 
 	// 超两位小数拒绝,不静默截断

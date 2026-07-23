@@ -16,11 +16,24 @@ type DebtsConfig struct {
 }
 
 // RevolvingConfig 额度类账单(信用卡/白条/月付等):
-// 本期应还取账单日当天结束时的欠款余额快照,自动涵盖上期未还清部分。
+// 本期应还取账单日当天结束时的欠款余额快照,自动涵盖上期未还清部分;
+// 快照会先扣掉内嵌分期的未出账金额(记账时分期全额入负债账户,银行却按月出账)。
 type RevolvingConfig struct {
-	Name       string `json:"name"` // 为空时回退账户短名
-	BillingDay int    `json:"billingDay"`
-	DueDay     int    `json:"dueDay"`
+	Name         string                 `json:"name"` // 为空时回退账户短名
+	BillingDay   int                    `json:"billingDay"`
+	DueDay       int                    `json:"dueDay"`
+	Installments []RevolvingInstallment `json:"installments"`
+}
+
+// RevolvingInstallment 额度账户内嵌的分期账单(如信用卡 24 期免息)。
+// 与 InstallmentConfig(房贷类)不同,不需要 append-only:报告只算当前账单日,
+// 改配置即时生效,不会静默改写历史口径。
+type RevolvingInstallment struct {
+	Name           string `json:"name"`
+	TotalAmount    Amount `json:"totalAmount"`
+	Months         int    `json:"months"`         // 总期数
+	MonthlyAmount  Amount `json:"monthlyAmount"`  // 每期金额,照银行账单填(取整规则各行不一)
+	FirstBillMonth string `json:"firstBillMonth"` // "2025-11",首期计入的账单月
 }
 
 // InstallmentConfig 分期类账单(房贷/车贷):每月固定金额。
@@ -52,6 +65,35 @@ func (c *DebtsConfig) Validate() []string {
 		}
 		if rc.DueDay < 1 || rc.DueDay > 31 {
 			errs = append(errs, fmt.Sprintf("账户 %s 的还款日 %d 不在 1-31 范围", account, rc.DueDay))
+		}
+		for _, ri := range rc.Installments {
+			label := ri.Name
+			if label == "" {
+				label = "(未命名)"
+				errs = append(errs, fmt.Sprintf("账户 %s 有分期缺少名称", account))
+			}
+			if ri.TotalAmount <= 0 {
+				errs = append(errs, fmt.Sprintf("账户 %s 的分期 %s 总金额必须大于 0", account, label))
+			}
+			if ri.Months < 1 {
+				errs = append(errs, fmt.Sprintf("账户 %s 的分期 %s 总期数必须大于 0", account, label))
+			}
+			if ri.MonthlyAmount <= 0 {
+				errs = append(errs, fmt.Sprintf("账户 %s 的分期 %s 每期金额必须大于 0", account, label))
+			}
+			if _, err := time.Parse("2006-01", ri.FirstBillMonth); err != nil {
+				errs = append(errs, fmt.Sprintf("账户 %s 的分期 %s 首期账单月 %q 非法,应为 YYYY-MM", account, label, ri.FirstBillMonth))
+			}
+			// 尾差不论落首期还是末期都在一期以内,超出说明期数/金额填错了
+			if ri.TotalAmount > 0 && ri.Months >= 1 && ri.MonthlyAmount > 0 {
+				diff := ri.TotalAmount - ri.MonthlyAmount*Amount(ri.Months)
+				if diff < 0 {
+					diff = -diff
+				}
+				if diff >= ri.MonthlyAmount {
+					errs = append(errs, fmt.Sprintf("账户 %s 的分期 %s 每期金额×期数与总金额不匹配(偏差超过一期)", account, label))
+				}
+			}
 		}
 	}
 	seenIDs := make(map[string]bool)
@@ -87,13 +129,27 @@ func (c *DebtsConfig) Validate() []string {
 	return errs
 }
 
-// Normalize 保存前规范化:schedule 按生效日期升序,追加的调整不会乱序落盘。
+// Normalize 保存前规范化:schedule 按生效日期升序,追加的调整不会乱序落盘;
+// 额度类内嵌分期按首期账单月排序,nil 补空让 GET 回显恒为 []。
 func (c *DebtsConfig) Normalize() {
 	for i := range c.Installments {
 		schedule := c.Installments[i].Schedule
 		sort.Slice(schedule, func(a, b int) bool {
 			return schedule[a].EffectiveFrom < schedule[b].EffectiveFrom
 		})
+	}
+	// map value 不可寻址,取出改完写回
+	for account, rc := range c.Revolving {
+		if rc.Installments == nil {
+			rc.Installments = []RevolvingInstallment{}
+		}
+		sort.Slice(rc.Installments, func(a, b int) bool {
+			if rc.Installments[a].FirstBillMonth != rc.Installments[b].FirstBillMonth {
+				return rc.Installments[a].FirstBillMonth < rc.Installments[b].FirstBillMonth
+			}
+			return rc.Installments[a].Name < rc.Installments[b].Name
+		})
+		c.Revolving[account] = rc
 	}
 }
 
@@ -119,18 +175,35 @@ type DebtsSummary struct {
 }
 
 // RevolvingStatus 额度类账户的当期状态。
+// StatementDue 是扣掉未出账分期后的口径,原始快照 = StatementDue + InstallmentUnbilled(未钳制时)。
 type RevolvingStatus struct {
-	Account        string `json:"account"`
-	Name           string `json:"name"`
-	AccountMissing bool   `json:"accountMissing"`
-	StatementDate  string `json:"statementDate"`
-	DueDate        string `json:"dueDate"`
-	StatementDue   Amount `json:"statementDue"`
-	PaidSince      Amount `json:"paidSince"`
-	Remaining      Amount `json:"remaining"`
-	CurrentBalance Amount `json:"currentBalance"`
-	DaysUntilDue   int    `json:"daysUntilDue"`
-	Overdue        bool   `json:"overdue"`
+	Account               string                       `json:"account"`
+	Name                  string                       `json:"name"`
+	AccountMissing        bool                         `json:"accountMissing"`
+	StatementDate         string                       `json:"statementDate"`
+	DueDate               string                       `json:"dueDate"`
+	StatementDue          Amount                       `json:"statementDue"`
+	PaidSince             Amount                       `json:"paidSince"`
+	Remaining             Amount                       `json:"remaining"`
+	CurrentBalance        Amount                       `json:"currentBalance"`
+	DaysUntilDue          int                          `json:"daysUntilDue"`
+	Overdue               bool                         `json:"overdue"`
+	InstallmentUnbilled   Amount                       `json:"installmentUnbilled"`   // 未出账分期合计
+	InstallmentThisPeriod Amount                       `json:"installmentThisPeriod"` // 本期账单中的分期合计
+	Installments          []RevolvingInstallmentStatus `json:"installments"`
+}
+
+// RevolvingInstallmentStatus 单笔内嵌分期截至本账单日的出账状态。
+type RevolvingInstallmentStatus struct {
+	Name             string `json:"name"`
+	TotalAmount      Amount `json:"totalAmount"`
+	Months           int    `json:"months"`
+	MonthlyAmount    Amount `json:"monthlyAmount"`
+	FirstBillMonth   string `json:"firstBillMonth"`
+	BilledPeriods    int    `json:"billedPeriods"`    // 已出账期数(钳制到 [0, months])
+	ThisPeriodAmount Amount `json:"thisPeriodAmount"` // 0 = 未开始或已出账完毕
+	UnbilledAmount   Amount `json:"unbilledAmount"`
+	Finished         bool   `json:"finished"` // 已全部出账(末期当月即为 true,但仍有本期金额)
 }
 
 // InstallmentStatus 分期类账单的当期状态。
@@ -189,24 +262,30 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 		statement := latestStatementDate(today, rc.BillingDay)
 		due := nextDueAfter(statement, rc.DueDay)
 
-		statementDue := maxAmount(-balanceAsOf(txs, account, statement), 0)
+		snapshot := maxAmount(-balanceAsOf(txs, account, statement), 0)
+		instStatuses, unbilled, instThisPeriod := revolvingInstallmentStatuses(rc.Installments, statement)
+		// 分期消费记账时全额入负债账户,银行只按月出账:快照先扣掉未出账部分
+		statementDue := maxAmount(snapshot-unbilled, 0)
 		paidSince := creditsAfter(txs, account, statement, false)
 		// 超额还款/大额退款不出负数
 		remaining := maxAmount(statementDue-paidSince, 0)
 		overdue := remaining > 0 && today.After(due)
 
 		report.Revolving = append(report.Revolving, RevolvingStatus{
-			Account:        account,
-			Name:           name,
-			AccountMissing: !known[account],
-			StatementDate:  statement.Format("2006-01-02"),
-			DueDate:        due.Format("2006-01-02"),
-			StatementDue:   statementDue,
-			PaidSince:      paidSince,
-			Remaining:      remaining,
-			CurrentBalance: maxAmount(-balanceAsOf(txs, account, today), 0),
-			DaysUntilDue:   daysBetween(today, due),
-			Overdue:        overdue,
+			Account:               account,
+			Name:                  name,
+			AccountMissing:        !known[account],
+			StatementDate:         statement.Format("2006-01-02"),
+			DueDate:               due.Format("2006-01-02"),
+			StatementDue:          statementDue,
+			PaidSince:             paidSince,
+			Remaining:             remaining,
+			CurrentBalance:        maxAmount(-balanceAsOf(txs, account, today), 0),
+			DaysUntilDue:          daysBetween(today, due),
+			Overdue:               overdue,
+			InstallmentUnbilled:   unbilled,
+			InstallmentThisPeriod: instThisPeriod,
+			Installments:          instStatuses,
 		})
 
 		report.Summary.MonthDue += statementDue
@@ -312,6 +391,61 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 	})
 
 	return report
+}
+
+// revolvingInstallmentStatuses 计算各内嵌分期截至 statement 账单日的出账状态,
+// 返回 (statuses, 未出账合计, 本期出账合计)。月数用 year*12+month 差值,没有日期进位问题。
+// FirstBillMonth 非法本应被 Validate 拦下,手改文件绕过时跳过该条,不让整份报告失败。
+func revolvingInstallmentStatuses(items []RevolvingInstallment, statement time.Time) ([]RevolvingInstallmentStatus, Amount, Amount) {
+	statuses := make([]RevolvingInstallmentStatus, 0, len(items))
+	var unbilledTotal, thisPeriodTotal Amount
+	for _, it := range items {
+		first, err := time.Parse("2006-01", it.FirstBillMonth)
+		if err != nil {
+			continue
+		}
+		// raw 是未钳制期数:<1 未开始,>Months 已出账完毕
+		raw := (statement.Year()-first.Year())*12 + int(statement.Month()) - int(first.Month()) + 1
+		billed := raw
+		if billed < 0 {
+			billed = 0
+		}
+		if billed > it.Months {
+			billed = it.Months
+		}
+		// 尾差自然落在最后一期:已出账金额按每期整额累计,最后一期由总额差值收口
+		unbilled := it.TotalAmount - it.MonthlyAmount*Amount(billed)
+		if unbilled < 0 {
+			unbilled = 0
+		}
+		if unbilled > it.TotalAmount {
+			unbilled = it.TotalAmount
+		}
+		var thisPeriod Amount
+		switch {
+		case raw < 1 || raw > it.Months:
+			thisPeriod = 0
+		case raw == it.Months:
+			thisPeriod = maxAmount(it.TotalAmount-it.MonthlyAmount*Amount(it.Months-1), 0)
+		default:
+			thisPeriod = it.MonthlyAmount
+		}
+
+		statuses = append(statuses, RevolvingInstallmentStatus{
+			Name:             it.Name,
+			TotalAmount:      it.TotalAmount,
+			Months:           it.Months,
+			MonthlyAmount:    it.MonthlyAmount,
+			FirstBillMonth:   it.FirstBillMonth,
+			BilledPeriods:    billed,
+			ThisPeriodAmount: thisPeriod,
+			UnbilledAmount:   unbilled,
+			Finished:         billed >= it.Months,
+		})
+		unbilledTotal += unbilled
+		thisPeriodTotal += thisPeriod
+	}
+	return statuses, unbilledTotal, thisPeriodTotal
 }
 
 // effectiveMonthly 取 effectiveFrom ≤ 本期还款日的最后一条月供。

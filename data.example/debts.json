@@ -8,7 +8,16 @@
     "Liabilities:CreditCard:CMB": {
       "name": "招行信用卡",
       "billingDay": 9,
-      "dueDay": 20
+      "dueDay": 20,
+      "installments": [
+        {
+          "name": "妙控键盘 24 期免息",
+          "totalAmount": 1049.00,
+          "months": 24,
+          "monthlyAmount": 43.71,
+          "firstBillMonth": "2025-11"
+        }
+      ]
     },
     "Liabilities:JD:BNPL": {
       "name": "京东白条",

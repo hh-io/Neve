@@ -66,7 +66,10 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - **balance 断言**会真正核对(断言日期当天开始前的余额,官方 beancount 语义),
   失败报 `BALANCE_FAILED`。
 - **负债待还口径**(`server/parser/debts.go` 的 `ComputeDebts`,配置存 `data/debts.json`):
-  额度类"本期应还"= 账单日当天结束时的欠款余额快照;冲减按账单日后转入该账户的
+  额度类"本期应还"= 账单日当天结束时的欠款余额快照,**先扣减内嵌免息分期的未出账金额**
+  (`RevolvingConfig.Installments`:分期消费记账时全额入负债账户,银行按月出账;
+  未出账 = 总额 − 已出账期数×每期金额,尾差落最后一期,月数按 `YYYY-MM` 差值算无进位坑);
+  冲减按账单日后转入该账户的
   **正向 posting**(不限交易 kind,退款/返现也应冲减);分期类"已还"只认 `kind=transfer`。
   账单日/还款日超出当月天数时**顺延至月末**(`clampedDate`,严禁裸 `time.Date` 进位)。
   GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。

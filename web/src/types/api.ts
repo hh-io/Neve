@@ -164,6 +164,16 @@ export interface RevolvingConfig {
   name: string
   billingDay: number
   dueDay: number
+  installments: RevolvingInstallment[]
+}
+
+/** 额度账户内嵌的分期账单(如信用卡 24 期免息),未出账部分从本期应还中扣减。 */
+export interface RevolvingInstallment {
+  name: string
+  totalAmount: Yuan
+  months: number
+  monthlyAmount: Yuan
+  firstBillMonth: string // "2025-11"
 }
 
 export interface InstallmentPhase {
@@ -199,12 +209,27 @@ export interface RevolvingStatus {
   accountMissing: boolean
   statementDate: string
   dueDate: string
-  statementDue: Yuan
+  statementDue: Yuan // 已扣减未出账分期后的口径
   paidSince: Yuan
   remaining: Yuan
   currentBalance: Yuan
   daysUntilDue: number
   overdue: boolean
+  installmentUnbilled: Yuan
+  installmentThisPeriod: Yuan
+  installments: RevolvingInstallmentStatus[]
+}
+
+export interface RevolvingInstallmentStatus {
+  name: string
+  totalAmount: Yuan
+  months: number
+  monthlyAmount: Yuan
+  firstBillMonth: string
+  billedPeriods: number
+  thisPeriodAmount: Yuan // 0 = 未开始或已出账完毕
+  unbilledAmount: Yuan
+  finished: boolean
 }
 
 export interface InstallmentStatus {
