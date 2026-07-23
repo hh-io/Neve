@@ -528,21 +528,24 @@ func TestRevolvingInstallmentStatuses(t *testing.T) {
 		name       string
 		statement  string
 		billed     int
-		unbilled   Amount
+		deducted   Amount // 参与本期扣减的合计
+		stUnbilled Amount // 单笔状态展示的未出账
 		thisPeriod Amount
 		finished   bool
 	}{
-		{"首期在未来", "2026-04-09", 0, 10000, 0, false},
-		{"首期当月", "2026-05-09", 1, 6666, 3334, false},
-		{"尾差期", "2026-07-09", 3, 0, 3332, true},
-		{"出账完毕后", "2026-08-09", 3, 0, 0, true},
+		// 首期在未来 = 本账单日后才购买,本金不在快照里,不参与扣减,但明细仍展示全额未出账
+		{"首期在未来", "2026-04-09", 0, 0, 10000, 0, false},
+		{"首期当月", "2026-05-09", 1, 6666, 6666, 3334, false},
+		{"尾差期", "2026-07-09", 3, 0, 0, 3332, true},
+		{"出账完毕后", "2026-08-09", 3, 0, 0, 0, true},
 	}
 	for _, c := range cases {
-		statuses, unbilled, thisPeriod := revolvingInstallmentStatuses([]RevolvingInstallment{plan}, atDate(c.statement))
+		statuses, deducted, thisPeriod := revolvingInstallmentStatuses([]RevolvingInstallment{plan}, atDate(c.statement))
 		st := statuses[0]
-		if st.BilledPeriods != c.billed || unbilled != c.unbilled || thisPeriod != c.thisPeriod || st.Finished != c.finished {
-			t.Errorf("%s: billed=%d unbilled=%v thisPeriod=%v finished=%v, want %d/%v/%v/%v",
-				c.name, st.BilledPeriods, unbilled, thisPeriod, st.Finished, c.billed, c.unbilled, c.thisPeriod, c.finished)
+		if st.BilledPeriods != c.billed || deducted != c.deducted || st.UnbilledAmount != c.stUnbilled || thisPeriod != c.thisPeriod || st.Finished != c.finished {
+			t.Errorf("%s: billed=%d deducted=%v stUnbilled=%v thisPeriod=%v finished=%v, want %d/%v/%v/%v/%v",
+				c.name, st.BilledPeriods, deducted, st.UnbilledAmount, thisPeriod, st.Finished,
+				c.billed, c.deducted, c.stUnbilled, c.thisPeriod, c.finished)
 		}
 	}
 
@@ -567,6 +570,54 @@ func TestRevolvingInstallmentStatuses(t *testing.T) {
 	statuses, unbilled, _ = revolvingInstallmentStatuses([]RevolvingInstallment{broken, plan}, atDate("2026-05-09"))
 	if len(statuses) != 1 || unbilled != 6666 {
 		t.Errorf("非法月份未被跳过: %d 条 / unbilled %v", len(statuses), unbilled)
+	}
+}
+
+func TestComputeDebtsInstallmentBoughtAfterStatement(t *testing.T) {
+	// 回归:账单日(7/15)之后新买的分期(7/23 购买,首期账单 2026-08),
+	// 本金不在本期快照里,不得参与扣减,否则本期应还被双重扣低
+	ledger := debtLedger(
+		[]string{ccAccount},
+		mkTx("2026-01-01",
+			po(ccAccount, -645593),
+			po("Equity:Opening-Balances", 645593)),
+		mkTx("2026-07-23",
+			po("Expenses:Shopping:Appliance", 187646),
+			po(ccAccount, -187646)),
+	)
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {BillingDay: 15, DueDay: 3, Installments: []RevolvingInstallment{
+				// 已在出账中的分期:剩余 655.61 共 15 期,7 月账单含其中一期
+				{Name: "妙控键盘", TotalAmount: 65561, Months: 15, MonthlyAmount: 4371, FirstBillMonth: "2026-07"},
+				// 账单日后新购:整笔未出账,但不参与本期扣减
+				{Name: "海信空调", TotalAmount: 187646, Months: 3, MonthlyAmount: 62549, FirstBillMonth: "2026-08"},
+			}},
+		},
+	}
+
+	report := ComputeDebts(ledger, cfg, atDate("2026-07-23"))
+	rv := report.Revolving[0]
+	if rv.StatementDate != "2026-07-15" || rv.DueDate != "2026-08-03" {
+		t.Errorf("账期 = %s → %s, want 2026-07-15 → 2026-08-03", rv.StatementDate, rv.DueDate)
+	}
+	// 扣减只含妙控键盘:655.61 - 43.71 = 611.90
+	if rv.InstallmentUnbilled != 61190 {
+		t.Errorf("InstallmentUnbilled = %v, want 61190", rv.InstallmentUnbilled)
+	}
+	// 6455.93 - 611.90 = 5844.03;空调的 1876.46 不扣
+	if rv.StatementDue != 584403 {
+		t.Errorf("StatementDue = %v, want 584403", rv.StatementDue)
+	}
+	// 明细里空调仍展示整笔未出账,0/3 期
+	for _, st := range rv.Installments {
+		if st.Name == "海信空调" && (st.UnbilledAmount != 187646 || st.BilledPeriods != 0 || st.ThisPeriodAmount != 0) {
+			t.Errorf("空调明细 = %+v, want 未出账 187646 / 0 期 / 本期 0", st)
+		}
+	}
+	// 当前欠款含空调本金
+	if rv.CurrentBalance != 645593+187646 {
+		t.Errorf("CurrentBalance = %v, want %v", rv.CurrentBalance, 645593+187646)
 	}
 }
 

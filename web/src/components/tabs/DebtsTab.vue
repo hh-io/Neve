@@ -89,7 +89,7 @@
             </div>
             <div v-if="d.inst" class="debt-inst">
               <button class="debt-inst-toggle" @click="toggleInst(d.key)">
-                <span>含本期分期 <span class="tabular-nums">{{ d.inst.thisPeriod }}</span> · 未出账 <span class="tabular-nums">{{ d.inst.unbilled }}</span></span>
+                <span>含本期分期 <span class="tabular-nums">{{ d.inst.thisPeriod }}</span> · 未出账已扣 <span class="tabular-nums">{{ d.inst.unbilled }}</span></span>
                 <ChevronDown :size="14" class="debt-inst-chevron" :class="{ 'debt-inst-chevron-open': expandedInst.has(d.key) }" />
               </button>
               <div v-if="expandedInst.has(d.key)" class="debt-inst-details">
@@ -97,6 +97,7 @@
                   <div class="debt-inst-item-head">
                     <span class="debt-inst-name">{{ item.name }}</span>
                     <span v-if="item.dimmed" class="debt-badge badge-idle">已出账完毕</span>
+                    <span v-else-if="item.notStarted" class="debt-badge badge-idle">下期起</span>
                     <span class="tabular-nums debt-inst-periods">{{ item.progressText }}</span>
                   </div>
                   <div class="progress-bar debt-inst-bar">
@@ -107,7 +108,7 @@
                     <span>未出账 <span class="tabular-nums">{{ item.remainText }}</span></span>
                   </div>
                 </div>
-                <div class="debt-inst-balance">当前欠款 <span class="tabular-nums">{{ d.inst.balance }}</span> · 其中未出账 <span class="tabular-nums">{{ d.inst.unbilled }}</span></div>
+                <div class="debt-inst-balance">当前欠款 <span class="tabular-nums">{{ d.inst.balance }}</span> · 其中未出账分期 <span class="tabular-nums">{{ d.inst.balanceUnbilled }}</span></div>
               </div>
             </div>
             <div class="debt-card-progress">
@@ -263,8 +264,11 @@ const revolvingCards = computed(() => revolving.value.map((rv) => {
     countdown: countdownFor(overdue, settled, rv.daysUntilDue),
     inst: rv.installments.length ? {
       thisPeriod: formatMoney(rv.installmentThisPeriod),
+      // 参与本期扣减的未出账(后端已剔除账单日后新购的分期)
       unbilled: formatMoney(rv.installmentUnbilled),
       balance: formatMoney(rv.currentBalance),
+      // 今天口径的未出账合计:新购分期本金已计入当前欠款,这里要含它
+      balanceUnbilled: formatMoney(rv.installments.reduce((sum, it) => sum + it.unbilledAmount, 0)),
       items: rv.installments.map((it) => ({
         name: it.name,
         firstBillMonth: it.firstBillMonth,
@@ -273,6 +277,7 @@ const revolvingCards = computed(() => revolving.value.map((rv) => {
         monthlyText: formatMoney(it.monthlyAmount),
         remainText: formatMoney(it.unbilledAmount),
         dimmed: it.finished && it.thisPeriodAmount <= 0,
+        notStarted: it.billedPeriods === 0 && it.thisPeriodAmount <= 0 && !it.finished,
       })),
     } : null,
   };

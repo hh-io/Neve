@@ -188,7 +188,7 @@ type RevolvingStatus struct {
 	CurrentBalance        Amount                       `json:"currentBalance"`
 	DaysUntilDue          int                          `json:"daysUntilDue"`
 	Overdue               bool                         `json:"overdue"`
-	InstallmentUnbilled   Amount                       `json:"installmentUnbilled"`   // 未出账分期合计
+	InstallmentUnbilled   Amount                       `json:"installmentUnbilled"`   // 参与本期扣减的未出账合计(不含尚未开始出账的分期)
 	InstallmentThisPeriod Amount                       `json:"installmentThisPeriod"` // 本期账单中的分期合计
 	Installments          []RevolvingInstallmentStatus `json:"installments"`
 }
@@ -394,7 +394,7 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 }
 
 // revolvingInstallmentStatuses 计算各内嵌分期截至 statement 账单日的出账状态,
-// 返回 (statuses, 未出账合计, 本期出账合计)。月数用 year*12+month 差值,没有日期进位问题。
+// 返回 (statuses, 参与本期扣减的未出账合计, 本期出账合计)。月数用 year*12+month 差值,没有日期进位问题。
 // FirstBillMonth 非法本应被 Validate 拦下,手改文件绕过时跳过该条,不让整份报告失败。
 func revolvingInstallmentStatuses(items []RevolvingInstallment, statement time.Time) ([]RevolvingInstallmentStatus, Amount, Amount) {
 	statuses := make([]RevolvingInstallmentStatus, 0, len(items))
@@ -442,7 +442,11 @@ func revolvingInstallmentStatuses(items []RevolvingInstallment, statement time.T
 			UnbilledAmount:   unbilled,
 			Finished:         billed >= it.Months,
 		})
-		unbilledTotal += unbilled
+		// 首期账单月晚于本账单月 = 本账单日之后才购买(信用卡分期首期总是记入购买后
+		// 第一个账单),本金尚未进入快照余额,扣了就是双重扣减
+		if raw >= 1 {
+			unbilledTotal += unbilled
+		}
 		thisPeriodTotal += thisPeriod
 	}
 	return statuses, unbilledTotal, thisPeriodTotal
