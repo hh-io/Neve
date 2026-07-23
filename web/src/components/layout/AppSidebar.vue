@@ -3,7 +3,7 @@
     <!-- Logo -->
     <div class="logo-section animate-fade-in-up">
       <div class="logo-mark">
-        <AppLogo :size="20" />
+        <AppLogo :size="22" />
       </div>
       <div class="logo-text">
         <h1>Neve</h1>

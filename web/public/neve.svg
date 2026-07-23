@@ -1,8 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#4b52e0"/>
-  <g stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M11 24V9"/>
-    <path d="M11 10L21 22"/>
-    <path d="M21 24V12"/>
+  <defs>
+    <linearGradient id="neveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4B52E0"/>
+      <stop offset="100%" stop-color="#3A41C9"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#neveGrad)"/>
+  <g transform="translate(4, 4)" fill="#fff">
+    <path d="M2 18L9 6L15 15H10L8 18H2Z" fill-opacity="0.5"/>
+    <path d="M8 18L15 4L22 18H8Z" fill-opacity="0.9"/>
+    <path d="M15 4L12 9L15 11L18 9L15 4Z"/>
   </g>
 </svg>

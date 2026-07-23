@@ -38,7 +38,7 @@
     gap: var(--space-3);
 }
 
-/* 品牌标:靛蓝圆角方块 + 白色「N」monogram */
+/* 品牌标:靛蓝圆角方块 */
 .logo-mark {
     width: 34px;
     height: 34px;

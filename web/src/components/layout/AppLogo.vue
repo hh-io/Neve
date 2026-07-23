@@ -1,17 +1,15 @@
 <template>
-  <!-- 「N」monogram:上扬右笔 + 峰值节点(增长/平衡的克制隐喻);currentColor 跟随容器 -->
-  <svg :width="size" :height="size" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-    <path d="M9 25V7" stroke="currentColor" :stroke-width="stroke" stroke-linecap="round" />
-    <path d="M9 8L23 24" stroke="currentColor" :stroke-width="stroke" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M23 25V10" stroke="currentColor" :stroke-width="stroke" stroke-linecap="round" />
-    <circle v-if="node" cx="23" cy="7.2" r="2.5" fill="currentColor" />
+  <!-- 雪山品牌标(Neve = 意大利语/冰川学的"雪、粒雪"):次峰 + 主峰 + 雪顶三层,
+       与 public/neve.svg favicon 同一几何,单尺寸抗糊;currentColor 跟随容器 -->
+  <svg :width="size" :height="size" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M2 18L9 6L15 15H10L8 18H2Z" fill-opacity="0.5" />
+    <path d="M8 18L15 4L22 18H8Z" fill-opacity="0.9" />
+    <path d="M15 4L12 9L15 11L18 9L15 4Z" />
   </svg>
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{ size?: number; stroke?: number; node?: boolean }>(), {
-  size: 20,
-  stroke: 4.2,
-  node: true,
+withDefaults(defineProps<{ size?: number }>(), {
+  size: 22,
 });
 </script>
