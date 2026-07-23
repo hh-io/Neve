@@ -31,23 +31,27 @@ NEVE_BARK_URL        ?=
 NEVE_TUNNEL_ID       ?=
 NEVE_TUNNEL_HOSTNAME ?=
 
+# 转义 sed 替换串中的特殊字符 (反斜杠 / & / 分隔符 |),防止密钥或 URL 含这些字符时
+# 破坏渲染命令或被静默改写 (必须先转反斜杠,否则后续插入的转义符会被二次转义)
+esc = $(subst |,\|,$(subst &,\&,$(subst \,\\,$(1))))
+
 # 渲染模板占位符: @NEVE_ROOT@ / @HOME@ / @USER@ + local.env 中的私有配置
-RENDER := sed -e 's|@NEVE_ROOT@|$(CURDIR)|g' -e 's|@HOME@|$(HOME)|g' -e 's|@USER@|$(USER)|g' \
-	-e 's|@NEVE_INBOX_TOKEN@|$(NEVE_INBOX_TOKEN)|g' \
-	-e 's|@NEVE_AI_PROVIDER@|$(NEVE_AI_PROVIDER)|g' \
-	-e 's|@NEVE_AI_API_KEY@|$(NEVE_AI_API_KEY)|g' \
-	-e 's|@NEVE_AI_MODEL@|$(NEVE_AI_MODEL)|g' \
-	-e 's|@NEVE_BARK_URL@|$(NEVE_BARK_URL)|g' \
-	-e 's|@NEVE_TUNNEL_ID@|$(NEVE_TUNNEL_ID)|g' \
-	-e 's|@NEVE_TUNNEL_HOSTNAME@|$(NEVE_TUNNEL_HOSTNAME)|g' \
-	-e 's|@CLOUDFLARED_BIN@|$(CLOUDFLARED_BIN)|g'
+RENDER := sed -e 's|@NEVE_ROOT@|$(call esc,$(CURDIR))|g' -e 's|@HOME@|$(call esc,$(HOME))|g' -e 's|@USER@|$(call esc,$(USER))|g' \
+	-e 's|@NEVE_INBOX_TOKEN@|$(call esc,$(NEVE_INBOX_TOKEN))|g' \
+	-e 's|@NEVE_AI_PROVIDER@|$(call esc,$(NEVE_AI_PROVIDER))|g' \
+	-e 's|@NEVE_AI_API_KEY@|$(call esc,$(NEVE_AI_API_KEY))|g' \
+	-e 's|@NEVE_AI_MODEL@|$(call esc,$(NEVE_AI_MODEL))|g' \
+	-e 's|@NEVE_BARK_URL@|$(call esc,$(NEVE_BARK_URL))|g' \
+	-e 's|@NEVE_TUNNEL_ID@|$(call esc,$(NEVE_TUNNEL_ID))|g' \
+	-e 's|@NEVE_TUNNEL_HOSTNAME@|$(call esc,$(NEVE_TUNNEL_HOSTNAME))|g' \
+	-e 's|@CLOUDFLARED_BIN@|$(call esc,$(CLOUDFLARED_BIN))|g'
 
 # --- Makefile 配置 ---
 .DEFAULT_GOAL := all
 SHELL := /bin/bash
 
 # .PHONY 声明这些目标不是文件，避免与同名文件冲突
-.PHONY: all deps build build-web build-server run dev dev-web dev-server test clean help \
+.PHONY: all deps build build-web build-server run dev dev-web dev-server test fmt clean help \
         install-service install-logrotate install-tunnel
 
 # ==============================================================================
@@ -65,8 +69,8 @@ deps:
 	@echo "📦 整理后端依赖..."
 	@cd $(SERVER_DIR) && go mod tidy
 
-# 总构建任务：先构建前端，再构建后端
-build: build-web build-server
+# 总构建任务：build-server 已依赖 build-web + test,直接串到它即可
+build: build-server
 
 # 构建前端：先过 ESLint 与类型检查,再生成静态资源到 dist 目录
 build-web:
@@ -80,10 +84,16 @@ test:
 	@echo "🧪 运行后端测试..."
 	@cd $(SERVER_DIR) && go test -race ./...
 
+# 格式化后端代码 (构建阶段只做 gofmt 校验不改源码,格式化需显式运行此目标)
+fmt:
+	@echo "🎨 格式化后端代码..."
+	@cd $(SERVER_DIR) && go fmt ./...
+
 # 构建后端：编译 Go 二进制文件 (依赖前端构建产物用于 embed)
 build-server: build-web test
-	@echo "🔍 检查代码质量..."
-	@cd $(SERVER_DIR) && go fmt ./... && go vet ./...
+	@echo "🔍 检查代码质量 (gofmt 校验 + vet)..."
+	@cd $(SERVER_DIR) && out=$$(gofmt -l .); test -z "$$out" || { echo "❌ 以下文件未格式化,运行 make fmt 修复:"; echo "$$out"; exit 1; }
+	@cd $(SERVER_DIR) && go vet ./...
 	@echo "🔨 构建后端二进制..."
 	@cd $(SERVER_DIR) && go build -ldflags "$(GO_LDFLAGS)" -o ../$(BINARY_NAME) .
 	@echo "✌️ 构建完成,二进制大小: $$(du -h $(BINARY_NAME) | cut -f1)"
@@ -179,6 +189,7 @@ help:
 	@echo ""
 	@echo "  辅助命令:"
 	@echo "    make test        运行后端单元测试"
+	@echo "    make fmt         格式化后端代码 (gofmt)"
 	@echo "    make clean       清理所有构建产物"
 	@echo "    make help        显示此帮助信息"
 	@echo ""

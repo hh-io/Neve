@@ -69,8 +69,9 @@ make build     # 前端(lint+typecheck) → 测试 → 后端,产出 ./neve
 ### 开发模式
 
 ```bash
-make dev-server   # 终端 1:后端 (localhost:8080)
-make dev          # 终端 2:前端热重载 (localhost:5173,/api 代理到 8080)
+make dev          # 同时启动前后端 (后端 :8080 + 前端热重载 :5173,/api 代理到 8080)
+make dev-server   # 仅启动后端 (:8080)
+make dev-web      # 仅启动前端热重载 (:5173)
 make test         # 后端单元测试 (go test -race)
 ```
 
