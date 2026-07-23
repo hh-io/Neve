@@ -346,10 +346,10 @@ const heatmapOption = computed(() => {
   void themeVersion.value;
   const heatmapData = dailyTrend.value.map(d => [d.date, Math.abs(d.expense)] as [string, number]);
   if (heatmapData.length === 0) return null;
-  const maxExpense = Math.max(...heatmapData.map(d => d[1]));
+  const maxExpense = Math.max(...heatmapData.map(d => d[1])) || 1;
   return {
     tooltip: {
-      formatter: (p: { data: [string, number] }) => `${p.data[0]}: ¥${p.data[1].toFixed(2)}`,
+      formatter: (o: { data: [string, number] }) => `${o.data[0]}<br/>支出 ¥${Number(o.data[1]).toLocaleString('en-US')}`,
       backgroundColor: getThemeColor('--surface-1'),
       borderColor: getThemeColor('--hairline'),
       textStyle: { color: getThemeColor('--text-primary') }
@@ -361,27 +361,45 @@ const heatmapOption = computed(() => {
       orient: 'horizontal',
       left: 'center',
       bottom: 0,
+      itemWidth: 12,
+      itemHeight: 120,
+      text: ['高', '低'],
+      textStyle: { color: getThemeColor('--text-tertiary'), fontSize: 11 },
       inRange: { color: ['--heat-0', '--heat-1', '--heat-2', '--heat-3', '--heat-4'].map(getThemeColor) },
       calculable: false,
-      show: false
+      show: true
     },
     calendar: {
-      top: 30,
-      left: 30,
-      right: 30,
-      cellSize: ['auto', 16],
+      top: 18,
+      left: 24,
+      right: 12,
+      bottom: 44,
+      cellSize: ['auto', 14],
       range: currentYear,
-      itemStyle: { color: 'transparent', borderColor: getThemeColor('--hairline'), borderWidth: 1 },
+      splitLine: { show: false },
+      itemStyle: {
+        color: getThemeColor('--surface-1'),
+        borderColor: getThemeColor('--canvas'),
+        borderWidth: 3
+      },
       yearLabel: { show: false },
-      dayLabel: { nameMap: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], color: getThemeColor('--text-tertiary') },
-      monthLabel: { nameMap: 'en', color: getThemeColor('--text-tertiary') },
-      splitLine: { show: false }
+      monthLabel: {
+        color: getThemeColor('--text-tertiary'),
+        fontSize: 11,
+        nameMap: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+      },
+      dayLabel: {
+        color: getThemeColor('--text-tertiary'),
+        fontSize: 10,
+        firstDay: 1,
+        nameMap: ['日', '一', '二', '三', '四', '五', '六']
+      }
     },
     series: {
       type: 'heatmap',
       coordinateSystem: 'calendar',
       data: heatmapData,
-      itemStyle: { borderRadius: 2, borderColor: getThemeColor('--surface-1'), borderWidth: 1 }
+      itemStyle: { borderRadius: 2 }
     }
   };
 });
@@ -661,7 +679,8 @@ const heatmapOption = computed(() => {
 }
 
 .ov-heat-chart {
-  height: 200px;
+  width: 100%;
+  height: 240px;
 }
 
 .chart-empty {
