@@ -28,6 +28,8 @@ NEVE_AI_PROVIDER     ?=
 NEVE_AI_API_KEY      ?=
 NEVE_AI_MODEL        ?=
 NEVE_BARK_URL        ?=
+NEVE_BACKUP_REMOTE   ?=
+NEVE_BACKUP_DIR      ?=
 NEVE_TUNNEL_ID       ?=
 NEVE_TUNNEL_HOSTNAME ?=
 
@@ -42,6 +44,8 @@ RENDER := sed -e 's|@NEVE_ROOT@|$(call esc,$(CURDIR))|g' -e 's|@HOME@|$(call esc
 	-e 's|@NEVE_AI_API_KEY@|$(call esc,$(NEVE_AI_API_KEY))|g' \
 	-e 's|@NEVE_AI_MODEL@|$(call esc,$(NEVE_AI_MODEL))|g' \
 	-e 's|@NEVE_BARK_URL@|$(call esc,$(NEVE_BARK_URL))|g' \
+	-e 's|@NEVE_BACKUP_REMOTE@|$(call esc,$(NEVE_BACKUP_REMOTE))|g' \
+	-e 's|@NEVE_BACKUP_DIR@|$(call esc,$(NEVE_BACKUP_DIR))|g' \
 	-e 's|@NEVE_TUNNEL_ID@|$(call esc,$(NEVE_TUNNEL_ID))|g' \
 	-e 's|@NEVE_TUNNEL_HOSTNAME@|$(call esc,$(NEVE_TUNNEL_HOSTNAME))|g' \
 	-e 's|@CLOUDFLARED_BIN@|$(call esc,$(CLOUDFLARED_BIN))|g'

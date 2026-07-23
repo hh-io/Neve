@@ -95,6 +95,9 @@ type Ledger struct {
 	BalanceChecks []BalanceCheck `json:"balanceChecks"`
 	Issues        []ParseIssue   `json:"issues"`
 	BaseCurrency  string         `json:"baseCurrency"`
+	// SourceFiles 是解析实际打开的所有文件(main.bean + 逐层 include),相对 dataDir、
+	// 按读取顺序去重。备份用它取账本文件清单,避免重复维护 include 展开逻辑。
+	SourceFiles []string `json:"-"`
 }
 
 func (l *Ledger) addIssue(file string, line int, severity, code, message string) {
@@ -115,6 +118,8 @@ type Parser struct {
 	// activeFiles 记录当前 include 调用栈上的文件,用于检测循环 include。
 	// 不检测的话循环引用会无限递归:先耗尽 fd,再把交易重复计入几百次。
 	activeFiles map[string]bool
+	// sourceSeen 对已记入 SourceFiles 的文件去重(同一文件被多处 include 只记一次)
+	sourceSeen map[string]bool
 }
 
 // errIncludeCycle 由 parseFile 返回,include 处捕获后记为 INCLUDE_CYCLE 软错误
@@ -122,7 +127,7 @@ var errIncludeCycle = errors.New("循环 include")
 
 // NewParser creates a new parser
 func NewParser(dataDir string) *Parser {
-	return &Parser{dataDir: dataDir, now: time.Now(), activeFiles: make(map[string]bool)}
+	return &Parser{dataDir: dataDir, now: time.Now(), activeFiles: make(map[string]bool), sourceSeen: make(map[string]bool)}
 }
 
 // Parse parses all bean files starting from main.bean.
@@ -135,6 +140,7 @@ func (p *Parser) Parse() (*Ledger, error) {
 		BalanceChecks: make([]BalanceCheck, 0),
 		Issues:        make([]ParseIssue, 0),
 		BaseCurrency:  baseCurrency,
+		SourceFiles:   make([]string, 0),
 	}
 
 	mainFile := filepath.Join(p.dataDir, "main.bean")
@@ -192,6 +198,12 @@ func (p *Parser) parseFile(filePath string, ledger *Ledger) error {
 	var currentTx *Transaction
 	lineNum := 0
 	sourceFile := p.relPath(filePath)
+
+	// 记录已成功打开的文件,供备份取账本文件清单(按读取顺序去重)
+	if !p.sourceSeen[cleanPath] {
+		p.sourceSeen[cleanPath] = true
+		ledger.SourceFiles = append(ledger.SourceFiles, sourceFile)
+	}
 
 	flush := func() {
 		p.flushTransaction(ledger, currentTx)

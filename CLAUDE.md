@@ -35,6 +35,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `data/` 是 iCloud 软链接,**不入库**(.gitignore);`data.example/` 是入库的演示数据。
 - 无感记账入口由环境变量启用:`NEVE_INBOX_TOKEN` + `NEVE_AI_PROVIDER`/`NEVE_AI_API_KEY`
   (+`NEVE_AI_MODEL`、可选 `NEVE_BARK_URL`),缺任一则 `/api/inbox` 返回 404。
+  数据备份由 `NEVE_BACKUP_REMOTE`(git 远程 URL)启用,可选 `NEVE_BACKUP_DIR`(镜像位置)。
   部署密钥统一放 gitignore 的 `deploy/local.env`(模板 `local.env.example`),由
   `make install-service` / `make install-tunnel` 渲染注入;Tunnel ingress 只放行
   `/api/inbox`,无鉴权端点不暴露公网。AI 调用走原生 HTTP,**不引入 SDK 依赖**
@@ -74,6 +75,16 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   **正向 posting**(不限交易 kind,退款/返现也应冲减);分期类"已还"只认 `kind=transfer`。
   账单日/还款日超出当月天数时**顺延至月末**(`clampedDate`,严禁裸 `time.Date` 进位)。
   GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。
+- **数据备份必须由服务端进程做,不能交给独立 launchd/cron 任务**:数据在快捷指令
+  App 的 iCloud 容器(`data` 软链指向处),属 macOS TCC 重点保护区。未获授权的
+  launchd 进程对该目录 `readdir`/`chdir` 一律 `Operation not permitted`(连 `git add`
+  都因 git 要 chdir 进工作树而失败),`stat` 单文件放行但 `open` 读内容也被拒;而
+  **服务端进程已获该容器读权限**。故 `server/backup` 采用镜像法:服务端用 `os.ReadFile`
+  读账本内容写进 iCloud 外的镜像 git 工作树,git 只对镜像操作(非 iCloud、无 TCC 限制)。
+  备份文件清单取自 `Ledger.SourceFiles`(parser 记录实际打开的 main.bean+include 文件,
+  单一真源)+ 已知配置名(budgets/debts.json);`triggerBackup` 有护栏——账本为空或
+  `SourceFiles` 为空时**跳过**,否则空清单会把镜像里已跟踪的 .bean 全 prune 成删除。
+  推送用普通 `git push`(非 force),首推需远程为空库。
 - **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
   (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。
@@ -98,6 +109,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/schedule 口径)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
+- `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)
 - `server/ai/` — AI 视觉客户端(claude/gemini 原生 HTTP)+ 提示词模板(prompt.md,
   `{{DATE}}`/`{{ACCOUNTS}}` 运行时注入)
 - `web/src/App.vue` — 布局壳、主题、Tab 分发(数据/主题为 composable 单例)

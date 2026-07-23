@@ -34,6 +34,13 @@
         <string>@NEVE_AI_MODEL@</string>
         <key>NEVE_BARK_URL</key>
         <string>@NEVE_BARK_URL@</string>
+        <!-- 数据备份:填了远程 URL 才启用。服务端把账本镜像进 iCloud 外的 git 仓库并推送,
+             绕开 launchd 沙箱对快捷指令 iCloud 容器的 readdir/chdir 限制。NEVE_BACKUP_DIR
+             留空用默认 ~/Library/Application Support/Neve/data-backup -->
+        <key>NEVE_BACKUP_REMOTE</key>
+        <string>@NEVE_BACKUP_REMOTE@</string>
+        <key>NEVE_BACKUP_DIR</key>
+        <string>@NEVE_BACKUP_DIR@</string>
     </dict>
 
     <key>RunAtLoad</key>

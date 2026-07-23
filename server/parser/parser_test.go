@@ -273,6 +273,27 @@ func TestIncludeParsesRelativeFile(t *testing.T) {
 	}
 }
 
+func TestSourceFilesRecorded(t *testing.T) {
+	ledger := parseFixture(t, map[string]string{
+		"main.bean": openHeader + `include "a.bean"` + "\n" + `include "b.bean"` + "\n",
+		"a.bean":    `include "b.bean"` + "\n", // 重复 include b,应只记一次
+		"b.bean": `2026-07-10 * "星巴克" "拿铁"
+  Expenses:Food:Coffee    25.00 CNY
+  Assets:Cash:WeChat     -25.00 CNY
+`,
+	})
+	// 读取顺序(DFS 前序):main → a → b;b 二次 include 去重
+	want := []string{"main.bean", "a.bean", "b.bean"}
+	if len(ledger.SourceFiles) != len(want) {
+		t.Fatalf("SourceFiles = %v,期望 %v", ledger.SourceFiles, want)
+	}
+	for i, w := range want {
+		if ledger.SourceFiles[i] != w {
+			t.Errorf("SourceFiles[%d] = %q,期望 %q(完整:%v)", i, ledger.SourceFiles[i], w, ledger.SourceFiles)
+		}
+	}
+}
+
 func TestBalanceAssertion(t *testing.T) {
 	// 断言核对的是断言日期当天开始前的余额:7-12 的交易不计入 7-12 的断言
 	ledger := parseMain(t, `

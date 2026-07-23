@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"neve/ai"
+	"neve/backup"
 	"neve/parser"
 	"os"
 	"path/filepath"
@@ -40,6 +42,9 @@ type Server struct {
 	barkURL      string
 	inboxMu      sync.Mutex   // 串行化 inbox.bean 追加
 	inboxPending atomic.Int32 // 在途异步识别任务数
+
+	// 数据备份(见 server/backup),EnableBackup 配置后各写入路径成功即异步快照
+	backup *backup.Snapshotter
 }
 
 // NewServer creates a new API server
@@ -65,6 +70,51 @@ func (s *Server) Refresh() error {
 	s.mu.Unlock()
 
 	return nil
+}
+
+// EnableBackup 开启数据备份;不调用则所有备份触发点均空操作。
+func (s *Server) EnableBackup(snap *backup.Snapshotter) {
+	s.backup = snap
+}
+
+// StartBackupScheduler 启动即快照一次(捕获上次运行至今的改动),并每日兜底一次。
+// 每日先 Refresh 以纳入手动新增的 include 文件,再快照(文件内容始终读磁盘实时值)。
+func (s *Server) StartBackupScheduler() {
+	s.triggerBackup("startup")
+	go func() {
+		t := time.NewTicker(24 * time.Hour)
+		defer t.Stop()
+		for range t.C {
+			if err := s.Refresh(); err != nil {
+				log.Printf("backup: 每日刷新失败: %v", err)
+			}
+			s.triggerBackup("daily")
+		}
+	}()
+}
+
+// triggerBackup 异步做一次备份;未启用则空操作。账本写入路径成功后调用。
+// 护栏:仅在有有效账本(至少含 main.bean)时才快照——否则空/残缺的文件清单会把
+// 镜像里已跟踪的 .bean 全当作删除 prune 掉,一次瞬时解析失败就可能清空快照。
+func (s *Server) triggerBackup(reason string) {
+	if s.backup == nil {
+		return
+	}
+	s.mu.RLock()
+	ledger := s.ledger
+	s.mu.RUnlock()
+	if ledger == nil || len(ledger.SourceFiles) == 0 {
+		return
+	}
+	files := make([]string, 0, len(ledger.SourceFiles)+2)
+	files = append(files, ledger.SourceFiles...)
+	// 配置文件不经账本 include,按已知名补入(Snapshot 会跳过不存在的)
+	files = append(files, "budgets.json", "debts.json")
+	go func() {
+		if err := s.backup.Snapshot(files, reason); err != nil {
+			log.Printf("backup: %v", err)
+		}
+	}()
 }
 
 // SetupRoutes sets up the API routes
@@ -184,6 +234,7 @@ func (s *Server) handleSaveBudgets(c *gin.Context) {
 		return
 	}
 
+	s.triggerBackup("budgets")
 	c.JSON(http.StatusOK, gin.H{"message": "saved"})
 }
 
@@ -279,6 +330,8 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
 		return
 	}
+
+	s.triggerBackup("debts")
 
 	// 保存后立刻重算,前端一次往返拿到新结果;账本尚未加载时 report 为 null
 	s.mu.RLock()

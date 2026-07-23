@@ -177,6 +177,7 @@ func (s *Server) processInbox(req inboxRequest) {
 		log.Printf("inbox: 记账成功但刷新缓存失败: %v", err)
 	}
 	log.Printf("inbox: 已记账 (provider=%s):\n%s", s.aiClient.Provider(), txn)
+	s.triggerBackup("inbox")
 	s.notify("Neve 记账成功", truncateRunes(txn, 300))
 }
 

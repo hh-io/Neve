@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"neve/ai"
 	"neve/api"
+	"neve/backup"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,6 +59,27 @@ func main() {
 		} else {
 			server.EnableInbox(aiClient, inboxToken, os.Getenv("NEVE_BARK_URL"))
 			log.Printf("Inbox endpoint enabled (provider=%s)", aiClient.Provider())
+		}
+	}
+
+	// 数据备份:配置了远程 URL 才启用。服务端把账本镜像进 iCloud 外的 git 仓库并推送,
+	// 绕开 launchd 沙箱对 iCloud 容器的 readdir/chdir 限制(见 server/backup 包注释)。
+	if remote := os.Getenv("NEVE_BACKUP_REMOTE"); remote != "" {
+		repoDir := os.Getenv("NEVE_BACKUP_DIR")
+		if repoDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Printf("Warning: 备份未启用,无法定位 HOME: %v", err)
+				home = ""
+			}
+			if home != "" {
+				repoDir = filepath.Join(home, "Library", "Application Support", "Neve", "data-backup")
+			}
+		}
+		if repoDir != "" {
+			server.EnableBackup(backup.New(absDataDir, repoDir, remote))
+			server.StartBackupScheduler()
+			log.Printf("Data backup enabled (repo=%s)", repoDir)
 		}
 	}
 

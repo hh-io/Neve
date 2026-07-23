@@ -89,6 +89,10 @@ NEVE_AI_PROVIDER=claude                 # claude | gemini
 NEVE_AI_API_KEY=<key>                   # 对应提供商的 API Key
 NEVE_AI_MODEL=                          # claude 留空默认 claude-opus-4-8;gemini 必填
 NEVE_BARK_URL=https://api.day.app/<key> # Bark 推送地址 (可选)
+
+# 数据备份 (可选):填了远程 URL 才启用,见「数据备份」
+NEVE_BACKUP_REMOTE=git@github.com:you/neve-data.git  # git 私有远程 (建议 SSH)
+NEVE_BACKUP_DIR=                        # 镜像仓库位置,留空默认 ~/Library/Application Support/Neve/data-backup
 ```
 
 部署时密钥统一放 gitignore 的 `deploy/local.env`（模板见 `deploy/local.env.example`）。
@@ -181,6 +185,17 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.cloudflared.tunnel.p
 ```
 
 > 隧道用本地托管模式（config.yml + credentials），不要用仪表盘 token 连接器——路径级 ingress 限制需要留在版本化的本地配置里。没有 Cloudflare 托管域名时可改用 Tailscale 直连。
+
+### 数据备份（iCloud 之外再加一层）
+
+账本文件仅靠 iCloud 同步不够可靠——iCloud 是「同步」而非「备份」，误删/写坏会被同步放大，且几乎无版本回溯。填入 `NEVE_BACKUP_REMOTE`（建议 SSH 私有库）即启用：服务端把账本镜像进 iCloud 外的 git 仓库，AI 记账 / 预算 / 负债保存成功后即时提交并推送，再加每日兜底（含手动改动）。得到本地版本历史 + 异地灾备两层。
+
+```bash
+NEVE_BACKUP_REMOTE=git@github.com:you/neve-data.git   # 务必是私有库,内含真实财务数据
+# 首次推送前远程需为空库;之后一路 fast-forward
+```
+
+> **为什么由服务端做而非独立定时任务**:数据位于快捷指令 App 的 iCloud 容器,属 macOS TCC 重点保护区。launchd 下未获授权的进程对该目录 `readdir`/`chdir` 一律 `Operation not permitted`,git 无法直接托管;而服务端进程已获该容器读权限,遂由它读出内容写进 iCloud 外的镜像,git 只对镜像操作,彻底绕开限制。
 
 ## 与 Claude Code 共同开发
 
