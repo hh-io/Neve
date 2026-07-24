@@ -15,6 +15,21 @@
       </div>
     </div>
 
+    <!-- 长期负债:影响概览页净资产口径,不参与账期计算 -->
+    <h4 class="editor-section-title">长期负债账户</h4>
+    <p class="editor-section-hint">
+      房贷这类长期负债对应的资产(如房产)通常不在账本内,单边扣减会让净资产变成几十年不变的巨额负数。
+      勾选后,概览与账户页的净资产不再扣减这些账户,完整口径降级为补充信息。
+    </p>
+    <div v-if="liabilityAccounts.length" class="longterm-list">
+      <label v-for="acc in liabilityAccounts" :key="acc.account" class="longterm-item">
+        <input v-model="local.longTermAccounts" type="checkbox" :value="acc.account" class="longterm-check" />
+        <span class="longterm-name">{{ acc.name }}</span>
+        <span class="longterm-account">{{ acc.account }}</span>
+      </label>
+    </div>
+    <p v-else class="editor-section-hint">账本里还没有负债账户。</p>
+
     <!-- 额度类 -->
     <h4 class="editor-section-title">额度账单(信用卡/白条等)</h4>
     <div v-for="(rc, account) in local.revolving" :key="account" class="editor-row">
@@ -155,14 +170,26 @@ const newAccount = ref('');
 // 每个分期一份"追加月供"草稿(生效日期 + 金额)
 const phaseDrafts = reactive<Record<string, { from: string; amount: number | null }>>({});
 
+// 必须在 setup 同步阶段补齐:模板直接读 phaseDrafts[ins.id].from,
+// 放进 onMounted 会晚于首次渲染,有固定分期时整个编辑器会渲染报错
+local.value.installments.forEach(ensureDraft);
+// 老配置(加各功能前保存的)回显可能没有这些字段
+Object.values(local.value.revolving).forEach(rc => { rc.installments ??= []; });
+local.value.longTermAccounts ??= [];
+
 onMounted(() => {
-  local.value.installments.forEach(ensureDraft);
-  // 老配置(加此功能前保存的)回显可能没有 installments 字段
-  Object.values(local.value.revolving).forEach(rc => { rc.installments ??= []; });
   if (props.prefill && !local.value.revolving[props.prefill]) {
     newAccount.value = props.prefill;
   }
 });
+
+// 长期负债候选取 accountBalances 而非 liabilityBreakdown:后者只含有欠款的账户,
+// 已还清的房贷账户仍应能保留勾选,否则重新保存配置会把标记丢掉
+const liabilityAccounts = computed(() =>
+  (analytics.value?.accountBalances ?? [])
+    .filter(acc => acc.type === 'Liabilities')
+    .map(acc => ({ account: acc.account, name: acc.account.split(':').pop() ?? acc.account }))
+);
 
 // 候选账户 = 账本里有欠款的负债账户,已配置的不再重复建议
 const accountSuggestions = computed(() => {
@@ -239,6 +266,51 @@ function submit() {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.editor-section-hint {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+
+.longterm-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.longterm-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.longterm-item:hover {
+  border-color: var(--hairline-strong);
+}
+
+.longterm-check {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.longterm-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.longterm-account {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-numeric);
 }
 
 .editor-row,

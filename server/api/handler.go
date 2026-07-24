@@ -62,6 +62,9 @@ func (s *Server) Refresh() error {
 		return err
 	}
 	analytics := parser.Analyze(ledger)
+	// 长期负债清单在 debts.json 而非账本,叠加在 Analyze 之后;
+	// 先取 debtMu 读完配置再取 s.mu 写缓存,两把锁不嵌套
+	analytics.ApplyLongTermLiabilities(s.loadDebtsConfig().LongTermAccounts)
 
 	s.mu.Lock()
 	s.analytics = analytics
@@ -243,8 +246,9 @@ func (s *Server) handleSaveBudgets(c *gin.Context) {
 func (s *Server) loadDebtsConfig() *parser.DebtsConfig {
 	empty := func() *parser.DebtsConfig {
 		return &parser.DebtsConfig{
-			Revolving:    map[string]parser.RevolvingConfig{},
-			Installments: []parser.InstallmentConfig{},
+			LongTermAccounts: []string{},
+			Revolving:        map[string]parser.RevolvingConfig{},
+			Installments:     []parser.InstallmentConfig{},
 		}
 	}
 
@@ -264,6 +268,9 @@ func (s *Server) loadDebtsConfig() *parser.DebtsConfig {
 	}
 	if cfg.Installments == nil {
 		cfg.Installments = []parser.InstallmentConfig{}
+	}
+	if cfg.LongTermAccounts == nil {
+		cfg.LongTermAccounts = []string{}
 	}
 	// 老文件的额度类条目没有 installments 字段,回显给前端补成 [] 而非 null
 	cfg.Normalize()
@@ -307,6 +314,9 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 	if cfg.Installments == nil {
 		cfg.Installments = []parser.InstallmentConfig{}
 	}
+	if cfg.LongTermAccounts == nil {
+		cfg.LongTermAccounts = []string{}
+	}
 	if errs := cfg.Validate(); len(errs) > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   NewAPIError("INVALID_DEBTS_CONFIG", "配置校验未通过"),
@@ -332,6 +342,14 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 	}
 
 	s.triggerBackup("debts")
+
+	// 长期负债清单变了会让缓存 analytics 的分层字段过期,就地重算(幂等,一次账户遍历);
+	// 账本本身没变,不必重跑 Analyze
+	s.mu.Lock()
+	if s.analytics != nil {
+		s.analytics.ApplyLongTermLiabilities(cfg.LongTermAccounts)
+	}
+	s.mu.Unlock()
 
 	// 保存后立刻重算,前端一次往返拿到新结果;账本尚未加载时 report 为 null
 	s.mu.RLock()

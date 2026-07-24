@@ -6,6 +6,7 @@
         <div class="ov-stat-head">
           <component :is="s.icon" :size="16" class="ov-stat-ic" />
           <span class="ov-stat-label">{{ s.label }}</span>
+          <span v-if="s.note" class="ov-stat-note">{{ s.note }}</span>
         </div>
         <div class="ov-stat-value tabular-nums" :style="{ color: s.valueColor }">{{ s.value }}</div>
         <div class="ov-stat-foot">
@@ -24,7 +25,7 @@
           <div class="ov-supp">
             <div v-for="it in s.supp" :key="it.label" class="ov-supp-item">
               <span class="ov-supp-label">{{ it.label }}</span>
-              <span class="ov-supp-value tabular-nums" :style="{ color: it.color }">{{ it.value }}</span>
+              <span class="ov-supp-value tabular-nums" :class="{ 'ov-supp-sm': it.small }" :style="{ color: it.color }">{{ it.value }}</span>
             </div>
           </div>
         </div>
@@ -51,7 +52,10 @@
       </div>
 
       <div class="card ov-health">
-        <span class="ov-mini-label">资产负债率</span>
+        <span class="ov-mini-label">
+          资产负债率
+          <span v-if="hasLongTerm" class="ov-mini-note">不含长期负债</span>
+        </span>
         <div class="ov-health-value tabular-nums">{{ debtRatio.toFixed(1) }}%</div>
         <div class="progress-bar ov-health-bar">
           <div class="progress-fill" :style="{ width: `${Math.min(100, debtRatio)}%`, background: debtRatio > 50 ? 'var(--expense)' : 'var(--income)' }"></div>
@@ -142,8 +146,13 @@ const { analytics } = useAnalytics();
 const currentYear = new Date().getFullYear();
 
 const summary = computed(() => analytics.value?.summary);
-const netWorth = computed(() => summary.value?.netWorth || 0);
-const totalLiabilities = computed(() => Math.abs(summary.value?.totalLiabilities || 0));
+// 净资产按「不含长期负债」口径展示:房贷这类负债对应的资产(房产)不在账本内,
+// 单边扣减会得到一个几十年不变的巨额负数,掩盖近期真实财务状况。
+// 长期负债账户清单在待还管理页配置,分层由后端算好(见 summary.longTermLiabilities)。
+const netWorth = computed(() => summary.value?.netWorthExLongTerm || 0);
+const totalLiabilities = computed(() => Math.abs(summary.value?.shortTermLiabilities || 0));
+const longTermLiabilities = computed(() => Math.abs(summary.value?.longTermLiabilities || 0));
+const hasLongTerm = computed(() => longTermLiabilities.value > 0);
 const monthlyIncome = computed(() => summary.value?.monthIncome || 0);
 const monthlyExpense = computed(() => Math.abs(summary.value?.monthExpense || 0));
 const monthlySavings = computed(() => monthlyIncome.value - monthlyExpense.value);
@@ -243,47 +252,55 @@ const signedMoney = (n: number) => (n >= 0 ? '+' : '') + formatMoney(n);
 function pct(n: number): string {
   return `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
 }
+type SuppItem = { label: string; value: string; color: string; small?: boolean };
+
 const statCards = computed(() => {
   const nwUp = balanceChange.value >= 0;
   const incUp = incomeChange.value >= 0;
   const expUp = expenseChange.value >= 0; // 支出上升=不利
   const balUp = savingsChange.value >= 0;
   const balColor = monthlySavings.value < 0 ? 'var(--expense)' : 'var(--income)';
+  // 长期负债作为补充区第三列出现,四卡补充区仍是单行,顶部一排卡片高度保持对齐;
+  // 三列时该列字号收小一档,房贷这类六七位数金额才不会撑破卡片
+  const netSupp: SuppItem[] = [
+    { label: '资产', value: formatMoney(totalAssets.value), color: 'var(--income)' },
+    { label: hasLongTerm.value ? '短期负债' : '负债', value: formatMoney(totalLiabilities.value), color: 'var(--expense)' },
+  ];
+  if (hasLongTerm.value) {
+    netSupp.push({ label: '长期负债', value: formatMoney(longTermLiabilities.value), color: 'var(--text-tertiary)', small: true });
+  }
   return [
     {
-      key: 'net', label: '净资产', icon: Landmark,
+      key: 'net', label: '净资产', note: hasLongTerm.value ? '不含长期负债' : '', icon: Landmark,
       value: formatMoney(netWorth.value),
       valueColor: netWorth.value < 0 ? 'var(--expense)' : 'var(--text-primary)',
       delta: pct(balanceChange.value), trendIcon: nwUp ? ArrowUpRight : ArrowDownRight,
       chipCls: nwUp ? 'chip-income' : 'chip-expense', hint: '环比上月',
       bar: { a: `${assetPct.value}%`, b: `${100 - assetPct.value}%` },
-      supp: [
-        { label: '资产', value: formatMoney(totalAssets.value), color: 'var(--income)' },
-        { label: '负债', value: formatMoney(totalLiabilities.value), color: 'var(--expense)' },
-      ],
+      supp: netSupp,
     },
     {
-      key: 'income', label: '本月收入', icon: ArrowDownToLine,
+      key: 'income', label: '本月收入', note: '', icon: ArrowDownToLine,
       value: formatMoney(monthlyIncome.value), valueColor: 'var(--income)',
       delta: pct(incomeChange.value), trendIcon: incUp ? ArrowUpRight : ArrowDownRight,
       chipCls: incUp ? 'chip-income' : 'chip-expense', hint: '环比上月',
       supp: [
         { label: '收入笔数', value: `${incomeCount.value} 笔`, color: 'var(--text-primary)' },
         { label: '笔均', value: formatMoney(incomeAvg.value), color: 'var(--text-primary)' },
-      ],
+      ] as SuppItem[],
     },
     {
-      key: 'expense', label: '本月支出', icon: ArrowUpFromLine,
+      key: 'expense', label: '本月支出', note: '', icon: ArrowUpFromLine,
       value: formatMoney(monthlyExpense.value), valueColor: 'var(--expense)',
       delta: pct(expenseChange.value), trendIcon: expUp ? ArrowUpRight : ArrowDownRight,
       chipCls: expUp ? 'chip-expense' : 'chip-income', hint: '环比上月',
       supp: [
         { label: '消费笔数', value: `${expenseCount.value} 笔`, color: 'var(--text-primary)' },
         { label: '笔均', value: formatMoney(expenseAvg.value), color: 'var(--text-primary)' },
-      ],
+      ] as SuppItem[],
     },
     {
-      key: 'savings', label: '月结余', icon: PiggyBank,
+      key: 'savings', label: '月结余', note: '', icon: PiggyBank,
       value: formatMoney(monthlySavings.value),
       valueColor: monthlySavings.value < 0 ? 'var(--expense)' : 'var(--text-primary)',
       delta: pct(savingsChange.value), trendIcon: balUp ? ArrowUpRight : ArrowDownRight,
@@ -291,7 +308,7 @@ const statCards = computed(() => {
       supp: [
         { label: '日均结余', value: signedMoney(dailySavings.value), color: balColor },
         { label: '预计月末', value: signedMoney(projectedSavings.value), color: balColor },
-      ],
+      ] as SuppItem[],
     },
   ];
 });
@@ -435,6 +452,15 @@ const heatmapOption = computed(() => {
   color: var(--text-tertiary);
 }
 
+/* 口径注解:紧跟标签,弱化到不与大数抢视线 */
+.ov-stat-note,
+.ov-mini-note {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 .ov-stat-value {
   margin-top: var(--space-3);
   font-size: 1.75rem;
@@ -477,7 +503,7 @@ const heatmapOption = computed(() => {
 .ov-supp {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .ov-supp-item {
@@ -499,6 +525,11 @@ const heatmapOption = computed(() => {
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
+}
+
+.ov-supp-sm {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
 }
 
 /* ===== chip ===== */

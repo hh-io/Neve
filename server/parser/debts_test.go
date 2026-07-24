@@ -432,6 +432,12 @@ func TestDebtsConfigValidate(t *testing.T) {
 			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
 				Schedule: []InstallmentPhase{{EffectiveFrom: "2023-06-01", Amount: 0}}}},
 		}, true},
+		{"长期负债账户合法", DebtsConfig{
+			LongTermAccounts: []string{"Liabilities:Loan:Mortgage"},
+		}, false},
+		{"长期负债非 Liabilities 账户", DebtsConfig{
+			LongTermAccounts: []string{"Assets:Bank:CMB"},
+		}, true},
 		{"内嵌分期合法", revolvingWithInst(
 			RevolvingInstallment{Name: "妙控键盘", TotalAmount: 104900, Months: 24, MonthlyAmount: 4371, FirstBillMonth: "2025-11"},
 		), false},
@@ -663,6 +669,29 @@ func TestDebtsConfigNormalizeRevolvingInstallments(t *testing.T) {
 	empty.Normalize()
 	if empty.Revolving[ccAccount].Installments == nil {
 		t.Error("Normalize 未把 nil Installments 补为空 slice")
+	}
+}
+
+func TestDebtsConfigNormalizeLongTermAccounts(t *testing.T) {
+	cfg := DebtsConfig{LongTermAccounts: []string{
+		"Liabilities:Loan:Mortgage", "Liabilities:Loan:Car", "Liabilities:Loan:Mortgage", "",
+	}}
+	cfg.Normalize()
+	want := []string{"Liabilities:Loan:Car", "Liabilities:Loan:Mortgage"}
+	if len(cfg.LongTermAccounts) != len(want) {
+		t.Fatalf("Normalize 未去重/去空: %v", cfg.LongTermAccounts)
+	}
+	for i, account := range want {
+		if cfg.LongTermAccounts[i] != account {
+			t.Errorf("LongTermAccounts[%d] = %q, want %q", i, cfg.LongTermAccounts[i], account)
+		}
+	}
+
+	// nil 补空:GET 回显给前端恒为 [] 而非 null
+	var nilCfg DebtsConfig
+	nilCfg.Normalize()
+	if nilCfg.LongTermAccounts == nil {
+		t.Error("Normalize 未把 nil LongTermAccounts 补为空 slice")
 	}
 }
 

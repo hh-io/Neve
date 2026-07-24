@@ -75,6 +75,16 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   **正向 posting**(不限交易 kind,退款/返现也应冲减);分期类"已还"只认 `kind=transfer`。
   账单日/还款日超出当月天数时**顺延至月末**(`clampedDate`,严禁裸 `time.Date` 进位)。
   GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。
+- **净资产分层口径**:房贷这类长期负债对应的资产(房产)不在账本里,单边扣减会让净资产
+  变成几十年不变的巨额负数。故 `Summary` 除 `netWorth`/`totalLiabilities` 全量口径外,
+  另有 `longTermLiabilities`/`shortTermLiabilities`/`netWorthExLongTerm`,
+  **概览与账户页默认展示 Ex 口径**(资产负债率同口径),全量降级为补充信息。
+  账户清单存 `DebtsConfig.LongTermAccounts`(debts.json 顶层),在待还配置编辑器里勾选。
+  分层由 `Analytics.ApplyLongTermLiabilities` 叠加在 `Analyze` 之后(**保持 Analyze 纯函数**——
+  清单不在账本里,改配置不该触发重解析),该方法幂等,调用点有二:`Refresh()` 与
+  `handleSaveDebts()`(后者就地重算缓存,前端 `useDebts.saveDebts` 再静默 `reload()` analytics)。
+  求和遍历 `AccountBalances` 而非 `LiabilityBreakdown`——后者只收余额为负的账户,
+  长期负债多还成正余额时会被漏掉,与 `TotalLiabilities` 口径对不上。
 - **数据备份必须由服务端进程做,不能交给独立 launchd/cron 任务**:数据在快捷指令
   App 的 iCloud 容器(`data` 软链指向处),属 macOS TCC 重点保护区。未获授权的
   launchd 进程对该目录 `readdir`/`chdir` 一律 `Operation not permitted`(连 `git add`
@@ -104,9 +114,9 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 ## 关键文件
 
 - `server/parser/parser.go` — 解析器(正则)+ 校验 + ParseIssue 收集
-- `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)
+- `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)+ 净资产分层(`ApplyLongTermLiabilities`)
 - `server/parser/amount.go` — 定点金额类型
-- `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/schedule 口径)
+- `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/schedule 口径)+ `DebtsConfig`(含 `longTermAccounts`)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)
@@ -114,7 +124,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `{{DATE}}`/`{{ACCOUNTS}}` 运行时注入)
 - `web/src/App.vue` — 布局壳、主题、Tab 分发(数据/主题为 composable 单例)
 - `web/src/types/api.ts` — `/api/analytics` 契约类型(逐字段对照后端 struct JSON tag)
-- `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)
+- `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)/reload(配置变更后静默重取)
 - `web/src/composables/useDebts.ts` — 待还配置/报告单例(GET/POST /api/debts)
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发

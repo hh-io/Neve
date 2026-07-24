@@ -1,9 +1,10 @@
 import { ref } from 'vue'
 import { showToast } from './useToast'
+import { useAnalytics } from './useAnalytics'
 import type { DebtsConfig, DebtsReport, DebtsResponse } from '../types/api'
 
 function emptyConfig(): DebtsConfig {
-  return { revolving: {}, installments: [] }
+  return { longTermAccounts: [], revolving: {}, installments: [] }
 }
 
 // 模块级单例:负债账单配置 + 后端现算的还款报告
@@ -29,7 +30,8 @@ async function loadDebts(): Promise<void> {
     // 网络错误与非 2xx 同样走下方本地备份
   }
   try {
-    config.value = JSON.parse(localStorage.getItem('neve-debts') || '') as DebtsConfig
+    // 早于 longTermAccounts 的本地备份缺该字段,补空避免编辑器读到 undefined
+    config.value = { ...emptyConfig(), ...JSON.parse(localStorage.getItem('neve-debts') || '') }
   } catch {
     config.value = emptyConfig()
   }
@@ -62,6 +64,8 @@ async function saveDebts(next: DebtsConfig): Promise<boolean> {
     config.value = data.config
     report.value = data.report ?? report.value
     showToast('待还配置已保存')
+    // 长期负债清单变了会让 analytics 里的净资产分层口径过期,静默重取
+    void useAnalytics().reload()
     return true
   } catch (e) {
     showToast('待还配置保存失败: ' + (e instanceof Error ? e.message : String(e)), 'error')

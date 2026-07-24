@@ -11,8 +11,12 @@ import (
 
 // DebtsConfig 对应 data/debts.json,由前端编辑、api 层持久化。
 type DebtsConfig struct {
-	Revolving    map[string]RevolvingConfig `json:"revolving"`
-	Installments []InstallmentConfig        `json:"installments"`
+	// LongTermAccounts 标记「对应资产不在账本内」的长期负债(房贷等)。
+	// 房产本身没有 Assets 账户,单边记负债会把净资产压成几十年不变的巨额负数,
+	// 故概览净资产默认不扣减这些账户,完整口径降级为补充信息。
+	LongTermAccounts []string                   `json:"longTermAccounts"`
+	Revolving        map[string]RevolvingConfig `json:"revolving"`
+	Installments     []InstallmentConfig        `json:"installments"`
 }
 
 // RevolvingConfig 额度类账单(信用卡/白条/月付等):
@@ -56,6 +60,11 @@ type InstallmentPhase struct {
 // 账户是否存在于账本不在此校验:允许先配置后补 open,缺失在报告里标 accountMissing。
 func (c *DebtsConfig) Validate() []string {
 	var errs []string
+	for _, account := range c.LongTermAccounts {
+		if accountRoot(account) != "Liabilities" {
+			errs = append(errs, fmt.Sprintf("长期负债账户 %q 必须以 Liabilities: 开头", account))
+		}
+	}
 	for account, rc := range c.Revolving {
 		if accountRoot(account) != "Liabilities" {
 			errs = append(errs, fmt.Sprintf("额度类账户 %q 必须以 Liabilities: 开头", account))
@@ -132,6 +141,18 @@ func (c *DebtsConfig) Validate() []string {
 // Normalize 保存前规范化:schedule 按生效日期升序,追加的调整不会乱序落盘;
 // 额度类内嵌分期按首期账单月排序,nil 补空让 GET 回显恒为 []。
 func (c *DebtsConfig) Normalize() {
+	longTerm := make([]string, 0, len(c.LongTermAccounts))
+	seenAccounts := make(map[string]bool, len(c.LongTermAccounts))
+	for _, account := range c.LongTermAccounts {
+		if account == "" || seenAccounts[account] {
+			continue
+		}
+		seenAccounts[account] = true
+		longTerm = append(longTerm, account)
+	}
+	sort.Strings(longTerm)
+	c.LongTermAccounts = longTerm
+
 	for i := range c.Installments {
 		schedule := c.Installments[i].Schedule
 		sort.Slice(schedule, func(a, b int) bool {

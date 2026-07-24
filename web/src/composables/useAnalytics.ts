@@ -56,6 +56,16 @@ async function refresh(): Promise<void> {
   }
 }
 
+// 静默重取:配置变更(如长期负债清单)让缓存的统计口径过期时用。
+// 不翻 loading——账本没变,整页闪回骨架屏没必要;失败只提示,旧数据继续可用。
+async function reload(): Promise<void> {
+  try {
+    analytics.value = await fetchAnalytics()
+  } catch (e) {
+    showToast('统计数据刷新失败: ' + toMessage(e), 'error')
+  }
+}
+
 export function useAnalytics() {
-  return { analytics, loading, error, load, refresh }
+  return { analytics, loading, error, load, refresh, reload }
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="animate-fade-in-up ac">
-    <!-- 汇总:总资产 / 总负债 / 净资产 -->
-    <div class="ac-summary">
+    <!-- 汇总:口径与概览页一致(净资产不含长期负债),避免两页数字对不上 -->
+    <div class="ac-summary" :class="{ 'ac-summary--4': hasLongTerm }">
       <div class="card ac-sum-card">
         <span class="ac-sum-label">总资产</span>
         <span class="ac-sum-value ac-sum-value--income tabular-nums">{{
@@ -9,14 +9,28 @@
         }}</span>
       </div>
       <div class="card ac-sum-card">
-        <span class="ac-sum-label">总负债</span>
+        <span class="ac-sum-label">{{ hasLongTerm ? '短期负债' : '总负债' }}</span>
         <span class="ac-sum-value ac-sum-value--expense tabular-nums"
-          >-{{ formatMoney(Math.abs(summary?.totalLiabilities || 0)) }}</span
+          >-{{ formatMoney(shortTermLiabilities) }}</span
+        >
+      </div>
+      <div v-if="hasLongTerm" class="card ac-sum-card">
+        <span class="ac-sum-label">长期负债</span>
+        <span class="ac-sum-value ac-sum-value--expense tabular-nums"
+          >-{{ formatMoney(longTermLiabilities) }}</span
         >
       </div>
       <div class="card ac-sum-card">
-        <span class="ac-sum-label">净资产</span>
-        <span class="ac-sum-value tabular-nums">{{ formatMoney(summary?.netWorth || 0) }}</span>
+        <span class="ac-sum-label">
+          净资产
+          <span v-if="hasLongTerm" class="ac-sum-note">不含长期负债</span>
+        </span>
+        <span class="ac-sum-value tabular-nums">{{
+          formatMoney(summary?.netWorthExLongTerm || 0)
+        }}</span>
+        <span v-if="hasLongTerm" class="ac-sum-sub tabular-nums"
+          >含长期负债 {{ formatMoney(summary?.netWorth || 0) }}</span
+        >
       </div>
     </div>
 
@@ -44,6 +58,7 @@
             <div class="ac-row-header">
               <span class="ac-row-name">{{ acc.name }}</span>
               <span class="ac-row-tag">{{ acc.tag }}</span>
+              <span v-if="acc.longTerm" class="ac-row-tag ac-row-tag--long">长期</span>
             </div>
             <div class="ac-row-account tabular-nums">{{ acc.account }}</div>
           </div>
@@ -77,6 +92,9 @@ import {
 const { analytics } = useAnalytics()
 
 const summary = computed(() => analytics.value?.summary)
+const shortTermLiabilities = computed(() => Math.abs(summary.value?.shortTermLiabilities || 0))
+const longTermLiabilities = computed(() => Math.abs(summary.value?.longTermLiabilities || 0))
+const hasLongTerm = computed(() => longTermLiabilities.value > 0)
 
 interface AccountRow {
   account: string
@@ -85,6 +103,7 @@ interface AccountRow {
   icon: FunctionalComponent
   balance: string
   color: string
+  longTerm: boolean
 }
 interface AccountGroup {
   key: string
@@ -126,6 +145,7 @@ const accountGroups = computed<AccountGroup[]>(() => {
           icon: getAccountIcon(acc),
           balance: formatMoney(acc.balance),
           color: acc.balance < 0 ? 'var(--expense)' : 'var(--text-primary)',
+          longTerm: acc.longTerm,
         }))
       const totalNum = accounts
         .filter((acc) => acc.account.split(':')[0] === def.key)
@@ -243,6 +263,10 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
   gap: var(--space-4);
 }
 
+.ac-summary--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .ac-sum-card {
   padding: var(--space-5);
   display: flex;
@@ -266,6 +290,17 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
 
 .ac-sum-value--expense {
   color: var(--expense);
+}
+
+.ac-sum-note {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.ac-sum-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 /* ===== 分组账户 ===== */
@@ -328,6 +363,11 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
   font-weight: 400;
 }
 
+.ac-row-tag--long {
+  background: var(--expense-light);
+  color: var(--expense);
+}
+
 .ac-row-account {
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
@@ -340,8 +380,15 @@ function getAccountIcon(account: AccountBalance): FunctionalComponent {
   flex: none;
 }
 
+@media (max-width: 1024px) {
+  .ac-summary--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
-  .ac-summary {
+  .ac-summary,
+  .ac-summary--4 {
     grid-template-columns: 1fr;
   }
 }

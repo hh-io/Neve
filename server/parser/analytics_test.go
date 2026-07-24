@@ -332,3 +332,104 @@ func TestAnalyzeDoesNotMutateLedger(t *testing.T) {
 		t.Error("AnalyzeAt 不应修改 ledger 内的交易")
 	}
 }
+
+// longTermLedger:资产 100 元、短期负债 5 元、长期负债(房贷)1000 元,
+// 外加一个多还成正余额的长期负债账户,用于验证不走 LiabilityBreakdown 的口径。
+func longTermLedger(t *testing.T) *Ledger {
+	t.Helper()
+	return parseFixture(t, map[string]string{"main.bean": `option "operating_currency" "CNY"
+2020-01-01 open Assets:Cash:WeChat CNY
+2020-01-01 open Liabilities:CreditCard:CMB CNY
+2020-01-01 open Liabilities:Loan:Mortgage CNY
+2020-01-01 open Liabilities:Loan:Car CNY
+2020-01-01 open Equity:Opening-Balances CNY
+
+2025-12-01 * "系统初始化" "期初余额"
+  Assets:Cash:WeChat        100.00 CNY
+  Liabilities:CreditCard:CMB -5.00 CNY
+  Liabilities:Loan:Mortgage -1000.00 CNY
+  Liabilities:Loan:Car        20.00 CNY
+  Equity:Opening-Balances
+`})
+}
+
+func TestApplyLongTermLiabilities(t *testing.T) {
+	a := AnalyzeAt(longTermLedger(t), testNow)
+
+	// 前置:车贷多还了 20 元(正余额),按 -balance 累加后总负债 = 5 + 1000 - 20
+	if a.Summary.TotalAssets != 10000 {
+		t.Fatalf("TotalAssets = %s,期望 100.00", a.Summary.TotalAssets)
+	}
+	if a.Summary.TotalLiabilities != 98500 {
+		t.Fatalf("TotalLiabilities = %s,期望 985.00", a.Summary.TotalLiabilities)
+	}
+	// 未调用时分层字段兜底为全量口径
+	if a.Summary.ShortTermLiabilities != a.Summary.TotalLiabilities || a.Summary.NetWorthExLongTerm != a.Summary.NetWorth {
+		t.Errorf("未调用 ApplyLongTermLiabilities 时应兜底为全量口径,得到 short=%s netEx=%s",
+			a.Summary.ShortTermLiabilities, a.Summary.NetWorthExLongTerm)
+	}
+
+	netWorth, totalLiabilities := a.Summary.NetWorth, a.Summary.TotalLiabilities
+	a.ApplyLongTermLiabilities([]string{"Liabilities:Loan:Mortgage", "Liabilities:Loan:Car"})
+
+	if a.Summary.LongTermLiabilities != 98000 {
+		t.Errorf("LongTermLiabilities = %s,期望 980.00(1000 房贷 - 20 车贷正余额)", a.Summary.LongTermLiabilities)
+	}
+	if a.Summary.ShortTermLiabilities != 500 {
+		t.Errorf("ShortTermLiabilities = %s,期望 5.00", a.Summary.ShortTermLiabilities)
+	}
+	if a.Summary.NetWorthExLongTerm != 9500 {
+		t.Errorf("NetWorthExLongTerm = %s,期望 95.00", a.Summary.NetWorthExLongTerm)
+	}
+	// 全量口径的原字段不受影响
+	if a.Summary.NetWorth != netWorth || a.Summary.TotalLiabilities != totalLiabilities {
+		t.Errorf("NetWorth/TotalLiabilities 被改动: %s / %s", a.Summary.NetWorth, a.Summary.TotalLiabilities)
+	}
+
+	marked := map[string]bool{}
+	for _, ab := range a.AccountBalances {
+		if ab.LongTerm {
+			marked[ab.Account] = true
+		}
+	}
+	if len(marked) != 2 || !marked["Liabilities:Loan:Mortgage"] || !marked["Liabilities:Loan:Car"] {
+		t.Errorf("AccountBalances 长期标记 = %v", marked)
+	}
+	// 车贷余额为正不进 LiabilityBreakdown,房贷应被标记
+	for _, lb := range a.LiabilityBreakdown {
+		if lb.Account == "Liabilities:Loan:Mortgage" && !lb.LongTerm {
+			t.Error("LiabilityBreakdown 中的房贷未被标记为长期")
+		}
+		if lb.Account == "Liabilities:CreditCard:CMB" && lb.LongTerm {
+			t.Error("信用卡不应被标记为长期")
+		}
+	}
+}
+
+func TestApplyLongTermLiabilitiesIdempotentAndUnknown(t *testing.T) {
+	a := AnalyzeAt(longTermLedger(t), testNow)
+
+	a.ApplyLongTermLiabilities([]string{"Liabilities:Loan:Mortgage"})
+	first := a.Summary
+	a.ApplyLongTermLiabilities([]string{"Liabilities:Loan:Mortgage"})
+	if a.Summary != first {
+		t.Error("重复调用结果应保持一致")
+	}
+
+	// 账本里不存在的账户静默忽略
+	a.ApplyLongTermLiabilities([]string{"Liabilities:Loan:Mortgage", "Liabilities:Nope:Ghost"})
+	if a.Summary != first {
+		t.Errorf("未知账户不应改变结果,得到 %+v", a.Summary)
+	}
+
+	// 清空清单可回到全量口径,标记同步清除
+	a.ApplyLongTermLiabilities(nil)
+	if a.Summary.LongTermLiabilities != 0 || a.Summary.NetWorthExLongTerm != a.Summary.NetWorth {
+		t.Error("清空清单后应回到全量口径")
+	}
+	for _, ab := range a.AccountBalances {
+		if ab.LongTerm {
+			t.Errorf("账户 %s 的长期标记未被清除", ab.Account)
+		}
+	}
+}

@@ -61,6 +61,11 @@ export interface Summary {
   netWorth: Yuan
   totalAssets: Yuan
   totalLiabilities: Yuan
+  /** 长期负债(房贷等,对应资产不在账本内),清单见 DebtsConfig.longTermAccounts */
+  longTermLiabilities: Yuan
+  shortTermLiabilities: Yuan
+  /** 资产 − 短期负债,概览默认口径 */
+  netWorthExLongTerm: Yuan
   monthIncome: Yuan
   monthExpense: Yuan
   monthBalance: Yuan
@@ -82,6 +87,7 @@ export interface AccountBalance {
   balance: Yuan
   currency: string
   type: string
+  longTerm: boolean
 }
 
 export interface MonthlyData {
@@ -149,6 +155,7 @@ export interface LiabilityStats {
   name: string
   balance: Yuan
   currency: string
+  longTerm: boolean
 }
 
 export interface IncomeSource {
@@ -190,6 +197,8 @@ export interface InstallmentConfig {
 }
 
 export interface DebtsConfig {
+  /** 长期负债账户(房贷等):概览净资产不扣减这些账户 */
+  longTermAccounts: string[]
   revolving: Record<string, RevolvingConfig>
   installments: InstallmentConfig[]
 }

@@ -9,16 +9,20 @@ import (
 
 // Summary holds the financial summary
 type Summary struct {
-	NetWorth         Amount    `json:"netWorth"`
-	TotalAssets      Amount    `json:"totalAssets"`
-	TotalLiabilities Amount    `json:"totalLiabilities"`
-	MonthIncome      Amount    `json:"monthIncome"`
-	MonthExpense     Amount    `json:"monthExpense"`
-	MonthBalance     Amount    `json:"monthBalance"`
-	TransactionCount int       `json:"transactionCount"`
-	TrackingDays     int       `json:"trackingDays"`
-	FirstDate        string    `json:"firstDate"`
-	LastUpdated      time.Time `json:"lastUpdated"`
+	NetWorth         Amount `json:"netWorth"`
+	TotalAssets      Amount `json:"totalAssets"`
+	TotalLiabilities Amount `json:"totalLiabilities"`
+	// 长期/短期分层由 ApplyLongTermLiabilities 按 debts.json 的清单叠加,见该方法注释
+	LongTermLiabilities  Amount    `json:"longTermLiabilities"`
+	ShortTermLiabilities Amount    `json:"shortTermLiabilities"`
+	NetWorthExLongTerm   Amount    `json:"netWorthExLongTerm"`
+	MonthIncome          Amount    `json:"monthIncome"`
+	MonthExpense         Amount    `json:"monthExpense"`
+	MonthBalance         Amount    `json:"monthBalance"`
+	TransactionCount     int       `json:"transactionCount"`
+	TrackingDays         int       `json:"trackingDays"`
+	FirstDate            string    `json:"firstDate"`
+	LastUpdated          time.Time `json:"lastUpdated"`
 }
 
 // CategoryAmount represents expense by category
@@ -35,6 +39,7 @@ type AccountBalance struct {
 	Balance  Amount `json:"balance"`
 	Currency string `json:"currency"`
 	Type     string `json:"type"`
+	LongTerm bool   `json:"longTerm"` // 由 ApplyLongTermLiabilities 标记
 }
 
 // MonthlyData represents monthly income/expense
@@ -112,6 +117,7 @@ type LiabilityStats struct {
 	Name     string `json:"name"`
 	Balance  Amount `json:"balance"`
 	Currency string `json:"currency"`
+	LongTerm bool   `json:"longTerm"` // 由 ApplyLongTermLiabilities 标记
 }
 
 // IncomeSource represents income breakdown by source
@@ -244,6 +250,10 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 		}
 	}
 	analytics.Summary.NetWorth = analytics.Summary.TotalAssets - analytics.Summary.TotalLiabilities
+	// 分层字段先按「无长期负债」兜底,ApplyLongTermLiabilities 拿到清单后再覆盖;
+	// 这样即使调用方漏了那一步,前端拿到的也是自洽的全量口径而非 0
+	analytics.Summary.ShortTermLiabilities = analytics.Summary.TotalLiabilities
+	analytics.Summary.NetWorthExLongTerm = analytics.Summary.NetWorth
 	analytics.Summary.MonthBalance = analytics.Summary.MonthIncome - analytics.Summary.MonthExpense
 
 	// 记账口径:交易总数与记账天数基于全量真实交易(不含 opening、不含未来)
@@ -571,6 +581,36 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 	})
 
 	return analytics
+}
+
+// ApplyLongTermLiabilities 按长期负债账户清单补齐 Summary 的分层字段并标记明细。
+//
+// 与 Analyze 分离是因为清单存在 debts.json 而非账本:改配置不该触发账本重解析。
+// 幂等——每次先清空标记再全量重算,可在配置变更后对缓存的 Analytics 反复调用。
+func (a *Analytics) ApplyLongTermLiabilities(accounts []string) {
+	longTerm := make(map[string]bool, len(accounts))
+	for _, account := range accounts {
+		longTerm[account] = true
+	}
+
+	// 遍历 AccountBalances 而非 LiabilityBreakdown:后者只收余额为负的账户,
+	// 长期负债多还成正余额时会被漏掉,与 TotalLiabilities 的口径对不上
+	var longTermTotal Amount
+	for i := range a.AccountBalances {
+		ab := &a.AccountBalances[i]
+		ab.LongTerm = ab.Type == "Liabilities" && longTerm[ab.Account]
+		if ab.LongTerm {
+			longTermTotal += -ab.Balance // 负债余额记负数,取反为正
+		}
+	}
+	for i := range a.LiabilityBreakdown {
+		lb := &a.LiabilityBreakdown[i]
+		lb.LongTerm = longTerm[lb.Account]
+	}
+
+	a.Summary.LongTermLiabilities = longTermTotal
+	a.Summary.ShortTermLiabilities = a.Summary.TotalLiabilities - longTermTotal
+	a.Summary.NetWorthExLongTerm = a.Summary.TotalAssets - a.Summary.ShortTermLiabilities
 }
 
 // classifyTransaction 计算交易的展示分类。
