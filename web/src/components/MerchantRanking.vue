@@ -137,10 +137,4 @@ function formatAmount(amount: number): string {
   border-radius: var(--radius-full);
   transition: width 0.5s ease;
 }
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--text-tertiary);
-}
 </style>

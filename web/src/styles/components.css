@@ -277,6 +277,22 @@
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ========== Empty State(空态提示。放共享层是因为 scoped 样式不穿透子组件:
+   父组件里定义一份,子组件模板里的同名 class 拿不到) ========== */
+.empty-state {
+    text-align: center;
+    padding: var(--space-8);
+    color: var(--text-tertiary);
+}
+
+/* 独立成块的空态(整个区块都空):补上卡片外壳,免得成一行裸文字 */
+.empty-state-boxed {
+    padding: var(--space-6);
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+}
+
 /* ========== Buttons ========== */
 .btn {
     display: inline-flex;

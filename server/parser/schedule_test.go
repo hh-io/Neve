@@ -126,6 +126,98 @@ func TestComputeScheduleMatchesCurrentPeriod(t *testing.T) {
 	}
 }
 
+// 还款日跨月(账单 25 / 还款 10):条目必须落在钱实际流出的那个月,而非账单月
+func TestComputeScheduleBucketsByDueMonth(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				BillingDay: 25, DueDay: 10,
+				Installments: []RevolvingInstallment{{
+					Name: "手机", TotalAmount: 12000, Months: 12,
+					MonthlyAmount: 1000, FirstBillMonth: "2026-06",
+				}},
+			},
+		},
+	}
+
+	months := ComputeSchedule(cfg, atDate("2026-07-26"), 12)
+	assertScheduleInvariants(t, months)
+
+	// 首桶的钱来自 6 月账单(due 2026-07-10)——今天 26 号已过,被过期过滤剔除
+	if m := monthOf(t, months, "2026-07"); m.Total != 0 {
+		t.Errorf("2026-07 的 due 已过,应无出账,实际 %d", m.Total)
+	}
+	// 其余每桶的 dueDate 必须与桶月同月,且金额是一期
+	for _, key := range []string{"2026-08", "2026-12", "2027-05"} {
+		m := monthOf(t, months, key)
+		if m.Total != 1000 || len(m.Entries) != 1 {
+			t.Fatalf("%s 合计 = %d(%d 条), 期望一期 1000", key, m.Total, len(m.Entries))
+		}
+		if got := m.Entries[0].DueDate[:7]; got != key {
+			t.Errorf("%s 桶里的还款日 = %s, 应与桶月同月", key, m.Entries[0].DueDate)
+		}
+	}
+	// 末期(2027-05 账单)出账落在窗口最后一桶,尾差归它
+	last := monthOf(t, months, "2027-06")
+	if last.Total != 1000 || last.Entries[0].DueDate != "2027-06-10" {
+		t.Errorf("2027-06 = %d(due %s), 期望末期 1000 / 2027-06-10", last.Total, last.Entries[0].DueDate)
+	}
+	// 首期已过期被剔除,窗口内是第 2..12 期共 11 期
+	if last.Cumulative != 11000 {
+		t.Errorf("累计 = %d, 期望 11000", last.Cumulative)
+	}
+}
+
+// 还款日已过的期不属于「未来计划」,口径与 InstallmentStatus.Paid / Overdue 对齐
+func TestComputeScheduleSkipsPastDue(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				BillingDay: 9, DueDay: 25,
+				Installments: []RevolvingInstallment{{
+					Name: "耳机", TotalAmount: 3000, Months: 3,
+					MonthlyAmount: 1000, FirstBillMonth: "2026-06",
+				}},
+			},
+		},
+		Installments: []InstallmentConfig{{
+			ID: "car", Name: "车贷", Account: "Liabilities:Loan:Car", DueDay: 20,
+			Schedule: []InstallmentPhase{{EffectiveFrom: "2020-01-01", Amount: 300000}},
+		}},
+	}
+
+	// 26 号:本月两笔的还款日(25 / 20)都已过去
+	months := ComputeSchedule(cfg, atDate("2026-07-26"), 3)
+	assertScheduleInvariants(t, months)
+	if m := monthOf(t, months, "2026-07"); m.Total != 0 {
+		t.Errorf("2026-07 两笔都已过期,应无出账,实际 %d(%d 条)", m.Total, len(m.Entries))
+	}
+	// 8 月是分期末期(2026-08 账单为第 3 期)+ 车贷月供
+	if m := monthOf(t, months, "2026-08"); m.Total != 301000 {
+		t.Errorf("2026-08 合计 = %d, 期望 301000", m.Total)
+	}
+
+	// 同配置换到 19 号:两笔都还没到期,必须计入
+	early := ComputeSchedule(cfg, atDate("2026-07-19"), 3)
+	assertScheduleInvariants(t, early)
+	if m := monthOf(t, early, "2026-07"); m.Total != 301000 {
+		t.Errorf("2026-07-19 时两笔均未到期,合计 = %d, 期望 301000", m.Total)
+	}
+
+	// 还款日当天算未来:钱当天才流出,不能提前剔掉
+	sameDay := ComputeSchedule(cfg, atDate("2026-07-20"), 1)
+	assertScheduleInvariants(t, sameDay)
+	var hasCar bool
+	for _, e := range sameDay[0].Entries {
+		if e.Source == "installment" && e.DueDate == "2026-07-20" {
+			hasCar = true
+		}
+	}
+	if !hasCar {
+		t.Errorf("还款日当天的车贷应计入,实际条目 %+v", sameDay[0].Entries)
+	}
+}
+
 // 账单日/还款日 31 号落在 2 月:必须顺延至月末,而非 time.Date 进位到 3 月
 func TestComputeScheduleMonthEndClamp(t *testing.T) {
 	cfg := &DebtsConfig{
@@ -147,23 +239,26 @@ func TestComputeScheduleMonthEndClamp(t *testing.T) {
 	months := ComputeSchedule(cfg, atDate("2026-01-15"), 3)
 	assertScheduleInvariants(t, months)
 
-	feb := monthOf(t, months, "2026-02")
-	var revDue, instDue string
-	for _, e := range feb.Entries {
-		switch e.Source {
-		case "revolving":
-			revDue = e.DueDate
-		case "installment":
-			instDue = e.DueDate
+	dueIn := func(key, source string) string {
+		for _, e := range monthOf(t, months, key).Entries {
+			if e.Source == source {
+				return e.DueDate
+			}
 		}
+		return ""
 	}
-	// 2 月 28 日出账,同日的还款日不算「账单日之后」,顺延到下个还款日
-	if revDue != "2026-03-31" {
-		t.Errorf("额度分期还款日 = %s, 期望 2026-03-31", revDue)
+	// 1 月 31 日出账,同日的还款日不算「账单日之后」,顺延到 2 月末(2026 非闰年)——
+	// 钱 2 月流出,故落在 2 月桶而非 1 月桶
+	if got := dueIn("2026-02", "revolving"); got != "2026-02-28" {
+		t.Errorf("2026-02 桶的额度分期还款日 = %q, 期望 2026-02-28", got)
 	}
-	// 2026 非闰年,2 月末为 28 日
-	if instDue != "2026-02-28" {
-		t.Errorf("固定分期还款日 = %s, 期望 2026-02-28", instDue)
+	// 2 月 28 日出账 → 顺延到 3 月 31 日,落 3 月桶
+	if got := dueIn("2026-03", "revolving"); got != "2026-03-31" {
+		t.Errorf("2026-03 桶的额度分期还款日 = %q, 期望 2026-03-31", got)
+	}
+	// 固定分期还款日就在本月,31 号顺延至 2 月末
+	if got := dueIn("2026-02", "installment"); got != "2026-02-28" {
+		t.Errorf("固定分期还款日 = %q, 期望 2026-02-28", got)
 	}
 }
 
@@ -186,7 +281,9 @@ func TestComputeScheduleInstallmentPhases(t *testing.T) {
 		month string
 		want  Amount
 	}{
-		{"2026-07", 500000},
+		// 20 号还款、今天 26 号:本月那期已经出账,窗口从 8 月这期起算
+		{"2026-07", 0},
+		{"2026-08", 500000},
 		{"2026-09", 500000},
 		{"2026-10", 600000},
 		{"2027-06", 600000},

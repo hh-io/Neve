@@ -85,6 +85,13 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   后者是因为对应资产根本不在账本里)。每期金额走 `installmentPeriodAmount`,与
   `revolvingInstallmentStatuses` **共用同一函数**(尾差落最后一期),口径不会漂移;
   日期同样走 `clampedDate`/`nextDueAfter`,月末顺延语义自动一致。
+  **归桶键是还款日所在月,不是账单月**——现金流问的是钱哪个月流出,账单日 25/还款日 10 这类配置
+  due 落到次月,按账单月归桶整张表会错位一个月;故账单月要从窗口首月**往前多扫一个月**
+  (`nextDueAfter` 最多推后一个月,一个月足够),否则首桶漏掉上月账单那笔。
+  **due 早于 today 的期一律剔除**:钱已经该流出了(已还,或逾期——后者由 `Summary.MonthRemaining`
+  负责),留在「未来计划」里会虚增即期压力;还款日当天仍算未来。这与 `InstallmentStatus.Paid`
+  /`Overdue` 同一口径。`InstallmentConfig` 只有月供分段没有总期数,**固定分期无结束期**、
+  窗口内每月照算,车贷这类还完后要删配置条目(UI 口径说明里已写明)。
   纯函数,只吃 `DebtsConfig` + 时钟,**不需要 Ledger**。
 - **净资产分层口径**:房贷这类长期负债对应的资产(房产)不在账本里,单边扣减会让净资产
   变成几十年不变的巨额负数。故 `Summary` 除 `netWorth`/`totalLiabilities` 全量口径外,
@@ -129,7 +136,8 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   (`variables.css` 的 surface/hairline/accent/chart 系列 + `--space-*`/`--radius-*`);
   仅**真正的运行时值**(进度条宽度、数据驱动的 tag 色、交错动画延时)可用 `:style` 绑定。
   组件样式写 `<style scoped>` 或提炼进 `styles/components.css` 共享类
-  (如 `.panel`/`.filter-pill`)。
+  (如 `.panel`/`.filter-pill`/`.empty-state`)。**scoped 不穿透子组件**:父组件里定义、
+  子组件模板复用的类必须放共享层,否则子组件那份渲染成裸元素。
 - **分类中文映射只有一份**:`web/src/composables/useCategories.ts` 的 `categoryLabels`。
 - 改解析/统计逻辑必须同步更新 `parser_test.go` / `analytics_test.go`
   (`AnalyzeAt` 可注入时钟,fixture 写 `t.TempDir()`)。

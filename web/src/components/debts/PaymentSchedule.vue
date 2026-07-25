@@ -6,10 +6,11 @@
     </div>
     <div class="section-body">
       <p class="section-sub ps-hint">
-        仅含已配置分期的确定性出账,不含循环账单当期余额与未来新增消费。
+        仅含已配置分期的确定性出账,按还款日归月;不含循环账单当期余额与未来新增消费。
+        固定分期没有结束期,还完后需删掉配置条目才会停止展开。
       </p>
 
-      <div v-if="!hasAnyEntry" class="empty-state">
+      <div v-if="!hasAnyEntry" class="empty-state empty-state-boxed">
         配置信用卡分期或固定分期后,这里会展开未来每月要还多少
       </div>
 

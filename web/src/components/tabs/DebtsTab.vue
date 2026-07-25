@@ -62,7 +62,7 @@
           <Plus :size="14" />添加额度账单
         </button>
       </div>
-      <div v-if="!revolvingList.length && !draftRevolving" class="empty-state">
+      <div v-if="!revolvingList.length && !draftRevolving" class="empty-state empty-state-boxed">
         点击"添加额度账单"配置信用卡/白条等账单周期
       </div>
       <div v-else class="debt-grid">
@@ -113,7 +113,7 @@
           <Plus :size="14" />添加固定分期
         </button>
       </div>
-      <div v-if="!installmentList.length && !draftInstallment" class="empty-state">
+      <div v-if="!installmentList.length && !draftInstallment" class="empty-state empty-state-boxed">
         点击"添加固定分期"配置房贷/车贷等固定月供
       </div>
       <div v-else class="debt-grid">
@@ -457,15 +457,6 @@ async function removeInstallment(id: string) {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-6);
-  color: var(--text-tertiary);
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
 }
 
 @media (max-width: 900px) {
