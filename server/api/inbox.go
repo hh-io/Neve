@@ -249,6 +249,11 @@ func (s *Server) appendToInbox(txn string) error {
 		f.Close()
 		return err
 	}
+	// 账本是唯一真源,且 Bark 马上要告诉用户"记账成功":落盘前掉电这笔就凭空消失了
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return err
+	}
 	return f.Close()
 }
 

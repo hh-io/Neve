@@ -45,6 +45,55 @@ func write(t *testing.T, path, content string) {
 	}
 }
 
+func TestRedactCredentials(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{
+			"remote: Invalid username or password for https://user:ghp_secret@github.com/me/neve-backup.git",
+			"remote: Invalid username or password for https://***@github.com/me/neve-backup.git",
+		},
+		{ // token 作为用户名、无密码段
+			"fatal: could not read from https://ghp_secret@github.com/me/x.git",
+			"fatal: could not read from https://***@github.com/me/x.git",
+		},
+		{ // 无凭据的 URL 原样保留
+			"fatal: could not read from https://github.com/me/x.git",
+			"fatal: could not read from https://github.com/me/x.git",
+		},
+		{ // SSH scp 形式不含 scheme,本就无凭据可抹
+			"fatal: Could not read from git@github.com:me/x.git",
+			"fatal: Could not read from git@github.com:me/x.git",
+		},
+	}
+	for _, c := range cases {
+		if got := redactCredentials(c.in); got != c.want {
+			t.Errorf("redactCredentials(%q)\n = %q\n 期望 %q", c.in, got, c.want)
+		}
+	}
+}
+
+// 端到端确认凭据不会随 git 的报错漏进错误消息(继而进服务端日志)。
+// remote 指向本机 1 端口:立刻 connection refused,不依赖外网也不会挂起。
+func TestSnapshotPushErrorHidesCredentials(t *testing.T) {
+	dataDir := t.TempDir()
+	repoDir := filepath.Join(t.TempDir(), "mirror")
+	write(t, filepath.Join(dataDir, "main.bean"), "2025-01-01 * \"a\" \"b\"\n")
+
+	const token = "ghp_tok3n_should_not_leak"
+	s := New(dataDir, repoDir, "https://user:"+token+"@127.0.0.1:1/x.git")
+
+	err := s.Snapshot([]string{"main.bean"}, "test")
+	if err == nil {
+		t.Fatal("push 到不可达远程应报错")
+	}
+	if strings.Contains(err.Error(), token) {
+		t.Errorf("错误消息泄漏了 token: %v", err)
+	}
+	// 本地快照仍应落库:推送失败不该丢掉版本历史
+	if got := commitCount(t, repoDir); got != 1 {
+		t.Errorf("推送失败后本地 commit 数 = %d,期望 1", got)
+	}
+}
+
 func TestSnapshotLifecycle(t *testing.T) {
 	dataDir := t.TempDir()
 	repoDir := filepath.Join(t.TempDir(), "mirror")

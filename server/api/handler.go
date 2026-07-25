@@ -45,6 +45,9 @@ type Server struct {
 
 	// 数据备份(见 server/backup),EnableBackup 配置后各写入路径成功即异步快照
 	backup *backup.Snapshotter
+	// 备份失败告警的节流状态;triggerBackup 的 goroutine 可能并发进来
+	backupAlertMu   sync.Mutex
+	lastBackupAlert time.Time
 }
 
 // NewServer creates a new API server
@@ -80,14 +83,34 @@ func (s *Server) EnableBackup(snap *backup.Snapshotter) {
 	s.backup = snap
 }
 
+const (
+	// dailyBackupHour 每日兜底快照的时刻(服务器本地时区,TZ 由部署钉死)
+	dailyBackupHour = 4
+	// backupTickInterval 轮询间隔。这里不用 24h 定时器:它会随进程重启漂移,且机器
+	// 睡眠时 monotonic 定时器是否推进依平台而异。改为高频轮询 + 墙上时钟判定"今天跑过没有",
+	// 睡眠醒来最迟一个 tick 内补上。
+	backupTickInterval = 10 * time.Minute
+	// backupAlertInterval 备份失败告警的最小间隔。失败常是持续性的(凭据失效、
+	// non-fast-forward),每次触发都推会把通知刷爆,但完全不推就是备份静默失效。
+	backupAlertInterval = 24 * time.Hour
+)
+
 // StartBackupScheduler 启动即快照一次(捕获上次运行至今的改动),并每日兜底一次。
 // 每日先 Refresh 以纳入手动新增的 include 文件,再快照(文件内容始终读磁盘实时值)。
 func (s *Server) StartBackupScheduler() {
 	s.triggerBackup("startup")
 	go func() {
-		t := time.NewTicker(24 * time.Hour)
+		t := time.NewTicker(backupTickInterval)
 		defer t.Stop()
+		// 启动时已快照过,当天不再补一次
+		lastDaily := time.Now().Format("2006-01-02")
 		for range t.C {
+			now := time.Now()
+			today := now.Format("2006-01-02")
+			if now.Hour() < dailyBackupHour || today == lastDaily {
+				continue
+			}
+			lastDaily = today
 			if err := s.Refresh(); err != nil {
 				log.Printf("backup: 每日刷新失败: %v", err)
 			}
@@ -116,8 +139,23 @@ func (s *Server) triggerBackup(reason string) {
 	go func() {
 		if err := s.backup.Snapshot(files, reason); err != nil {
 			log.Printf("backup: %v", err)
+			s.alertBackupFailure(err)
 		}
 	}()
+}
+
+// alertBackupFailure 把备份失败推到手机上。日志在这台机器上没人看,而备份最典型的
+// 死法就是悄悄停掉几个月——凭据失效、远程被别处推过,都不会自愈。
+func (s *Server) alertBackupFailure(err error) {
+	s.backupAlertMu.Lock()
+	if time.Since(s.lastBackupAlert) < backupAlertInterval {
+		s.backupAlertMu.Unlock()
+		return
+	}
+	s.lastBackupAlert = time.Now()
+	s.backupAlertMu.Unlock()
+
+	s.notify("Neve 备份失败", truncateRunes(err.Error(), 300))
 }
 
 // SetupRoutes sets up the API routes
@@ -362,9 +400,10 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// atomicWriteFile 先写同目录临时文件再 rename,避免写入中断损坏 budgets.json
+// atomicWriteFile 先写同目录临时文件再 rename,避免写入中断损坏目标文件
+// (budgets.json / debts.json 共用)
 func atomicWriteFile(path string, data []byte) error {
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".budgets-*.tmp")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".neve-*.tmp")
 	if err != nil {
 		return err
 	}

@@ -98,6 +98,15 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   单一真源)+ 已知配置名(budgets/debts.json);`triggerBackup` 有护栏——账本为空或
   `SourceFiles` 为空时**跳过**,否则空清单会把镜像里已跟踪的 .bean 全 prune 成删除。
   推送用普通 `git push`(非 force),首推需远程为空库。
+  **git 子进程必须非交互 + 带超时**:launchd 下无 tty,凭据提示/未知 host key 会让 git
+  永久挂住,而 `Snapshot` 全程持锁——后续每次触发都堆一个 goroutine 在锁上,备份彻底
+  停摆且无信号。故统一走 `git()`:`GIT_TERMINAL_PROMPT=0` + `ssh -o BatchMode=yes`,
+  `snapshotTimeout` 限总时长(取消先 SIGINT 留 `gitTermGrace` 清理 index.lock)。
+  失败必须**推送告警**(`alertBackupFailure`,`backupAlertInterval` 节流):凭据失效与
+  non-fast-forward 不会自愈,只写日志等于静默失效。git 报错会带 remote URL,
+  出口统一过 `redactCredentials` 抹掉内嵌 token。
+  每日兜底用**墙上时钟轮询**(`backupTickInterval` + 比对日期)而非 24h 定时器:
+  后者随进程重启漂移,且睡眠期间 monotonic 定时器是否推进依平台而异。
 - **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
   (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。

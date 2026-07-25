@@ -195,6 +195,10 @@ NEVE_BACKUP_REMOTE=git@github.com:you/neve-data.git   # 务必是私有库,内�
 # 首次推送前远程需为空库;之后一路 fast-forward
 ```
 
+备份失败(凭据失效、远程被别处推过导致 non-fast-forward 等)会经 Bark 推送告警，同类失败 24 小时内只推一次——备份最常见的死法是悄悄停掉几个月而无人察觉。此时本地镜像仍有完整版本历史，只是异地那层落后了。
+
+> 建议用 SSH remote：若填 `https://<token>@…` 形式，token 会明文存进镜像仓库的 `.git/config`（该目录已设 0700，报错信息也会抹掉凭据，但仍不如 SSH 干净）。
+
 > **为什么由服务端做而非独立定时任务**:数据位于快捷指令 App 的 iCloud 容器,属 macOS TCC 重点保护区。launchd 下未获授权的进程对该目录 `readdir`/`chdir` 一律 `Operation not permitted`,git 无法直接托管;而服务端进程已获该容器读权限,遂由它读出内容写进 iCloud 外的镜像,git 只对镜像操作,彻底绕开限制。
 
 ## 与 Claude Code 共同开发
