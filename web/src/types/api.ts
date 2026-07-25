@@ -255,11 +255,32 @@ export interface InstallmentStatus {
   currentBalance: Yuan
 }
 
+/** 一笔确定性还款在某个月的出账 */
+export interface ScheduleEntry {
+  account: string
+  accountName: string
+  name: string
+  source: 'revolving' | 'installment'
+  amount: Yuan
+  dueDate: string
+  longTerm: boolean
+}
+
+/** 未来某个自然月的还款计划;cumulative 为自首月起的前缀和 */
+export interface ScheduleMonth {
+  month: string // "2026-08"
+  total: Yuan
+  cumulative: Yuan
+  entries: ScheduleEntry[]
+}
+
 export interface DebtsReport {
   summary: DebtsSummary
   revolving: RevolvingStatus[]
   installments: InstallmentStatus[]
   unconfigured: LiabilityStats[]
+  /** 未来 12 个月的确定性出账,不含循环账单余额与未来新增消费 */
+  schedule: ScheduleMonth[]
 }
 
 /** GET/POST /api/debts 的响应;账本尚未加载时 report 为 null。 */

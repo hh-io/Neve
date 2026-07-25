@@ -183,6 +183,8 @@ type DebtsReport struct {
 	Installments []InstallmentStatus `json:"installments"`
 	// 有欠款但未配置的负债账户,提示用户补配置
 	Unconfigured []LiabilityStats `json:"unconfigured"`
+	// 未来若干月的确定性还款计划,口径见 schedule.go
+	Schedule []ScheduleMonth `json:"schedule"`
 }
 
 // DebtsSummary 全局看板:本期总应还、剩余待还、最近一个未结清的最后还款日。
@@ -411,6 +413,8 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 		return report.Unconfigured[i].Account < report.Unconfigured[j].Account
 	})
 
+	report.Schedule = ComputeSchedule(cfg, today, scheduleMonths)
+
 	return report
 }
 
@@ -442,15 +446,7 @@ func revolvingInstallmentStatuses(items []RevolvingInstallment, statement time.T
 		if unbilled > it.TotalAmount {
 			unbilled = it.TotalAmount
 		}
-		var thisPeriod Amount
-		switch {
-		case raw < 1 || raw > it.Months:
-			thisPeriod = 0
-		case raw == it.Months:
-			thisPeriod = maxAmount(it.TotalAmount-it.MonthlyAmount*Amount(it.Months-1), 0)
-		default:
-			thisPeriod = it.MonthlyAmount
-		}
+		thisPeriod := installmentPeriodAmount(it, raw)
 
 		statuses = append(statuses, RevolvingInstallmentStatus{
 			Name:             it.Name,
@@ -471,6 +467,20 @@ func revolvingInstallmentStatuses(items []RevolvingInstallment, statement time.T
 		thisPeriodTotal += thisPeriod
 	}
 	return statuses, unbilledTotal, thisPeriodTotal
+}
+
+// installmentPeriodAmount 内嵌分期第 period 期(1-based)的出账金额,越界为 0。
+// 尾差落最后一期:前面各期按 MonthlyAmount 整额出账,末期由总额差值收口,
+// 累加起来才恰好等于 TotalAmount。当期状态与未来计划表共用此函数,口径不会漂移。
+func installmentPeriodAmount(it RevolvingInstallment, period int) Amount {
+	switch {
+	case period < 1 || period > it.Months:
+		return 0
+	case period == it.Months:
+		return maxAmount(it.TotalAmount-it.MonthlyAmount*Amount(it.Months-1), 0)
+	default:
+		return it.MonthlyAmount
+	}
 }
 
 // effectiveMonthly 取 effectiveFrom ≤ 本期还款日的最后一条月供。

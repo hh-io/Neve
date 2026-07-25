@@ -75,6 +75,17 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   **正向 posting**(不限交易 kind,退款/返现也应冲减);分期类"已还"只认 `kind=transfer`。
   账单日/还款日超出当月天数时**顺延至月末**(`clampedDate`,严禁裸 `time.Date` 进位)。
   GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。
+- **未来还款计划是现金流口径,不是资产负债表口径**(`server/parser/schedule.go` 的
+  `ComputeSchedule`,随 `DebtsReport.Schedule` 一并返回,无独立 endpoint):按月展开未来
+  `scheduleMonths` 个自然月的出账。**只展开配置里锁定的分期**(额度账户内嵌分期 + 固定分期
+  schedule),**不外推循环账单余额**——后者要成立得假设「期间不再消费也不还款」,越往后越离谱。
+  同理**不推演未来净资产**:还款是 transfer(资产↓、负债↓同额),没有未来收支预测时未来净资产
+  恒等于今天,推了没信息量;更不能把「未到期的分期」从负债里剔除后当净资产看——分期消费记账时
+  已全额入负债、对应消费也已如实记在 Expenses 腿上,剔除即虚高(这与长期负债分层性质不同,
+  后者是因为对应资产根本不在账本里)。每期金额走 `installmentPeriodAmount`,与
+  `revolvingInstallmentStatuses` **共用同一函数**(尾差落最后一期),口径不会漂移;
+  日期同样走 `clampedDate`/`nextDueAfter`,月末顺延语义自动一致。
+  纯函数,只吃 `DebtsConfig` + 时钟,**不需要 Ledger**。
 - **净资产分层口径**:房贷这类长期负债对应的资产(房产)不在账本里,单边扣减会让净资产
   变成几十年不变的巨额负数。故 `Summary` 除 `netWorth`/`totalLiabilities` 全量口径外,
   另有 `longTermLiabilities`/`shortTermLiabilities`/`netWorthExLongTerm`,
@@ -129,6 +140,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)+ 净资产分层(`ApplyLongTermLiabilities`)
 - `server/parser/amount.go` — 定点金额类型
 - `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/schedule 口径)+ `DebtsConfig`(含 `longTermAccounts`)
+- `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,只展开确定性分期出账)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)
@@ -139,7 +151,8 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)/reload(配置变更后静默重取)
 - `web/src/composables/useDebts.ts` — 待还配置/报告单例(GET/POST /api/debts)
 - `web/src/components/debts/` — 待还条目卡(`RevolvingCard`/`InstallmentCard` 各自带展示/编辑两态,
-  一张卡只编辑一个条目;`LongTermOthers` 收拢未配账期账户的长期负债勾选)。
+  一张卡只编辑一个条目;`LongTermOthers` 收拢未配账期账户的长期负债勾选;
+  `PaymentSchedule` 展开未来 12 个月还款计划,常驻口径说明不可删)。
   编辑互斥由 `DebtsTab` 的 `editingKey` 控制:保存是「合成全量 config 再 POST」,
   同时开两张卡会互相覆盖。
 - `web/src/composables/useDebtValidation.ts` — 保存前本地轻校验,规则镜像 `debts.go` 的

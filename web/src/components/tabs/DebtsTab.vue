@@ -149,6 +149,9 @@
       </div>
     </section>
 
+    <!-- 未来每月要还多少;report 为 null 时后端算不出计划,整段不渲染 -->
+    <PaymentSchedule v-if="report" :months="schedule" />
+
     <!-- 剩下那些没配账期的负债账户,长期负债标记在这勾 -->
     <LongTermOthers />
   </div>
@@ -164,6 +167,7 @@ import { useAnalytics } from '../../composables/useAnalytics'
 import RevolvingCard from '../debts/RevolvingCard.vue'
 import InstallmentCard from '../debts/InstallmentCard.vue'
 import LongTermOthers from '../debts/LongTermOthers.vue'
+import PaymentSchedule from '../debts/PaymentSchedule.vue'
 
 const { config, report, loadDebts, saveDebts } = useDebts()
 const { analytics } = useAnalytics()
@@ -183,6 +187,7 @@ const summary = computed(() => report.value?.summary)
 const revolvingList = computed(() => report.value?.revolving ?? [])
 const installmentList = computed(() => report.value?.installments ?? [])
 const unconfigured = computed(() => report.value?.unconfigured ?? [])
+const schedule = computed(() => report.value?.schedule ?? [])
 const isOverdue = computed(() => (summary.value?.nextDueInDays ?? 0) < 0)
 
 const countdownText = computed(() => {
