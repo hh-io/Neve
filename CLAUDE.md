@@ -90,8 +90,12 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   (`nextDueAfter` 最多推后一个月,一个月足够),否则首桶漏掉上月账单那笔。
   **due 早于 today 的期一律剔除**:钱已经该流出了(已还,或逾期——后者由 `Summary.MonthRemaining`
   负责),留在「未来计划」里会虚增即期压力;还款日当天仍算未来。这与 `InstallmentStatus.Paid`
-  /`Overdue` 同一口径。`InstallmentConfig` 只有月供分段没有总期数,**固定分期无结束期**、
-  窗口内每月照算,车贷这类还完后要删配置条目(UI 口径说明里已写明)。
+  /`Overdue` 同一口径。固定分期的终止期看 `InstallmentConfig.EndMonth`(空 = 无终止期,房贷),
+  过了末期月即 `settled`:计划表不再展开、`ComputeDebts` 把月供归 0(顺带让开
+  overdue/MonthDue/NextDue),判定与 `ComputeDebts` **共用 `installmentRemaining`**。
+  `InstallmentStatus.RemainingPeriods` 是尚未还的期数(本期已还则不含本期,免得月初月末差一期),
+  **-1 表示无终止期**,区别于已结清的 0——前端据此决定是否展示「剩 N 期」。
+  期数不能从账本反推:负债余额是剩余本金、不含未来利息,除月供不成整数,只能靠配置。
   纯函数,只吃 `DebtsConfig` + 时钟,**不需要 Ledger**。
 - **净资产分层口径**:房贷这类长期负债对应的资产(房产)不在账本里,单边扣减会让净资产
   变成几十年不变的巨额负数。故 `Summary` 除 `netWorth`/`totalLiabilities` 全量口径外,
@@ -147,8 +151,10 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/parser.go` — 解析器(正则)+ 校验 + ParseIssue 收集
 - `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)+ 净资产分层(`ApplyLongTermLiabilities`)
 - `server/parser/amount.go` — 定点金额类型
-- `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/schedule 口径)+ `DebtsConfig`(含 `longTermAccounts`)
-- `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,只展开确定性分期出账)
+- `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/剩余期数/schedule 口径)
+  + `DebtsConfig`(含 `longTermAccounts`、固定分期的 `endMonth`)
+- `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,按还款日归月,
+  只展开确定性分期出账)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)

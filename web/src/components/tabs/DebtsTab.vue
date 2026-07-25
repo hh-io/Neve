@@ -224,6 +224,7 @@ function installmentConfigOf(id: string): InstallmentConfig {
       name: '',
       account: '',
       dueDay: 20,
+      endMonth: '',
       schedule: [],
     }
   )
@@ -245,6 +246,7 @@ function startNewInstallment() {
     name: '',
     account: '',
     dueDay: 20,
+    endMonth: '',
     schedule: [],
   }
   editingKey.value = 'new-ins'

@@ -193,6 +193,8 @@ export interface InstallmentConfig {
   name: string
   account: string
   dueDay: number
+  /** 末期还款月 YYYY-MM;空串 = 无终止期(房贷) */
+  endMonth: string
   schedule: InstallmentPhase[]
 }
 
@@ -246,13 +248,17 @@ export interface InstallmentStatus {
   name: string
   account: string
   accountMissing: boolean
-  monthlyAmount: Yuan // 0 表示本期尚无生效月供
+  monthlyAmount: Yuan // 0 表示本期无月供(schedule 全在未来,或已结清)
   dueDate: string
   paid: boolean
   paidAmount: Yuan
   daysUntilDue: number
   overdue: boolean
   currentBalance: Yuan
+  /** 尚未还的期数(本期已还则不含本期);-1 = 无终止期,区别于已结清的 0 */
+  remainingPeriods: number
+  settled: boolean // 已过 endMonth,不再有月供
+  endMonth: string
 }
 
 /** 一笔确定性还款在某个月的出账 */

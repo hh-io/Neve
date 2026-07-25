@@ -113,8 +113,11 @@ func ComputeSchedule(cfg *DebtsConfig, from time.Time, months int) []ScheduleMon
 				name = getAccountShortName(ic.Account)
 			}
 			due := clampedDate(m.Year(), m.Month(), ic.DueDay, loc)
-			// InstallmentConfig 没有总期数,只有月供分段:窗口内每月照算。房贷这类确实没有
-			// 终止期;车贷/装修贷这类还完后要删掉配置条目,否则计划表会继续往后铺。
+			// 结清后不再出账。与 ComputeDebts 的当期状态**共用 installmentRemaining**,
+			// 口径不会漂移;EndMonth 为空(房贷这类无终止期)则窗口内每月照算
+			if _, settled := installmentRemaining(ic.EndMonth, due); settled {
+				continue
+			}
 			// 为 0 表示 schedule 全在该期之后,尚未生效
 			amount := effectiveMonthly(ic.Schedule, due, loc)
 			if amount <= 0 {

@@ -93,7 +93,15 @@
           class="form-input day-input"
         />
       </label>
+      <label class="field">
+        <span>末期月</span>
+        <input v-model="local.endMonth" type="month" class="form-input month-input" />
+      </label>
     </div>
+    <p class="debt-edit-hint">
+      末期月留空表示没有终止期(房贷)。车贷/消费贷这类填上末期还款月,计划表才会在还完那月停下,
+      卡片也能显示还剩几期——总期数没法从账本反推(负债余额是剩余本金,不含未来利息)。
+    </p>
 
     <label class="debt-longterm">
       <input v-model="localLongTerm" type="checkbox" />
@@ -230,12 +238,25 @@ const view = computed(() => {
   const due = ins.monthlyAmount
   const remain = ins.paid || !due ? 0 : Math.max(due - ins.paidAmount, 0)
   const overdue = ins.overdue && !ins.paid && !!due
+  // remainingPeriods 为 -1 表示无终止期(房贷),不展示期数
+  const periods = ins.settled
+    ? `已于 ${ins.endMonth} 还清`
+    : ins.remainingPeriods > 0
+      ? `剩 ${ins.remainingPeriods} 期(至 ${ins.endMonth})`
+      : ''
   return {
     name: ins.name,
-    sub: `还款日 ${shortDate(ins.dueDate)} · 剩余本金 ${formatMoney(ins.currentBalance)}`,
+    sub: [
+      `还款日 ${shortDate(ins.dueDate)}`,
+      `剩余本金 ${formatMoney(ins.currentBalance)}`,
+      periods,
+    ]
+      .filter(Boolean)
+      .join(' · '),
     accountMissing: ins.accountMissing,
     overdue,
-    dueAmount: due ? formatMoney(due) : '未生效',
+    // 结清与未生效都是月供 0,文案不能混
+    dueAmount: due ? formatMoney(due) : ins.settled ? '—' : '未生效',
     remainAmount: due ? formatMoney(remain) : '—',
     remainColor: !due
       ? 'var(--text-tertiary)'
@@ -254,6 +275,8 @@ const view = computed(() => {
 })
 
 function badge(ins: InstallmentStatus): { text: string; cls: string } {
+  // 结清与"尚未生效"同为月供 0,但含义相反,得先分流
+  if (ins.settled) return { text: '已结清', cls: 'badge-paid' }
   if (!ins.monthlyAmount) return { text: '尚未生效', cls: 'badge-idle' }
   if (ins.paid) return { text: '本月已还', cls: 'badge-paid' }
   if (ins.overdue) return { text: `逾期 ${-ins.daysUntilDue} 天`, cls: 'badge-overdue' }

@@ -70,5 +70,20 @@ export function validateInstallment(ic: InstallmentConfig): string[] {
     if (!DATE_RE.test(ph.effectiveFrom)) errs.push(`生效日期 ${ph.effectiveFrom} 应为 YYYY-MM-DD`)
     if (!(ph.amount > 0)) errs.push('月供金额必须大于 0')
   })
+
+  // 末期月留空 = 无终止期(房贷),合法
+  if (ic.endMonth) {
+    if (!MONTH_RE.test(ic.endMonth)) {
+      errs.push('末期月应为 YYYY-MM')
+    } else {
+      // 月供在结清之后才生效 = 配置自相矛盾,这条月供永远用不上
+      const latest = ic.schedule
+        .filter((ph) => DATE_RE.test(ph.effectiveFrom))
+        .reduce((acc, ph) => (ph.effectiveFrom > acc ? ph.effectiveFrom : acc), '')
+      if (latest && latest.slice(0, 7) > ic.endMonth) {
+        errs.push(`末期月 ${ic.endMonth} 早于最新月供生效月 ${latest.slice(0, 7)}`)
+      }
+    }
+  }
   return errs
 }

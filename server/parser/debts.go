@@ -43,10 +43,14 @@ type RevolvingInstallment struct {
 // InstallmentConfig 分期类账单(房贷/车贷):每月固定金额。
 // 月供调整靠追加 schedule 条目而非改历史,旧账期的口径才不会被静默改写。
 type InstallmentConfig struct {
-	ID       string             `json:"id"`
-	Name     string             `json:"name"`
-	Account  string             `json:"account"`
-	DueDay   int                `json:"dueDay"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Account string `json:"account"`
+	DueDay  int    `json:"dueDay"`
+	// EndMonth 末期还款月("2028-04"),空 = 无终止期。房贷这类确实没有终止期,而车贷/消费贷
+	// 有明确期数——总期数无法从账本反推(负债余额是剩余本金,不含未来利息,除月供不成整数),
+	// 只能配置。缺了它计划表会把已结清的月供一路往后铺。
+	EndMonth string             `json:"endMonth"`
 	Schedule []InstallmentPhase `json:"schedule"`
 }
 
@@ -126,12 +130,24 @@ func (c *DebtsConfig) Validate() []string {
 		if len(ic.Schedule) == 0 {
 			errs = append(errs, fmt.Sprintf("分期 %s 的 schedule 不能为空", label))
 		}
+		var latestPhase string
 		for _, ph := range ic.Schedule {
 			if _, err := time.Parse("2006-01-02", ph.EffectiveFrom); err != nil {
 				errs = append(errs, fmt.Sprintf("分期 %s 的生效日期 %q 非法,应为 YYYY-MM-DD", label, ph.EffectiveFrom))
+			} else if ph.EffectiveFrom > latestPhase {
+				// YYYY-MM-DD 定长,字典序即时间序
+				latestPhase = ph.EffectiveFrom
 			}
 			if ph.Amount <= 0 {
 				errs = append(errs, fmt.Sprintf("分期 %s 的月供金额必须大于 0", label))
+			}
+		}
+		if ic.EndMonth != "" {
+			if _, err := time.Parse("2006-01", ic.EndMonth); err != nil {
+				errs = append(errs, fmt.Sprintf("分期 %s 的结束月 %q 非法,应为 YYYY-MM", label, ic.EndMonth))
+			} else if latestPhase != "" && latestPhase[:7] > ic.EndMonth {
+				// 月供在结清之后才生效 = 配置自相矛盾,这条月供永远用不上
+				errs = append(errs, fmt.Sprintf("分期 %s 的结束月 %s 早于最新月供生效月 %s", label, ic.EndMonth, latestPhase[:7]))
 			}
 		}
 	}
@@ -235,13 +251,18 @@ type InstallmentStatus struct {
 	Name           string `json:"name"`
 	Account        string `json:"account"`
 	AccountMissing bool   `json:"accountMissing"`
-	MonthlyAmount  Amount `json:"monthlyAmount"` // 0 表示本期尚无生效月供(schedule 全在未来)
+	MonthlyAmount  Amount `json:"monthlyAmount"` // 0 表示本期无月供(schedule 全在未来,或已结清)
 	DueDate        string `json:"dueDate"`
 	Paid           bool   `json:"paid"`
 	PaidAmount     Amount `json:"paidAmount"`
 	DaysUntilDue   int    `json:"daysUntilDue"`
 	Overdue        bool   `json:"overdue"`
 	CurrentBalance Amount `json:"currentBalance"`
+	// RemainingPeriods 尚未还的期数(本期已还则不含本期);-1 = 无终止期(未配 EndMonth),
+	// 区别于已结清的 0
+	RemainingPeriods int    `json:"remainingPeriods"`
+	Settled          bool   `json:"settled"`  // 本期已超出 EndMonth,不再有月供
+	EndMonth         string `json:"endMonth"` // 原样回显,空 = 无终止期
 }
 
 // ComputeDebts 以 now 为"现在"计算负债还款报告,便于测试注入固定时钟。不修改 ledger。
@@ -337,23 +358,35 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 		prevDue := clampedDate(prevMonth.Year(), prevMonth.Month(), ic.DueDay, loc)
 
 		monthly := effectiveMonthly(ic.Schedule, dueDate, loc)
+		remaining, settled := installmentRemaining(ic.EndMonth, dueDate)
+		// 结清后不再催款:月供归 0 顺带把 overdue / MonthDue / NextDue 全部让开
+		if settled {
+			monthly = 0
+		}
 		// 已还窗口取 (上月还款日, now]:迟还几天仍归本期,状态从逾期翻成已还
 		paidAmount := creditsAfter(txs, ic.Account, prevDue, true)
 		paid := paidAmount > 0
+		// 本期已还就不该再数进"还剩几期",否则月初月末看到的期数会差一期
+		if paid && remaining > 0 {
+			remaining--
+		}
 		overdue := monthly > 0 && !paid && today.After(dueDate)
 
 		report.Installments = append(report.Installments, InstallmentStatus{
-			ID:             ic.ID,
-			Name:           name,
-			Account:        ic.Account,
-			AccountMissing: !known[ic.Account],
-			MonthlyAmount:  monthly,
-			DueDate:        dueDate.Format("2006-01-02"),
-			Paid:           paid,
-			PaidAmount:     paidAmount,
-			DaysUntilDue:   daysBetween(today, dueDate),
-			Overdue:        overdue,
-			CurrentBalance: maxAmount(-balanceAsOf(txs, ic.Account, today), 0),
+			ID:               ic.ID,
+			Name:             name,
+			Account:          ic.Account,
+			AccountMissing:   !known[ic.Account],
+			MonthlyAmount:    monthly,
+			DueDate:          dueDate.Format("2006-01-02"),
+			Paid:             paid,
+			PaidAmount:       paidAmount,
+			DaysUntilDue:     daysBetween(today, dueDate),
+			Overdue:          overdue,
+			CurrentBalance:   maxAmount(-balanceAsOf(txs, ic.Account, today), 0),
+			RemainingPeriods: remaining,
+			Settled:          settled,
+			EndMonth:         ic.EndMonth,
 		})
 
 		if monthly > 0 {
@@ -481,6 +514,26 @@ func installmentPeriodAmount(it RevolvingInstallment, period int) Amount {
 	default:
 		return it.MonthlyAmount
 	}
+}
+
+// installmentRemaining 按还款日所在月与 EndMonth 比,返回(含本期的剩余期数, 是否已结清)。
+// 本期是否已还由调用方扣减——那要查账本,而这里只做日期算术。
+// EndMonth 为空表示无终止期(房贷),剩余期数给 -1 让前端知道"不适用"而非"还剩 0 期"。
+// 月数用 year*12+month 差值,没有日期进位问题。
+func installmentRemaining(endMonth string, dueDate time.Time) (int, bool) {
+	if endMonth == "" {
+		return -1, false
+	}
+	end, err := time.Parse("2006-01", endMonth)
+	// 非法本应被 Validate 拦下,手改文件绕过时按无终止期处理,不让整份报告失败
+	if err != nil {
+		return -1, false
+	}
+	diff := (end.Year()-dueDate.Year())*12 + int(end.Month()) - int(dueDate.Month())
+	if diff < 0 {
+		return 0, true
+	}
+	return diff + 1, false
 }
 
 // effectiveMonthly 取 effectiveFrom ≤ 本期还款日的最后一条月供。

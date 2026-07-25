@@ -300,6 +300,62 @@ func TestComputeDebtsInstallmentEdgeCases(t *testing.T) {
 	}
 }
 
+// 有终止期的固定分期(车贷/消费贷):剩余期数递减,过了末期即结清且不再催款
+func TestComputeDebtsInstallmentEndMonth(t *testing.T) {
+	const loan = "Liabilities:Loan:ECMB"
+	cfg := &DebtsConfig{
+		Installments: []InstallmentConfig{{
+			ID: "ecmb", Name: "E招贷", Account: loan, DueDay: 3, EndMonth: "2028-04",
+			Schedule: []InstallmentPhase{{EffectiveFrom: "2026-08-03", Amount: 172139}},
+		}},
+	}
+	ledger := debtLedger([]string{loan},
+		mkTx("2026-05-03", po(loan, -4000000), po("Equity:Opening-Balances", 4000000)))
+
+	// 2026-08 这期起还有 21 期(到 2028-04)
+	ins := ComputeDebts(ledger, cfg, atDate("2026-08-01")).Installments[0]
+	if ins.RemainingPeriods != 21 || ins.Settled {
+		t.Errorf("RemainingPeriods = %d, Settled = %v, want 21/false", ins.RemainingPeriods, ins.Settled)
+	}
+	if ins.EndMonth != "2028-04" {
+		t.Errorf("EndMonth = %q, 应原样回显", ins.EndMonth)
+	}
+
+	// 本期已还:剩余期数不再数本期,否则月初月末看到的期数会差一期
+	paidLedger := debtLedger([]string{loan, "Assets:Bank:CMB"},
+		mkTx("2026-05-03", po(loan, -4000000), po("Equity:Opening-Balances", 4000000)),
+		mkTx("2026-08-03", po(loan, 172139), po("Assets:Bank:CMB", -172139)))
+	ins = ComputeDebts(paidLedger, cfg, atDate("2026-08-05")).Installments[0]
+	if !ins.Paid || ins.RemainingPeriods != 20 {
+		t.Errorf("本期已还 = %d 期(paid %v), want 20/true", ins.RemainingPeriods, ins.Paid)
+	}
+
+	// 末期当月:剩 1 期,仍要还
+	ins = ComputeDebts(ledger, cfg, atDate("2028-04-01")).Installments[0]
+	if ins.RemainingPeriods != 1 || ins.Settled || ins.MonthlyAmount != 172139 {
+		t.Errorf("末期 = %d 期/settled %v/月供 %v, want 1/false/172139",
+			ins.RemainingPeriods, ins.Settled, ins.MonthlyAmount)
+	}
+
+	// 末期之后:结清,月供归 0,不进汇总也不逾期
+	report := ComputeDebts(ledger, cfg, atDate("2028-05-10"))
+	ins = report.Installments[0]
+	if !ins.Settled || ins.RemainingPeriods != 0 || ins.MonthlyAmount != 0 || ins.Overdue {
+		t.Errorf("结清后 = %d 期/settled %v/月供 %v/逾期 %v, want 0/true/0/false",
+			ins.RemainingPeriods, ins.Settled, ins.MonthlyAmount, ins.Overdue)
+	}
+	if report.Summary.MonthDue != 0 || report.Summary.NextDueDate != "" {
+		t.Errorf("结清后不应进汇总: %v / %q", report.Summary.MonthDue, report.Summary.NextDueDate)
+	}
+
+	// 无终止期(房贷):剩余期数给 -1,不是 0
+	cfg.Installments[0].EndMonth = ""
+	ins = ComputeDebts(ledger, cfg, atDate("2028-05-10")).Installments[0]
+	if ins.RemainingPeriods != -1 || ins.Settled {
+		t.Errorf("无终止期 = %d 期/settled %v, want -1/false", ins.RemainingPeriods, ins.Settled)
+	}
+}
+
 func TestComputeDebtsSummaryPriority(t *testing.T) {
 	const huabei = "Liabilities:Alipay:Huabei"
 	cfg := &DebtsConfig{
@@ -432,6 +488,28 @@ func TestDebtsConfigValidate(t *testing.T) {
 			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
 				Schedule: []InstallmentPhase{{EffectiveFrom: "2023-06-01", Amount: 0}}}},
 		}, true},
+		{"结束月合法", DebtsConfig{
+			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
+				EndMonth: "2028-04",
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-08-01", Amount: 100}}}},
+		}, false},
+		{"结束月格式错", DebtsConfig{
+			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
+				EndMonth: "2028-04-03",
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-08-01", Amount: 100}}}},
+		}, true},
+		// 月供 2026-09 才生效却在 2026-08 就结清:这条月供永远用不上
+		{"结束月早于最新月供生效月", DebtsConfig{
+			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
+				EndMonth: "2026-08",
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-09-01", Amount: 100}}}},
+		}, true},
+		// 同月生效同月结清是合法的:末期月供当月到期
+		{"结束月等于最新月供生效月", DebtsConfig{
+			Installments: []InstallmentConfig{{ID: "m", Account: "Liabilities:Loan:M", DueDay: 20,
+				EndMonth: "2026-09",
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-09-01", Amount: 100}}}},
+		}, false},
 		{"长期负债账户合法", DebtsConfig{
 			LongTermAccounts: []string{"Liabilities:Loan:Mortgage"},
 		}, false},

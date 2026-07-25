@@ -693,6 +693,10 @@
     width: 100%;
 }
 
+.month-input {
+    width: 148px;
+}
+
 /* 窄数字输入:日期(1-31)、期数 */
 .day-input {
     width: 64px;

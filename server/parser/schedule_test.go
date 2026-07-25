@@ -314,6 +314,44 @@ func TestComputeScheduleInstallmentNotYetEffective(t *testing.T) {
 	}
 }
 
+// 有终止期的固定分期只铺到末期月,不外推;无终止期的房贷铺满整个窗口
+func TestComputeScheduleInstallmentEndMonth(t *testing.T) {
+	cfg := &DebtsConfig{
+		Installments: []InstallmentConfig{
+			{
+				ID: "ecmb", Name: "E招贷", Account: "Liabilities:Loan:ECMB", DueDay: 3,
+				EndMonth: "2026-10",
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-08-03", Amount: 172139}},
+			},
+			{
+				ID: "mortgage", Name: "房贷", Account: "Liabilities:Loan:Mortgage", DueDay: 5,
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-08-05", Amount: 465601}},
+			},
+		},
+	}
+
+	months := ComputeSchedule(cfg, atDate("2026-07-26"), 6)
+	assertScheduleInvariants(t, months)
+
+	for _, tc := range []struct {
+		month string
+		want  Amount
+	}{
+		{"2026-08", 172139 + 465601},
+		{"2026-10", 172139 + 465601}, // 末期月仍出账
+		{"2026-11", 465601},          // 结清后只剩房贷
+		{"2026-12", 465601},
+	} {
+		if got := monthOf(t, months, tc.month).Total; got != tc.want {
+			t.Errorf("%s 合计 = %d, 期望 %d", tc.month, got, tc.want)
+		}
+	}
+	// 累计只含 3 期 E招贷
+	if got := monthOf(t, months, "2026-12").Cumulative; got != 172139*3+465601*5 {
+		t.Errorf("累计 = %d, 期望 %d", got, 172139*3+465601*5)
+	}
+}
+
 func TestComputeScheduleLongTermFlag(t *testing.T) {
 	cfg := &DebtsConfig{
 		LongTermAccounts: []string{"Liabilities:Loan:Mortgage"},
