@@ -35,13 +35,15 @@ type ScheduleMonth struct {
 const scheduleMonths = 12
 
 // ComputeSchedule 自 from 所在月起展开 months 个自然月的确定性还款计划。
-// 纯函数,不需要 Ledger:展开的是配置里的出账计划,不涉及账户余额。
+// from 按天取用(时分秒忽略),纯函数,不需要 Ledger:展开的是配置里的出账计划,不涉及账户余额。
 func ComputeSchedule(cfg *DebtsConfig, from time.Time, months int) []ScheduleMonth {
 	if months <= 0 {
 		return make([]ScheduleMonth, 0)
 	}
 
 	loc := from.Location()
+	// 还款日是零点,from 带上时分秒就会把"今天到期"判成已过去而整笔丢掉
+	from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
 	longTerm := make(map[string]bool, len(cfg.LongTermAccounts))
 	for _, account := range cfg.LongTermAccounts {
 		longTerm[account] = true
@@ -73,6 +75,8 @@ func ComputeSchedule(cfg *DebtsConfig, from time.Time, months int) []ScheduleMon
 
 	// 账单月从 anchor 前一个月开始扫:首桶的钱可能来自上月账单(due 跨月),
 	// 不多扫这一个月首桶会漏。nextDueAfter 最多把 due 推后一个月,故一个月足够。
+	// 固定分期的 due 就在当月、用不着前扫那一个月,但也不为它单开范围判断——
+	// 窗口归属只由 add() 一处裁定,拆成两处早晚漂移。
 	for i := -1; i < months; i++ {
 		m := anchor.AddDate(0, i, 0)
 

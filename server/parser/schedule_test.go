@@ -2,6 +2,7 @@ package parser
 
 import (
 	"testing"
+	"time"
 )
 
 func monthOf(t *testing.T, months []ScheduleMonth, key string) ScheduleMonth {
@@ -202,6 +203,13 @@ func TestComputeScheduleSkipsPastDue(t *testing.T) {
 	assertScheduleInvariants(t, early)
 	if m := monthOf(t, early, "2026-07"); m.Total != 301000 {
 		t.Errorf("2026-07-19 时两笔均未到期,合计 = %d, 期望 301000", m.Total)
+	}
+
+	// from 带时分秒不能改变结果:还款日是零点,不按天比会把今天到期的整笔丢掉
+	afternoon := ComputeSchedule(cfg, time.Date(2026, 7, 20, 14, 30, 0, 0, time.Local), 1)
+	assertScheduleInvariants(t, afternoon)
+	if afternoon[0].Total != ComputeSchedule(cfg, atDate("2026-07-20"), 1)[0].Total {
+		t.Errorf("带时分秒的 from 合计 = %d, 应与零点一致", afternoon[0].Total)
 	}
 
 	// 还款日当天算未来:钱当天才流出,不能提前剔掉
