@@ -79,7 +79,10 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   变成几十年不变的巨额负数。故 `Summary` 除 `netWorth`/`totalLiabilities` 全量口径外,
   另有 `longTermLiabilities`/`shortTermLiabilities`/`netWorthExLongTerm`,
   **概览与账户页默认展示 Ex 口径**(资产负债率同口径),全量降级为补充信息。
-  账户清单存 `DebtsConfig.LongTermAccounts`(debts.json 顶层),在待还配置编辑器里勾选。
+  账户清单存 `DebtsConfig.LongTermAccounts`(debts.json 顶层),标记跟着**账户**走:
+  已配账期的账户在自己那张卡的编辑态勾选,其余负债账户在待还页底部「其他负债账户」组勾选
+  (`LongTermOthers.vue`,勾选即存)。删除账期配置**不清除**该账户的长期标记——账户还在
+  账本里就仍是长期负债,只是编辑入口从卡片挪回「其他负债账户」组。
   分层由 `Analytics.ApplyLongTermLiabilities` 叠加在 `Analyze` 之后(**保持 Analyze 纯函数**——
   清单不在账本里,改配置不该触发重解析),该方法幂等,调用点有二:`Refresh()` 与
   `handleSaveDebts()`(后者就地重算缓存,前端 `useDebts.saveDebts` 再静默 `reload()` analytics)。
@@ -126,6 +129,12 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `web/src/types/api.ts` — `/api/analytics` 契约类型(逐字段对照后端 struct JSON tag)
 - `web/src/composables/useAnalytics.ts` — analytics 单例 fetch/refresh(429 处理)/reload(配置变更后静默重取)
 - `web/src/composables/useDebts.ts` — 待还配置/报告单例(GET/POST /api/debts)
+- `web/src/components/debts/` — 待还条目卡(`RevolvingCard`/`InstallmentCard` 各自带展示/编辑两态,
+  一张卡只编辑一个条目;`LongTermOthers` 收拢未配账期账户的长期负债勾选)。
+  编辑互斥由 `DebtsTab` 的 `editingKey` 控制:保存是「合成全量 config 再 POST」,
+  同时开两张卡会互相覆盖。
+- `web/src/composables/useDebtValidation.ts` — 保存前本地轻校验,规则镜像 `debts.go` 的
+  `Validate()`,只为即时反馈(后端 400 一次只回 details[0]);**后端仍是唯一权威**
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发
 - `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,亮/暗双主题)

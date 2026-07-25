@@ -375,6 +375,350 @@
     cursor: not-allowed;
 }
 
+/* ========== Debt Card(负债账期卡:额度账单与固定分期共用外壳,故放共享层) ========== */
+.debt-card {
+    position: relative;
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    overflow: hidden;
+}
+
+.debt-card-overdue {
+    border-color: var(--expense);
+}
+
+.debt-card-bar {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--expense);
+}
+
+.debt-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.debt-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--surface-3);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+
+.debt-card-id {
+    flex: 1;
+    min-width: 0;
+}
+
+.debt-card-name {
+    font-size: var(--font-size-base);
+    font-weight: 620;
+}
+
+.debt-card-sub {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.debt-badge {
+    font-size: var(--font-size-xs);
+    padding: 2px 9px;
+    border-radius: var(--radius-full);
+    font-weight: 650;
+    white-space: nowrap;
+    flex: none;
+}
+
+.badge-paid {
+    background: var(--income-light);
+    color: var(--income);
+}
+
+.badge-pending {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.badge-overdue {
+    background: var(--expense-light);
+    color: var(--expense);
+}
+
+.badge-idle {
+    background: var(--surface-3);
+    color: var(--text-secondary);
+}
+
+.debt-card-figures {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: var(--space-4);
+}
+
+.debt-fig-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.debt-fig-due {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+}
+
+.debt-fig-remain {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.debt-card-progress {
+    margin-top: var(--space-3);
+}
+
+.debt-bar {
+    height: 7px;
+}
+
+.debt-card-progress-cap {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.debt-card-foot {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.debt-foot-date {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.debt-foot-ic {
+    color: var(--text-tertiary);
+}
+
+.debt-foot-strong {
+    color: var(--text-primary);
+}
+
+.debt-countdown {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+}
+
+.debt-missing {
+    margin-top: var(--space-3);
+    font-size: var(--font-size-xs);
+    color: var(--expense);
+}
+
+/* 编辑态:表单在半宽卡里塞不下,跨满整行 */
+.debt-card-editing {
+    grid-column: 1 / -1;
+    border-color: var(--accent);
+}
+
+.debt-edit-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.debt-edit-title {
+    font-size: var(--font-size-base);
+    font-weight: 620;
+}
+
+.debt-edit-account {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-family: var(--font-numeric);
+}
+
+.debt-edit-block {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--hairline);
+}
+
+.debt-edit-block-title {
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.debt-edit-hint {
+    margin: var(--space-1) 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    line-height: 1.6;
+}
+
+/* 长期负债开关:与它所属的账户同处一张卡,不再另开一个全局勾选区 */
+.debt-longterm {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.debt-longterm input {
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.debt-edit-errors {
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--expense-light);
+    color: var(--expense);
+    font-size: var(--font-size-xs);
+    line-height: 1.7;
+}
+
+.debt-edit-foot {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.debt-edit-foot-right {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.btn-danger {
+    background: transparent;
+    color: var(--expense);
+    border-color: var(--expense);
+}
+
+.btn-danger:hover {
+    background: var(--expense);
+    color: #fff;
+}
+
+.debt-card-edit-btn {
+    padding: var(--space-1) var(--space-2);
+    color: var(--text-tertiary);
+    flex: none;
+}
+
+.debt-card-edit-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ========== Form Controls(表单控件:标签+输入的竖排字段、输入框、删除按钮) ========== */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.field-grow {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-input {
+    padding: var(--space-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    background: var(--surface-1);
+    color: var(--text-primary);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.field-grow .form-input {
+    width: 100%;
+}
+
+/* 窄数字输入:日期(1-31)、期数 */
+.day-input {
+    width: 64px;
+    text-align: right;
+}
+
+.amount-input {
+    width: 120px;
+    text-align: right;
+}
+
+.form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.delete-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--expense-light);
+    color: var(--expense);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.delete-btn:hover {
+    background: var(--expense);
+    color: #fff;
+}
+
+.delete-btn-sm {
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+}
+
 /* ========== Animations ========== */
 @keyframes fadeInUp {
     from {
