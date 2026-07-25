@@ -87,9 +87,10 @@ const (
 	// dailyBackupHour 每日兜底快照的时刻(服务器本地时区,TZ 由部署钉死)
 	dailyBackupHour = 4
 	// backupTickInterval 轮询间隔。这里不用 24h 定时器:它会随进程重启漂移,且机器
-	// 睡眠时 monotonic 定时器是否推进依平台而异。改为高频轮询 + 墙上时钟判定"今天跑过没有",
-	// 睡眠醒来最迟一个 tick 内补上。
-	backupTickInterval = 10 * time.Minute
+	// 睡眠时 monotonic 定时器是否推进依平台而异。改为轮询 + 墙上时钟判定"今天跑过没有",
+	// 挂起醒来最迟一个 tick 内补上。取 1h 是因为兜底快照只为捕获手动改动
+	// (手动编辑不经写入路径),晚一小时无影响——不需要更细的精度。
+	backupTickInterval = time.Hour
 	// backupAlertInterval 备份失败告警的最小间隔。失败常是持续性的(凭据失效、
 	// non-fast-forward),每次触发都推会把通知刷爆,但完全不推就是备份静默失效。
 	backupAlertInterval = 24 * time.Hour
