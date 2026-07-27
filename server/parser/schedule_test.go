@@ -53,7 +53,7 @@ func TestComputeScheduleTailDiffOnLastPeriod(t *testing.T) {
 		},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-26"), 12)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-26"), 12)
 	assertScheduleInvariants(t, months)
 
 	if len(months) != 12 {
@@ -117,7 +117,7 @@ func TestComputeScheduleMatchesCurrentPeriod(t *testing.T) {
 		},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-11-20"), 1)
+	months := ComputeSchedule(cfg, nil, atDate("2026-11-20"), 1)
 	assertScheduleInvariants(t, months)
 
 	// 11 月 20 日的当期账单日是 11 月 9 日,恰为末期
@@ -141,7 +141,7 @@ func TestComputeScheduleBucketsByDueMonth(t *testing.T) {
 		},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-26"), 12)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-26"), 12)
 	assertScheduleInvariants(t, months)
 
 	// 首桶的钱来自 6 月账单(due 2026-07-10)——今天 26 号已过,被过期过滤剔除
@@ -188,7 +188,7 @@ func TestComputeScheduleSkipsPastDue(t *testing.T) {
 	}
 
 	// 26 号:本月两笔的还款日(25 / 20)都已过去
-	months := ComputeSchedule(cfg, atDate("2026-07-26"), 3)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-26"), 3)
 	assertScheduleInvariants(t, months)
 	if m := monthOf(t, months, "2026-07"); m.Total != 0 {
 		t.Errorf("2026-07 两笔都已过期,应无出账,实际 %d(%d 条)", m.Total, len(m.Entries))
@@ -199,21 +199,21 @@ func TestComputeScheduleSkipsPastDue(t *testing.T) {
 	}
 
 	// 同配置换到 19 号:两笔都还没到期,必须计入
-	early := ComputeSchedule(cfg, atDate("2026-07-19"), 3)
+	early := ComputeSchedule(cfg, nil, atDate("2026-07-19"), 3)
 	assertScheduleInvariants(t, early)
 	if m := monthOf(t, early, "2026-07"); m.Total != 301000 {
 		t.Errorf("2026-07-19 时两笔均未到期,合计 = %d, 期望 301000", m.Total)
 	}
 
 	// from 带时分秒不能改变结果:还款日是零点,不按天比会把今天到期的整笔丢掉
-	afternoon := ComputeSchedule(cfg, time.Date(2026, 7, 20, 14, 30, 0, 0, time.Local), 1)
+	afternoon := ComputeSchedule(cfg, nil, time.Date(2026, 7, 20, 14, 30, 0, 0, time.Local), 1)
 	assertScheduleInvariants(t, afternoon)
-	if afternoon[0].Total != ComputeSchedule(cfg, atDate("2026-07-20"), 1)[0].Total {
+	if afternoon[0].Total != ComputeSchedule(cfg, nil, atDate("2026-07-20"), 1)[0].Total {
 		t.Errorf("带时分秒的 from 合计 = %d, 应与零点一致", afternoon[0].Total)
 	}
 
 	// 还款日当天算未来:钱当天才流出,不能提前剔掉
-	sameDay := ComputeSchedule(cfg, atDate("2026-07-20"), 1)
+	sameDay := ComputeSchedule(cfg, nil, atDate("2026-07-20"), 1)
 	assertScheduleInvariants(t, sameDay)
 	var hasCar bool
 	for _, e := range sameDay[0].Entries {
@@ -244,7 +244,7 @@ func TestComputeScheduleMonthEndClamp(t *testing.T) {
 		}},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-01-15"), 3)
+	months := ComputeSchedule(cfg, nil, atDate("2026-01-15"), 3)
 	assertScheduleInvariants(t, months)
 
 	dueIn := func(key, source string) string {
@@ -282,7 +282,7 @@ func TestComputeScheduleInstallmentPhases(t *testing.T) {
 		}},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-26"), 12)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-26"), 12)
 	assertScheduleInvariants(t, months)
 
 	for _, tc := range []struct {
@@ -311,7 +311,7 @@ func TestComputeScheduleInstallmentNotYetEffective(t *testing.T) {
 		}},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-26"), 12)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-26"), 12)
 	assertScheduleInvariants(t, months)
 
 	if m := monthOf(t, months, "2026-12"); len(m.Entries) != 0 {
@@ -338,7 +338,7 @@ func TestComputeScheduleInstallmentEndMonth(t *testing.T) {
 		},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-26"), 6)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-26"), 6)
 	assertScheduleInvariants(t, months)
 
 	for _, tc := range []struct {
@@ -378,7 +378,7 @@ func TestComputeScheduleLongTermFlag(t *testing.T) {
 		}},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-01"), 1)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-01"), 1)
 	assertScheduleInvariants(t, months)
 
 	for _, e := range months[0].Entries {
@@ -390,7 +390,7 @@ func TestComputeScheduleLongTermFlag(t *testing.T) {
 }
 
 func TestComputeScheduleEmptyConfig(t *testing.T) {
-	months := ComputeSchedule(&DebtsConfig{}, atDate("2026-07-26"), 12)
+	months := ComputeSchedule(&DebtsConfig{}, nil, atDate("2026-07-26"), 12)
 	assertScheduleInvariants(t, months)
 
 	if len(months) != 12 {
@@ -402,7 +402,7 @@ func TestComputeScheduleEmptyConfig(t *testing.T) {
 		}
 	}
 
-	if got := ComputeSchedule(&DebtsConfig{}, atDate("2026-07-26"), 0); got == nil || len(got) != 0 {
+	if got := ComputeSchedule(&DebtsConfig{}, nil, atDate("2026-07-26"), 0); got == nil || len(got) != 0 {
 		t.Errorf("months<=0 应返回空切片而非 nil,实际 %v", got)
 	}
 }
@@ -421,10 +421,166 @@ func TestComputeScheduleSkipsInvalidFirstBillMonth(t *testing.T) {
 		},
 	}
 
-	months := ComputeSchedule(cfg, atDate("2026-07-01"), 1)
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-01"), 1)
 	assertScheduleInvariants(t, months)
 
 	if len(months[0].Entries) != 1 || months[0].Total != 1000 {
 		t.Errorf("应只保留合法分期,实际 entries=%d total=%d", len(months[0].Entries), months[0].Total)
+	}
+}
+
+// ========== 已出账账单余额并入现金流 ==========
+
+// 本期账单已含该期内嵌分期,两者不得同时出现在首桶,否则那笔分期算两次
+func TestComputeScheduleStatementSupersedesBilledInstallment(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				Name: "招行信用卡", BillingDay: 9, DueDay: 25,
+				Installments: []RevolvingInstallment{{
+					Name: "耳机", TotalAmount: 30000, Months: 3,
+					MonthlyAmount: 10000, FirstBillMonth: "2026-07",
+				}},
+			},
+		},
+	}
+	// 7 月账单(含分期首期 100 元)未还,共 500 元,还款日 7-25
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-09", DueDate: "2026-07-25",
+		StatementDue: 50000, Remaining: 50000, InstallmentThisPeriod: 10000,
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-20"), 3)
+	assertScheduleInvariants(t, months)
+
+	jul := monthOf(t, months, "2026-07")
+	if len(jul.Entries) != 1 {
+		t.Fatalf("7 月应只有账单一条,实际 %d 条:%+v", len(jul.Entries), jul.Entries)
+	}
+	if jul.Entries[0].Source != "statement" || jul.Entries[0].Amount != 50000 {
+		t.Errorf("7 月条目 = %+v, want statement/50000", jul.Entries[0])
+	}
+	if jul.Total != 50000 {
+		t.Errorf("7 月合计 = %d, want 50000(分期已含在账单里,不得重复计入)", jul.Total)
+	}
+	// 8、9 月的分期尚未出账,照常按分期展开
+	if aug := monthOf(t, months, "2026-08"); aug.Total != 10000 {
+		t.Errorf("8 月合计 = %d, want 10000", aug.Total)
+	}
+}
+
+// 账单已还清:该卡当期既无账单条目,也不该让被覆盖的那期分期"复活"
+func TestComputeScheduleSettledStatementLeavesNoEntry(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				Name: "招行信用卡", BillingDay: 9, DueDay: 25,
+				Installments: []RevolvingInstallment{{
+					Name: "耳机", TotalAmount: 30000, Months: 3,
+					MonthlyAmount: 10000, FirstBillMonth: "2026-07",
+				}},
+			},
+		},
+	}
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-09", DueDate: "2026-07-25",
+		StatementDue: 50000, PaidSince: 50000, Remaining: 0, InstallmentThisPeriod: 10000,
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-20"), 2)
+	assertScheduleInvariants(t, months)
+
+	if jul := monthOf(t, months, "2026-07"); len(jul.Entries) != 0 || jul.Total != 0 {
+		t.Errorf("账单已还清,7 月应无出账,实际 %+v", jul.Entries)
+	}
+}
+
+// 账单日 25 / 还款日 10:账单余额要归到**还款日**所在月,与分期同一套归桶规则
+func TestComputeScheduleStatementBucketsByDueMonth(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {Name: "招行信用卡", BillingDay: 25, DueDay: 10},
+		},
+	}
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-25", DueDate: "2026-08-10",
+		StatementDue: 30000, Remaining: 30000,
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-28"), 3)
+	assertScheduleInvariants(t, months)
+
+	if jul := monthOf(t, months, "2026-07"); jul.Total != 0 {
+		t.Errorf("7 月不该有出账,实际 %d", jul.Total)
+	}
+	if aug := monthOf(t, months, "2026-08"); aug.Total != 30000 {
+		t.Errorf("8 月合计 = %d, want 30000", aug.Total)
+	}
+}
+
+// 逾期账单的 due 已过去,归 Summary.MonthRemaining 管,不进"未来"计划
+func TestComputeScheduleSkipsOverdueStatement(t *testing.T) {
+	cfg := revolvingCfg(9, 20)
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-09", DueDate: "2026-07-20",
+		StatementDue: 30000, Remaining: 30000, Overdue: true,
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-28"), 3)
+	assertScheduleInvariants(t, months)
+
+	for _, m := range months {
+		if m.Total != 0 {
+			t.Errorf("%s 不该有出账(逾期账单不进未来计划),实际 %d", m.Month, m.Total)
+		}
+	}
+}
+
+// 端到端:从账本算出的账单余额进入计划表,且与内嵌分期不重复计入
+func TestComputeDebtsScheduleIncludesStatement(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				Name: "招行信用卡", BillingDay: 9, DueDay: 25,
+				Installments: []RevolvingInstallment{{
+					Name: "耳机", TotalAmount: 30000, Months: 3,
+					MonthlyAmount: 10000, FirstBillMonth: "2026-07",
+				}},
+			},
+		},
+	}
+	ledger := debtLedger(
+		[]string{ccAccount, "Assets:Cash:Alipay"},
+		// 分期消费记账时全额入负债账户
+		mkTx("2026-06-20",
+			po("Expenses:Shopping:Daily", 30000),
+			po(ccAccount, -30000)),
+		// 本期普通消费 400 元
+		mkTx("2026-07-05",
+			po("Expenses:Food:Coffee", 40000),
+			po(ccAccount, -40000)),
+	)
+
+	report := ComputeDebts(ledger, cfg, atDate("2026-07-20"))
+	rv := report.Revolving[0]
+	// 快照 700 − 未出账分期 200 = 500
+	if rv.Remaining != 50000 {
+		t.Fatalf("Remaining = %d, want 50000", rv.Remaining)
+	}
+
+	jul := monthOf(t, report.Schedule, "2026-07")
+	if jul.Total != rv.Remaining {
+		t.Errorf("7 月合计 = %d, want %d(账单余额,分期不重复)", jul.Total, rv.Remaining)
+	}
+	if len(jul.Entries) != 1 || jul.Entries[0].Source != "statement" {
+		t.Errorf("7 月条目 = %+v, want 单条 statement", jul.Entries)
+	}
+	// 剩余两期分期照常展开
+	if aug := monthOf(t, report.Schedule, "2026-08"); aug.Total != 10000 {
+		t.Errorf("8 月合计 = %d, want 10000", aug.Total)
 	}
 }

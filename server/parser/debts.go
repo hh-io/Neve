@@ -446,7 +446,8 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 		return report.Unconfigured[i].Account < report.Unconfigured[j].Account
 	})
 
-	report.Schedule = ComputeSchedule(cfg, today, scheduleMonths)
+	// 必须在 report.Revolving 填完之后:计划表要把已出账未还的账单余额一并计入现金流
+	report.Schedule = ComputeSchedule(cfg, report.Revolving, today, scheduleMonths)
 
 	return report
 }

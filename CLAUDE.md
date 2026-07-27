@@ -77,9 +77,15 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。
 - **未来还款计划是现金流口径,不是资产负债表口径**(`server/parser/schedule.go` 的
   `ComputeSchedule`,随 `DebtsReport.Schedule` 一并返回,无独立 endpoint):按月展开未来
-  `scheduleMonths` 个自然月的出账。**只展开配置里锁定的分期**(额度账户内嵌分期 + 固定分期
-  schedule),**不外推循环账单余额**——后者要成立得假设「期间不再消费也不还款」,越往后越离谱。
-  同理**不推演未来净资产**:还款是 transfer(资产↓、负债↓同额),没有未来收支预测时未来净资产
+  `scheduleMonths` 个自然月的出账。展开三类:额度账户内嵌分期、固定分期 schedule、
+  **已出账未还的循环账单余额**(`RevolvingStatus.Remaining`)。前两类金额来自配置,第三类
+  金额已被银行出账锁定,同样确定,只是要 `ComputeDebts` 先从账本算出来。
+  **不外推尚未出账的循环消费**——那要成立得假设「期间不再消费也不还款」,越往后越离谱,
+  故窗口里每张卡最多只有当期那一张账单,近月天然高于远月(远月不是压力小,是账单还没发生,
+  前端口径说明必须讲明这点)。**账单条目整笔覆盖该期内嵌分期**:`statementDue` 只扣了
+  *未出账*部分,本期那一期分期已含在账单里,再单独展开就是双重计算;故按
+  `(账户, 还款日)` 命中当期账单时跳过该期分期,顺带让「账单已还清」(`Remaining` 归 0)时
+  该期自然消失。同理**不推演未来净资产**:还款是 transfer(资产↓、负债↓同额),没有未来收支预测时未来净资产
   恒等于今天,推了没信息量;更不能把「未到期的分期」从负债里剔除后当净资产看——分期消费记账时
   已全额入负债、对应消费也已如实记在 Expenses 腿上,剔除即虚高(这与长期负债分层性质不同,
   后者是因为对应资产根本不在账本里)。每期金额走 `installmentPeriodAmount`,与
@@ -96,7 +102,9 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `InstallmentStatus.RemainingPeriods` 是尚未还的期数(本期已还则不含本期,免得月初月末差一期),
   **-1 表示无终止期**,区别于已结清的 0——前端据此决定是否展示「剩 N 期」。
   期数不能从账本反推:负债余额是剩余本金、不含未来利息,除月供不成整数,只能靠配置。
-  纯函数,只吃 `DebtsConfig` + 时钟,**不需要 Ledger**。
+  吃 `DebtsConfig` + 已算好的 `[]RevolvingStatus` + 时钟,**自身仍不碰 Ledger**——账单余额
+  要 `balanceAsOf` 才有,让它吃现成结果而非重新解析;`ComputeDebts` 里的调用点因此**必须排在
+  `report.Revolving` 填完之后**。`statements` 传 nil 即退化成「只展开配置里的分期」。
 - **净资产分层口径**:房贷这类长期负债对应的资产(房产)不在账本里,单边扣减会让净资产
   变成几十年不变的巨额负数。故 `Summary` 除 `netWorth`/`totalLiabilities` 全量口径外,
   另有 `longTermLiabilities`/`shortTermLiabilities`/`netWorthExLongTerm`,
@@ -154,7 +162,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/剩余期数/schedule 口径)
   + `DebtsConfig`(含 `longTermAccounts`、固定分期的 `endMonth`)
 - `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,按还款日归月,
-  只展开确定性分期出账)
+  展开确定性分期出账 + 已出账的循环账单余额)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)
