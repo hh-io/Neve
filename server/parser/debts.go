@@ -203,8 +203,15 @@ type DebtsReport struct {
 	Schedule []ScheduleMonth `json:"schedule"`
 }
 
-// DebtsSummary 全局看板:本期总应还、剩余待还、最近一个未结清的最后还款日。
+// DebtsSummary 全局看板:滚动窗口待还、本期口径的应还/剩余、最近一个未结清的最后还款日。
+//
+// Due30/Due90 是**现金流**口径(滚动窗口,取自 Schedule,含账单与分期),回答「近期要准备多少钱」;
+// MonthDue/MonthRemaining 是**当期账单**口径(各卡自己的账单周期,不含未出账),两者不可互推:
+// 前者按还款日聚合且天然跨月,后者是没有统一时间锚点的存量。逾期的钱只在 MonthRemaining 里
+// (Schedule 剔除了已过期的),这也是它不能被 Due30 取代的原因。
 type DebtsSummary struct {
+	Due30          Amount `json:"due30"`
+	Due90          Amount `json:"due90"`
 	MonthDue       Amount `json:"monthDue"`
 	MonthRemaining Amount `json:"monthRemaining"`
 	NextDueDate    string `json:"nextDueDate"` // 空串表示本期已全部结清
@@ -448,6 +455,9 @@ func ComputeDebts(ledger *Ledger, cfg *DebtsConfig, now time.Time) *DebtsReport 
 
 	// 必须在 report.Revolving 填完之后:计划表要把已出账未还的账单余额一并计入现金流
 	report.Schedule = ComputeSchedule(cfg, report.Revolving, today, scheduleMonths)
+	// 看板的滚动窗口直接汇总计划表,与表里的数同源,不另算一遍口径
+	report.Summary.Due30 = SumDueWithin(report.Schedule, today, 30)
+	report.Summary.Due90 = SumDueWithin(report.Schedule, today, 90)
 
 	return report
 }

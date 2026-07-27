@@ -206,7 +206,12 @@ export interface DebtsConfig {
 }
 
 export interface DebtsSummary {
+  /** 滚动窗口内要还的钱(现金流口径,取自 schedule,含账单与分期) */
+  due30: Yuan
+  due90: Yuan
+  /** 当期账单口径:各卡自己的账单周期,不含未出账,与 due30/due90 不可互推 */
   monthDue: Yuan
+  /** 本期应还里尚未还的部分;逾期的钱只在这里(schedule 剔除了已过期的) */
   monthRemaining: Yuan
   nextDueDate: string // 空串表示本期已全部结清
   nextDueName: string

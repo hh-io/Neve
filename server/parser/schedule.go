@@ -114,7 +114,7 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 				add(due, ScheduleEntry{
 					Account:     st.Account,
 					AccountName: st.Name,
-					Name:        "本期账单",
+					Name:        "信用卡账单",
 					Source:      "statement",
 					Amount:      st.Remaining,
 					DueDate:     st.DueDate,
@@ -140,7 +140,7 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 		add(due, ScheduleEntry{
 			Account:     st.Account,
 			AccountName: st.Name,
-			Name:        "未出账消费",
+			Name:        "信用卡账单",
 			Source:      "unbilled",
 			Amount:      pending,
 			DueDate:     due.Format("2006-01-02"),
@@ -243,4 +243,28 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 	}
 
 	return result
+}
+
+// SumDueWithin 汇总 from 起 days 天内(含当天与末日)的出账合计。
+// 滚动窗口,不按自然月切——「未来 30 天要准备多少钱」跨月时才有意义,
+// 而按自然月算的话每到月末都会塌成 0(该月的还款日都过完了)。
+func SumDueWithin(months []ScheduleMonth, from time.Time, days int) Amount {
+	loc := from.Location()
+	from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
+	until := from.AddDate(0, 0, days)
+
+	var total Amount
+	for _, m := range months {
+		for _, e := range m.Entries {
+			due, err := time.ParseInLocation("2006-01-02", e.DueDate, loc)
+			if err != nil {
+				continue
+			}
+			// 窗口内的期都已由 ComputeSchedule 过滤掉过去的,这里只需卡右边界
+			if !due.After(until) {
+				total += e.Amount
+			}
+		}
+	}
+	return total
 }

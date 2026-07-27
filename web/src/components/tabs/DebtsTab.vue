@@ -3,17 +3,14 @@
     <!-- 全局看板 -->
     <div class="debts-summary">
       <div class="card debt-sum">
-        <div class="debt-sum-label">本期总应还</div>
-        <div class="debt-sum-value tabular-nums">{{ formatMoney(summary?.monthDue ?? 0) }}</div>
+        <div class="debt-sum-label">未来 30 天待还</div>
+        <div class="debt-sum-value tabular-nums">{{ formatMoney(summary?.due30 ?? 0) }}</div>
+        <div class="countdown-sub">账单与分期合计</div>
       </div>
       <div class="card debt-sum">
-        <div class="debt-sum-label">剩余待还</div>
-        <div
-          class="debt-sum-value tabular-nums"
-          :class="(summary?.monthRemaining ?? 0) > 0 ? 'text-expense' : 'text-income'"
-        >
-          {{ formatMoney(summary?.monthRemaining ?? 0) }}
-        </div>
+        <div class="debt-sum-label">未来 90 天待还</div>
+        <div class="debt-sum-value tabular-nums">{{ formatMoney(summary?.due90 ?? 0) }}</div>
+        <div class="countdown-sub">逐月明细见下方计划表</div>
       </div>
       <div class="card debt-sum" :class="{ 'debt-sum-alert': isOverdue }">
         <div class="debt-sum-label">最近还款日</div>
@@ -30,6 +27,10 @@
           </div>
           <div class="countdown-sub">{{ summary.nextDueName }} · {{ summary.nextDueDate }}</div>
         </template>
+        <!-- 逾期的钱已被计划表剔除(due 已过), monthRemaining 是唯一还能反映它的量 -->
+        <div v-if="isOverdue" class="countdown-sub text-expense">
+          逾期未还 {{ formatMoney(summary?.monthRemaining ?? 0) }}
+        </div>
         <span v-if="isOverdue" class="debt-sum-dot"></span>
       </div>
     </div>

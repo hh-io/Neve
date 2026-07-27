@@ -171,7 +171,8 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/剩余期数/schedule 口径)
   + `DebtsConfig`(含 `longTermAccounts`、固定分期的 `endMonth`)
 - `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,按还款日归月,
-  展开确定性分期出账 + 已出账账单 + 已消费未出账)
+  展开确定性分期出账 + 已出账账单 + 已消费未出账)+ 滚动窗口汇总(`SumDueWithin`,
+  喂看板的 `due30`/`due90`;**滚动而非自然月**——按自然月算每到月末都会塌成 0)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)
@@ -183,9 +184,14 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `web/src/composables/useDebts.ts` — 待还配置/报告单例(GET/POST /api/debts)
 - `web/src/components/debts/` — 待还条目卡(`RevolvingCard`/`InstallmentCard` 各自带展示/编辑两态,
   一张卡只编辑一个条目;`LongTermOthers` 收拢未配账期账户的长期负债勾选;
-  `PaymentSchedule` 展开未来 12 个月还款计划,常驻口径说明不可删)。
+  `PaymentSchedule` 展开未来 12 个月还款计划,常驻口径说明不可删——明细里 `statement` 与
+  `unbilled` **合并呈现为同一类「信用卡账单」**(同名同色),仅靠标记文案「账单」/「账单 · 预估」
+  区分后者金额还会变;两者永不落在同一月(本期与下期账单差一个账单周期),故无需真合并数组)。
   编辑互斥由 `DebtsTab` 的 `editingKey` 控制:保存是「合成全量 config 再 POST」,
-  同时开两张卡会互相覆盖。
+  同时开两张卡会互相覆盖。`DebtsTab` 顶部看板走 `due30`/`due90`(现金流口径,直接汇总
+  schedule,与表里的数同源),`monthRemaining` 降级为**仅逾期时**显示的告警——
+  逾期的钱不在 schedule 里,这是它唯一不可替代的用途;`monthDue` 不再上卡片,
+  保留为 API 的当期口径输出(测试与 `NextDue` 逻辑仍以它为基准)。
 - `web/src/composables/useDebtValidation.ts` — 保存前本地轻校验,规则镜像 `debts.go` 的
   `Validate()`,只为即时反馈(后端 400 一次只回 details[0]);**后端仍是唯一权威**
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段

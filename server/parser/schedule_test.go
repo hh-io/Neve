@@ -682,3 +682,53 @@ func TestComputeScheduleNoUnbilledWhenFullyExplained(t *testing.T) {
 		}
 	}
 }
+
+// 滚动窗口只卡右边界(左边界由 ComputeSchedule 剔除过去的期负责),含末日当天
+func TestSumDueWithin(t *testing.T) {
+	cfg := &DebtsConfig{
+		Installments: []InstallmentConfig{
+			{ID: "a", Name: "房贷", Account: "Liabilities:Loan:Mortgage", DueDay: 5,
+				Schedule: []InstallmentPhase{{EffectiveFrom: "2026-01-01", Amount: 100000}}},
+		},
+	}
+
+	months := ComputeSchedule(cfg, nil, atDate("2026-07-28"), 12)
+	// 8-05、9-05 在 45 天内,10-05 在窗口外
+	if got := SumDueWithin(months, atDate("2026-07-28"), 45); got != 200000 {
+		t.Errorf("45 天内 = %d, want 200000", got)
+	}
+	// 边界当天算在内:7-28 起 8 天正好到 8-05
+	if got := SumDueWithin(months, atDate("2026-07-28"), 8); got != 100000 {
+		t.Errorf("8 天内(边界当天)= %d, want 100000", got)
+	}
+	if got := SumDueWithin(months, atDate("2026-07-28"), 7); got != 0 {
+		t.Errorf("7 天内 = %d, want 0", got)
+	}
+}
+
+// Due30/Due90 与计划表同源:窗口足够长时应等于表内合计
+func TestComputeDebtsRollingWindowsMatchSchedule(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {Name: "招行信用卡", BillingDay: 9, DueDay: 25},
+		},
+	}
+	ledger := debtLedger(
+		[]string{ccAccount, "Assets:Cash:Alipay"},
+		mkTx("2026-07-05", po("Expenses:Food:Coffee", 30000), po(ccAccount, -30000)),
+		mkTx("2026-07-12", po("Expenses:Shopping:Daily", 10000), po(ccAccount, -10000)),
+	)
+
+	report := ComputeDebts(ledger, cfg, atDate("2026-07-20"))
+	// 账单 300 → 7-25 在 30 天内;未出账 100 → 8-25 已越过 8-19 的右边界
+	if report.Summary.Due30 != 30000 {
+		t.Errorf("Due30 = %d, want 30000", report.Summary.Due30)
+	}
+	if report.Summary.Due90 != 40000 {
+		t.Errorf("Due90 = %d, want 40000", report.Summary.Due90)
+	}
+	// 与当期口径不是一回事:MonthDue 只有已出账那 300
+	if report.Summary.MonthDue != 30000 {
+		t.Errorf("MonthDue = %d, want 30000(当期口径不含未出账)", report.Summary.MonthDue)
+	}
+}
