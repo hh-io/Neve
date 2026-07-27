@@ -732,3 +732,46 @@ func TestComputeDebtsRollingWindowsMatchSchedule(t *testing.T) {
 		t.Errorf("MonthDue = %d, want 30000(当期口径不含未出账)", report.Summary.MonthDue)
 	}
 }
+
+// 账单日 25 / 还款日 10:本期账单的 due 落在次月,跳过判定必须认**账单月**。
+// 若改回按还款日比对,这里要求 debts.go 与 schedule.go 各自算出同一个日期才成立,
+// 一旦账期语义微调就会双重计入该期分期(且不报错)。
+func TestComputeScheduleSupersedesByBillingMonthNotDueDate(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				Name: "招行信用卡", BillingDay: 25, DueDay: 10,
+				Installments: []RevolvingInstallment{{
+					Name: "耳机", TotalAmount: 30000, Months: 3,
+					MonthlyAmount: 10000, FirstBillMonth: "2026-07",
+				}},
+			},
+		},
+	}
+	// 7 月账单(账单日 7-25,含分期首期 100)未还,8-10 到期
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-25", DueDate: "2026-08-10",
+		StatementDue: 50000, Remaining: 50000, CurrentBalance: 70000,
+		Installments: []RevolvingInstallmentStatus{{Name: "耳机", UnbilledAmount: 20000}},
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-28"), 4)
+	assertScheduleInvariants(t, months)
+
+	// 8 月只有账单本身,7 月那期分期不得再单列
+	aug := monthOf(t, months, "2026-08")
+	for _, e := range aug.Entries {
+		if e.Source == "revolving" {
+			t.Errorf("7 月账单期的分期不该单列:%+v", e)
+		}
+	}
+	if aug.Total != 50000 {
+		t.Errorf("8 月合计 = %d, want 50000(仅账单,分期已含在内)", aug.Total)
+	}
+	// 8 月账单月的分期(第二期)照常落到 9-10
+	sep := monthOf(t, months, "2026-09")
+	if sep.Total != 10000 || len(sep.Entries) != 1 || sep.Entries[0].DueDate != "2026-09-10" {
+		t.Errorf("9 月应只有分期第二期 @ 09-10,实际 %+v", sep.Entries)
+	}
+}

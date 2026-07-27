@@ -60,11 +60,18 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 	}
 
 	// 本期账单已经把该卡这一期的内嵌分期含在内(debts.go 的 statementDue 只扣未出账部分),
-	// 分期再单独展开就是双重计算。故记下每张卡当期账单的还款日,展开分期时跳过同一天那期,
+	// 分期再单独展开就是双重计算。故记下每张卡当期账单的**账单月**,展开分期时跳过该月那期,
 	// 由账单条目整笔代表——顺带让「账单已还清」时该期自然消失(Remaining 已归 0)。
-	billed := make(map[string]string, len(statements))
+	//
+	// 认账单月而不认还款日:账单月是这里的循环变量本身,还款日是它经 nextDueAfter 派生出来的。
+	// 比派生量就等于要求「debts.go 与本函数各自算出同一个日期」,一旦哪边的账期语义微调,
+	// 跳过会静默失效并让金额虚高;认源头则没有这个前提。
+	billedMonth := make(map[string]string, len(statements))
 	for _, st := range statements {
-		billed[st.Account] = st.DueDate
+		// StatementDate 恒为 YYYY-MM-DD,截前 7 位即账单月
+		if len(st.StatementDate) >= 7 {
+			billedMonth[st.Account] = st.StatementDate[:7]
+		}
 	}
 
 	anchor := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, loc)
@@ -156,6 +163,10 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 		m := anchor.AddDate(0, i, 0)
 
 		for account, rc := range cfg.Revolving {
+			// 该账单月的分期已被本期账单条目整笔覆盖
+			if billedMonth[account] == m.Format("2006-01") {
+				continue
+			}
 			cardName := rc.Name
 			if cardName == "" {
 				cardName = getAccountShortName(account)
@@ -163,10 +174,6 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 			// 该账单月出账 → 账单日之后的第一个还款日,与当期口径同一套工具,月末顺延语义一致
 			due := nextDueAfter(clampedDate(m.Year(), m.Month(), rc.BillingDay, loc), rc.DueDay)
 			dueKey := due.Format("2006-01-02")
-			// 这一期已被本期账单整笔覆盖
-			if billed[account] == dueKey {
-				continue
-			}
 
 			for _, it := range rc.Installments {
 				first, err := time.Parse("2006-01", it.FirstBillMonth)
