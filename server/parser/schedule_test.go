@@ -584,3 +584,101 @@ func TestComputeDebtsScheduleIncludesStatement(t *testing.T) {
 		t.Errorf("8 月合计 = %d, want 10000", aug.Total)
 	}
 }
+
+// 已消费未出账:落到**下个**账单日之后的还款日,且与未出账分期不重复
+func TestComputeScheduleUnbilledSpending(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {
+				Name: "招行信用卡", BillingDay: 9, DueDay: 25,
+				Installments: []RevolvingInstallment{{
+					Name: "耳机", TotalAmount: 30000, Months: 3,
+					MonthlyAmount: 10000, FirstBillMonth: "2026-07",
+				}},
+			},
+		},
+	}
+	// 账单 500 未还,未出账分期 200(8、9 月各一期),另有 150 已刷未出账
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-09", DueDate: "2026-07-25",
+		StatementDue: 50000, Remaining: 50000, CurrentBalance: 85000,
+		Installments: []RevolvingInstallmentStatus{{Name: "耳机", UnbilledAmount: 20000}},
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-20"), 4)
+	assertScheduleInvariants(t, months)
+
+	// 85000 - 50000 - 20000 = 15000,8-09 出账 → 8-25 还款
+	aug := monthOf(t, months, "2026-08")
+	var unbilled *ScheduleEntry
+	for i := range aug.Entries {
+		if aug.Entries[i].Source == "unbilled" {
+			unbilled = &aug.Entries[i]
+		}
+	}
+	if unbilled == nil {
+		t.Fatalf("8 月缺少 unbilled 条目:%+v", aug.Entries)
+	}
+	if unbilled.Amount != 15000 || unbilled.DueDate != "2026-08-25" {
+		t.Errorf("unbilled = %v @ %s, want 15000 @ 2026-08-25", unbilled.Amount, unbilled.DueDate)
+	}
+	// 8 月还该有分期第二期,两者并存不冲突
+	if aug.Total != 25000 {
+		t.Errorf("8 月合计 = %d, want 25000(分期 10000 + 未出账 15000)", aug.Total)
+	}
+
+	// 三份之和恒等于当前欠款:本期 50000 + 分期 20000 + 未出账 15000 = 85000
+	var sum Amount
+	for _, m := range months {
+		sum += m.Total
+	}
+	if sum != 85000 {
+		t.Errorf("窗口内合计 = %d, want 85000(= CurrentBalance,总量守恒)", sum)
+	}
+}
+
+// 账单日 31 的卡:下个账单月是短月时必须顺延到月末,不能进位到次月 1 号
+func TestComputeScheduleUnbilledMonthEndClamp(t *testing.T) {
+	cfg := &DebtsConfig{
+		Revolving: map[string]RevolvingConfig{
+			ccAccount: {Name: "招行信用卡", BillingDay: 31, DueDay: 20},
+		},
+	}
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-01-31", DueDate: "2026-02-20",
+		CurrentBalance: 30000, Remaining: 0,
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-02-05"), 3)
+	assertScheduleInvariants(t, months)
+
+	// 2 月账单日顺延到 2-28,之后第一个 20 号 = 3-20
+	mar := monthOf(t, months, "2026-03")
+	if len(mar.Entries) != 1 || mar.Entries[0].DueDate != "2026-03-20" {
+		t.Errorf("2 月账单(31 日顺延至 2-28)应 3-20 还款,实际 %+v", mar.Entries)
+	}
+}
+
+// 欠款已全部由账单和分期解释时不产生 unbilled 条目(负数更不能出现)
+func TestComputeScheduleNoUnbilledWhenFullyExplained(t *testing.T) {
+	cfg := revolvingCfg(9, 25)
+	statements := []RevolvingStatus{{
+		Account: ccAccount, Name: "招行信用卡",
+		StatementDate: "2026-07-09", DueDate: "2026-07-25",
+		// 多还了款,CurrentBalance 低于 Remaining
+		StatementDue: 50000, Remaining: 50000, CurrentBalance: 40000,
+	}}
+
+	months := ComputeSchedule(cfg, statements, atDate("2026-07-20"), 3)
+	assertScheduleInvariants(t, months)
+
+	for _, m := range months {
+		for _, e := range m.Entries {
+			if e.Source == "unbilled" {
+				t.Errorf("%s 不该有 unbilled 条目:%+v", m.Month, e)
+			}
+		}
+	}
+}

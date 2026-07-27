@@ -266,8 +266,11 @@ export interface ScheduleEntry {
   account: string
   accountName: string
   name: string
-  /** statement = 已出账未还的循环账单余额(整笔覆盖该期内嵌分期,不重复计入) */
-  source: 'revolving' | 'installment' | 'statement'
+  /**
+   * statement = 已出账未还的账单(整笔覆盖该期内嵌分期,不重复计入);
+   * unbilled = 已消费但未出账,下个账单日出账
+   */
+  source: 'revolving' | 'installment' | 'statement' | 'unbilled'
   amount: Yuan
   dueDate: string
   longTerm: boolean
@@ -286,7 +289,7 @@ export interface DebtsReport {
   revolving: RevolvingStatus[]
   installments: InstallmentStatus[]
   unconfigured: LiabilityStats[]
-  /** 未来 12 个月的确定性出账:已配置分期 + 已出账的循环账单余额,不外推未出账消费 */
+  /** 未来 12 个月的确定性出账:已配置分期 + 已出账账单 + 已消费未出账;不预测未来新增消费 */
   schedule: ScheduleMonth[]
 }
 

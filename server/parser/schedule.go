@@ -7,12 +7,12 @@ import (
 
 // 未来还款计划:按月展开「已经确定下来」的出账。
 //
-// 展开三类:额度账户内嵌分期、固定分期的 schedule、**已出账**的循环账单余额。
-// 前两类金额来自配置;第三类金额已由银行出账锁定,同样是确定的,只是要靠 ComputeDebts
-// 先从账本算出来(见 statements 参数)。
+// 展开四类:额度账户内嵌分期、固定分期的 schedule、已出账未还的账单、已消费但未出账的余额。
+// 前两类金额来自配置,后两类要靠 ComputeDebts 先从账本算出来(见 statements 参数),
+// 但四类都是**已经确定**的钱——已刷掉或已锁定,只是还没到付款日。
 //
-// 不外推的是**尚未出账**的循环账单——那要成立得假设「期间不再消费也不还款」,越往后越离谱,
-// 所以窗口里每张卡最多只有当期那一张账单。同理也不推演净资产:还款是 transfer
+// 不做的只有一件事:**预测未来还会消费多少**。所以窗口里每张卡最多只有两笔非分期出账
+//(当期账单 + 下期账单),再往后就只剩分期,近月天然高于远月。同理也不推演净资产:还款是 transfer
 //(资产↓、负债↓同额),在没有未来收支预测时未来净资产恒等于今天,推了没信息量。
 // 这是现金流口径,与 Summary 的资产负债表口径互不影响。
 
@@ -21,7 +21,8 @@ type ScheduleEntry struct {
 	Account     string `json:"account"`
 	AccountName string `json:"accountName"` // 卡片/账单展示名,免得前端再推一遍短名
 	Name        string `json:"name"`        // 分期名
-	// "revolving"(额度账户内嵌分期)| "installment"(固定分期)| "statement"(已出账的循环账单)
+	// "revolving"(额度账户内嵌分期)| "installment"(固定分期)
+	// | "statement"(已出账未还的账单)| "unbilled"(已消费未出账,下个账单日出账)
 	Source   string `json:"source"`
 	Amount   Amount `json:"amount"`
 	DueDate  string `json:"dueDate"`  // 该期实际还款日
@@ -90,23 +91,59 @@ func ComputeSchedule(cfg *DebtsConfig, statements []RevolvingStatus, from time.T
 		result[i].Entries = append(result[i].Entries, e)
 	}
 
-	// 已出账未还的账单余额。金额取 Remaining(已还部分不再是未来现金流),
-	// 逾期那张的 due 早于 from,由 add() 剔除——逾期归 Summary.MonthRemaining 管,同既有口径。
+	// 每张卡今天的欠款按「何时流出」拆成三份,三份相加恒等于 CurrentBalance(总量守恒,
+	// 且 PaidSince 只在 Remaining 里扣一次,不会重复冲减):
+	//   1. Remaining          —— 已出账未还,本期还款日流出
+	//   2. Σ UnbilledAmount   —— 未出账分期,由下面的月循环按期展开
+	//   3. 余下的             —— 已消费但未出账的普通消费,下个账单日出账
+	// 第 3 份同样不是外推:钱已经刷掉了,只是账单日还没到,它必定原样出现在下期账单上。
+	// 真正不做的是「预测未来还会消费多少」。
 	for _, st := range statements {
-		if st.Remaining <= 0 {
+		rc, ok := cfg.Revolving[st.Account]
+		if !ok {
 			continue
 		}
-		due, err := time.ParseInLocation("2006-01-02", st.DueDate, loc)
+		statement, err := time.ParseInLocation("2006-01-02", st.StatementDate, loc)
 		if err != nil {
 			continue
 		}
+
+		// 已出账未还:逾期那张的 due 早于 from,由 add() 剔除——逾期归 Summary.MonthRemaining 管
+		if st.Remaining > 0 {
+			if due, err := time.ParseInLocation("2006-01-02", st.DueDate, loc); err == nil {
+				add(due, ScheduleEntry{
+					Account:     st.Account,
+					AccountName: st.Name,
+					Name:        "本期账单",
+					Source:      "statement",
+					Amount:      st.Remaining,
+					DueDate:     st.DueDate,
+					LongTerm:    longTerm[st.Account],
+				})
+			}
+		}
+
+		// 已消费未出账。分期要按**全量**未出账扣(含首期月晚于本期的:那些本金已在
+		// CurrentBalance 里,且下面会作为分期条目逐期展开,不扣就双重计入)
+		var unbilledInstallments Amount
+		for _, it := range st.Installments {
+			unbilledInstallments += it.UnbilledAmount
+		}
+		pending := st.CurrentBalance - st.Remaining - unbilledInstallments
+		if pending <= 0 {
+			continue
+		}
+		// 下个账单日出账 → 其后的第一个还款日。月份推进走月初 +1 月再 clamp,
+		// 不让 31 号这类账单日在短月进位
+		nextMonth := time.Date(statement.Year(), statement.Month(), 1, 0, 0, 0, 0, loc).AddDate(0, 1, 0)
+		due := nextDueAfter(clampedDate(nextMonth.Year(), nextMonth.Month(), rc.BillingDay, loc), rc.DueDay)
 		add(due, ScheduleEntry{
 			Account:     st.Account,
 			AccountName: st.Name,
-			Name:        "本期账单",
-			Source:      "statement",
-			Amount:      st.Remaining,
-			DueDate:     st.DueDate,
+			Name:        "未出账消费",
+			Source:      "unbilled",
+			Amount:      pending,
+			DueDate:     due.Format("2006-01-02"),
 			LongTerm:    longTerm[st.Account],
 		})
 	}

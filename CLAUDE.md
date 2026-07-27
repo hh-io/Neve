@@ -77,15 +77,24 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   GET /api/debts 每次用缓存 Ledger 现算,配置变更无需 refresh。
 - **未来还款计划是现金流口径,不是资产负债表口径**(`server/parser/schedule.go` 的
   `ComputeSchedule`,随 `DebtsReport.Schedule` 一并返回,无独立 endpoint):按月展开未来
-  `scheduleMonths` 个自然月的出账。展开三类:额度账户内嵌分期、固定分期 schedule、
-  **已出账未还的循环账单余额**(`RevolvingStatus.Remaining`)。前两类金额来自配置,第三类
-  金额已被银行出账锁定,同样确定,只是要 `ComputeDebts` 先从账本算出来。
-  **不外推尚未出账的循环消费**——那要成立得假设「期间不再消费也不还款」,越往后越离谱,
-  故窗口里每张卡最多只有当期那一张账单,近月天然高于远月(远月不是压力小,是账单还没发生,
-  前端口径说明必须讲明这点)。**账单条目整笔覆盖该期内嵌分期**:`statementDue` 只扣了
-  *未出账*部分,本期那一期分期已含在账单里,再单独展开就是双重计算;故按
-  `(账户, 还款日)` 命中当期账单时跳过该期分期,顺带让「账单已还清」(`Remaining` 归 0)时
-  该期自然消失。同理**不推演未来净资产**:还款是 transfer(资产↓、负债↓同额),没有未来收支预测时未来净资产
+  `scheduleMonths` 个自然月的出账。展开四类:额度账户内嵌分期、固定分期 schedule、
+  已出账未还的账单(`RevolvingStatus.Remaining`)、已消费但未出账的余额。前两类金额来自配置,
+  后两类要 `ComputeDebts` 先从账本算出来,但**四类都是已经确定的钱**(已刷掉或已锁定,
+  只是没到付款日),唯一不做的是**预测未来还会消费多少**。故每张卡最多只有两笔非账单分期出账
+  (当期账单 + 下期账单),再往后只剩分期,近月天然高于远月(远月不是压力小,是账单还没发生,
+  前端口径说明必须讲明这点)。
+  **每张卡今天的欠款按「何时流出」拆成三份,三份相加恒等于 `CurrentBalance`**——这是防重复
+  计算的不变量,改这里先验算它:①`Remaining`(本期还款日)②`Σ Installments[].UnbilledAmount`
+  (由月循环逐期展开)③ 余下的即「已消费未出账」(下个账单日出账)。③ 必须扣**全量**未出账分期
+  (含 `FirstBillMonth` 晚于本期的:那些本金已在 `CurrentBalance` 里且下面会逐期展开),
+  且 `PaidSince` 只在 ① 里扣一次,别在 ③ 再扣一遍。③ 的归桶日是
+  `nextDueAfter(下个账单日, DueDay)`,月份推进走「月初 +1 月再 `clampedDate`」,
+  不让 31 号账单日在短月进位。
+  **账单条目整笔覆盖该期内嵌分期**:`statementDue` 只扣了*未出账*部分,本期那一期分期已含在
+  账单里,再单独展开就是双重计算;故按 `(账户, 还款日)` 命中当期账单时跳过该期分期,顺带让
+  「账单已还清」(`Remaining` 归 0)时该期自然消失。
+  注:窗口内 ①②③ 之和只在分期剩余期数装得下 `scheduleMonths` 时才与 `CurrentBalance` 相等,
+  尾部落在窗口外属预期,不是漏算。同理**不推演未来净资产**:还款是 transfer(资产↓、负债↓同额),没有未来收支预测时未来净资产
   恒等于今天,推了没信息量;更不能把「未到期的分期」从负债里剔除后当净资产看——分期消费记账时
   已全额入负债、对应消费也已如实记在 Expenses 腿上,剔除即虚高(这与长期负债分层性质不同,
   后者是因为对应资产根本不在账本里)。每期金额走 `installmentPeriodAmount`,与
@@ -162,7 +171,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/剩余期数/schedule 口径)
   + `DebtsConfig`(含 `longTermAccounts`、固定分期的 `endMonth`)
 - `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,按还款日归月,
-  展开确定性分期出账 + 已出账的循环账单余额)
+  展开确定性分期出账 + 已出账账单 + 已消费未出账)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)

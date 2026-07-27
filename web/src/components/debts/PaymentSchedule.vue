@@ -6,9 +6,11 @@
     </div>
     <div class="section-body">
       <p class="section-sub ps-hint">
-        仅含已确定的出账,按还款日归月:已配置的分期,加上<strong>已出账</strong>的信用卡账单余额
-        (整笔计入,该期分期不再单列)。尚未出账的消费不外推,所以近月通常明显高于远月——
-        远月不是压力小,是账单还没发生。固定分期展开到其末期月为止,未填末期月的(房贷这类无终止期)会铺满整个窗口。
+        只含<strong>已经确定</strong>的出账,按还款日归月:已配置的分期,加上信用卡已出账的账单
+        (整笔计入,该期分期不再单列)与已刷卡但未出账的消费(下个账单日出账)。
+        每张卡的三部分相加恰好等于它当前的欠款。<strong>不预测未来新增消费</strong>,
+        所以每张卡最多只有两笔账单出账,再往后只剩分期——远月偏低不是压力小,是账单还没发生。
+        固定分期展开到其末期月为止,未填末期月的(房贷这类无终止期)会铺满整个窗口。
       </p>
 
       <div v-if="!hasAnyEntry" class="empty-state empty-state-boxed">
@@ -42,6 +44,7 @@
               <span class="ps-entry-date tabular-nums">{{ shortDate(e.dueDate) }}</span>
               <span class="ps-entry-name">{{ e.name }}</span>
               <span v-if="e.source === 'statement'" class="debt-badge badge-pending">账单</span>
+              <span v-else-if="e.source === 'unbilled'" class="debt-badge badge-idle">未出账</span>
               <span v-if="e.longTerm" class="debt-badge badge-idle">长期</span>
               <!-- 固定分期的账单名本身就唯一,再补账户短名只是噪音;账单/额度分期要靠卡名区分 -->
               <span v-if="e.source !== 'installment'" class="ps-entry-account">
