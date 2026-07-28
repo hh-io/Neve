@@ -190,6 +190,13 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   组件样式写 `<style scoped>` 或提炼进 `styles/components.css` 共享类
   (如 `.panel`/`.filter-pill`/`.empty-state`)。**scoped 不穿透子组件**:父组件里定义、
   子组件模板复用的类必须放共享层,否则子组件那份渲染成裸元素。
+- **交易明细页是两层 sticky**:筛选行钉 `top: 0`,日期分组头钉 `top: var(--tx-filters-h)`
+  (定义在 `.tx-layout`,值 = 实测的筛选行高度 58px,改控件尺寸/内边距要同步改),
+  右侧日历也停在同一条线上。列表**不做固定高度 + 内滚**——那会造出第二个滚动容器,
+  边界处滚轮行为割裂,且一屏只剩八九条。共享类 `.section-card` 的 `overflow: hidden`
+  会让它变成滚动容器、使内部 sticky 相对它定位而失效,故该页覆盖成 `overflow: clip`
+  (同样裁圆角,但不建立滚动容器)。页面滚动是 document 级(`.main-content` 无 overflow),
+  sticky 的 top 才能直接相对视口。
 - **分类中文映射只有一份**:`web/src/composables/useCategories.ts` 的 `categoryLabels`。
 - 改解析/统计逻辑必须同步更新 `parser_test.go` / `analytics_test.go`
   (`AnalyzeAt` 可注入时钟,fixture 写 `t.TempDir()`)。

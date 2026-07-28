@@ -215,6 +215,9 @@ watch(totalPages, (pages) => {
   grid-template-columns: 1fr 380px;
   gap: var(--space-4);
   align-items: start;
+  /* 两层 sticky 的偏移量:日期头要停在筛选行下沿。
+     = 药丸行高(34) + 筛选行上下各 space-3(12);改筛选行的 padding/控件尺寸要一并调 */
+  --tx-filters-h: 58px;
 }
 
 .tx-main {
@@ -224,12 +227,21 @@ watch(totalPages, (pages) => {
   min-width: 0;
 }
 
-/* ===== 筛选行 ===== */
+/* ===== 筛选行(钉在视口顶部) ===== */
 .tx-filters {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  /* 这页要连续滚很久,换筛选条件不该逼用户先滚回顶部。
+     页面滚动是 document 级(.main-content 没有 overflow),故 top 直接相对视口 */
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--canvas);
+  /* 上下补出背景带,滚过的交易行不至于擦着药丸边缘走;负 margin 抵消它对静态布局的影响 */
+  padding-block: var(--space-3);
+  margin-block: calc(var(--space-3) * -1);
 }
 
 .tx-filters-spacer { flex: 1; }
@@ -294,6 +306,12 @@ watch(totalPages, (pages) => {
 }
 
 /* ===== 日分组 ===== */
+/* section-card 的 overflow: hidden 会使其成为滚动容器,里面的 sticky 就相对它定位而失效。
+   clip 同样裁掉圆角外的内容,但不建立滚动容器,日期头才能钉到视口上 */
+.tx-main .section-card {
+  overflow: clip;
+}
+
 .tx-day-head {
   display: flex;
   align-items: center;
@@ -301,6 +319,10 @@ watch(totalPages, (pages) => {
   padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--hairline);
   background: var(--surface-2);
+  /* 每天一张独立卡片,sticky 天然被限制在本日范围内:滚到次日时旧日期头被顶走 */
+  position: sticky;
+  top: var(--tx-filters-h);
+  z-index: 10;
 }
 
 .tx-day-date {
@@ -434,7 +456,8 @@ watch(totalPages, (pages) => {
 /* ===== 粘性日历 ===== */
 .tx-cal {
   position: sticky;
-  top: var(--space-5);
+  /* 与左列钉住的日期头同高,两列停在同一条线上 */
+  top: var(--tx-filters-h);
 }
 
 @media (max-width: 1024px) {
