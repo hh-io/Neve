@@ -65,8 +65,12 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   先经 `checkTransactionOnly` 拒绝任何非交易顶层行(open/include/option/散文——parser
   会静默忽略或如实执行它们,AI 补一行 open 即可绕过账户白名单),再在临时目录拼
   "真实 open 指令 + 候选交易"试解析,任何 issue 都拒绝写入并回喂 AI
-  修正一次;识别提示词的账户列表由 `server/ai.ExtractAccounts` 从 main.bean **原文**
-  提取(保留行尾中文注释,parser 结构化数据会丢注释),不要再手工维护账户清单。
+  修正一次;识别提示词的账户列表由 `server/ai.ExtractAccounts` 从账本**原文**提取
+  (保留行尾中文注释,parser 结构化数据会丢注释),不要再手工维护账户清单。
+  **它会逐层展开 include**(去重 + 循环检测,读不到的 include 跳过):这份输出既是提示词里的
+  账户白名单、又是 `validateCandidate` 临时账本里唯一的 open 来源,只扫 main.bean 的话,
+  账户 open 在子文件里的用户会遇到「AI 看不见该账户 → 照着账本写反而 UNKNOWN_ACCOUNT
+  → 两次尝试全废」。
 - **交易口径由后端唯一计算**:`classifyTransaction` 输出
   `kind`(expense/income/transfer/opening/mixed)、`category`、`displayAmount`、
   `transferAmount`、`feeAmount`。前端禁止从 postings 推断交易类型/金额

@@ -40,6 +40,51 @@ include "inbox.bean"
 	}
 }
 
+// 账户 open 在哪个文件是用户的自由;漏掉子文件里的账户会让这些账户既进不了提示词、
+// 也进不了 validateCandidate 的临时账本,AI 照着账本写反而必然 UNKNOWN_ACCOUNT
+func TestExtractAccountsFollowsInclude(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, content string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	write("main.bean", `option "operating_currency" "CNY"
+2020-01-01 open Assets:Cash:WeChat CNY ; 微信零钱
+include "accounts/cards.bean"
+include "missing.bean"
+include "accounts/cards.bean"
+`)
+	write("accounts/cards.bean", `2021-01-01 open Liabilities:CreditCard:CMB CNY ; 招行信用卡
+  2021-01-01 open Assets:Fake CNY ; 缩进的不是 open 指令,是 posting
+include "loans.bean"
+include "../main.bean"
+`)
+	write("accounts/loans.bean", `2022-01-01 open Liabilities:Loan:Mortgage CNY ; 房贷`)
+
+	got, err := ExtractAccounts(filepath.Join(dir, "main.bean"))
+	if err != nil {
+		t.Fatalf("ExtractAccounts 出错: %v", err)
+	}
+	want := "2020-01-01 open Assets:Cash:WeChat CNY ; 微信零钱\n" +
+		"2021-01-01 open Liabilities:CreditCard:CMB CNY ; 招行信用卡\n" +
+		"2022-01-01 open Liabilities:Loan:Mortgage CNY ; 房贷"
+	if got != want {
+		t.Errorf("提取结果不符\n得到:\n%s\n期望:\n%s", got, want)
+	}
+}
+
+func TestExtractAccountsMissingMainBean(t *testing.T) {
+	if _, err := ExtractAccounts(filepath.Join(t.TempDir(), "nope.bean")); err == nil {
+		t.Error("main.bean 读不到时应返回错误")
+	}
+}
+
 func TestExtractAccountsEmpty(t *testing.T) {
 	path := writeMainBean(t, `option "title" "empty"`)
 	if _, err := ExtractAccounts(path); err == nil {
