@@ -45,44 +45,6 @@
       </section>
     </div>
 
-    <!-- 年度报告排行 -->
-    <div class="tr-row">
-      <section class="section-card">
-        <div class="section-head">
-          <h3 class="section-title"><Trophy :size="16" class="sec-ic" />年度“剁手”商户 Top 5</h3>
-        </div>
-        <div class="section-body">
-          <div v-if="topPayees.length > 0">
-            <div v-for="item in topPayees" :key="item.name" class="tr-report-row">
-              <div class="tr-report-left">
-                <span class="tr-report-rank">{{ item.rank }}</span>
-                <span class="tr-report-name">{{ item.name }}</span>
-              </div>
-              <span class="tr-report-value tabular-nums">¥{{ Number(item.amount).toFixed(2) }}</span>
-            </div>
-          </div>
-          <div v-else class="tr-empty tr-empty-sm">暂无商户排行数据</div>
-        </div>
-      </section>
-
-      <section class="section-card">
-        <div class="section-head">
-          <h3 class="section-title"><Tag :size="16" class="sec-ic" />高频生活标签 Top 5</h3>
-        </div>
-        <div class="section-body">
-          <div v-if="topTags.length > 0">
-            <div v-for="item in topTags" :key="item.name" class="tr-report-row">
-              <div class="tr-report-left">
-                <span class="tr-report-rank">{{ item.rank }}</span>
-                <span class="tr-report-name">#{{ item.name }}</span>
-              </div>
-              <span class="tr-report-value tabular-nums">{{ item.value }}</span>
-            </div>
-          </div>
-          <div v-else class="tr-empty tr-empty-sm">暂无标签排行数据</div>
-        </div>
-      </section>
-    </div>
   </div>
 </template>
 
@@ -97,7 +59,6 @@ import WeekdayChart from '../WeekdayChart.vue';
 import CategoryTrend from '../CategoryTrendChart.vue';
 import type { DailyData, WeeklyData, MonthlyData } from '../../types/api';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
-import { Tag, Trophy } from '@lucide/vue';
 import { useAnalytics } from '../../composables/useAnalytics';
 
 use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
@@ -213,20 +174,6 @@ const trendChartOption = computed(() => {
   };
 });
 
-// Ranking:直接消费后端全量口径的排行,避免与 SpendingTab 的排行数据打架
-const topPayees = computed(() =>
-  (analytics.value?.merchantRanking || [])
-    .slice(0, 5)
-    .map((item, index) => ({ rank: index + 1, name: item.payee, amount: item.amount }))
-);
-
-const topTags = computed(() =>
-  (analytics.value?.platformRanking || [])
-    .slice()
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-    .map((item, index) => ({ rank: index + 1, name: item.tag, value: `${item.count}次` }))
-);
 </script>
 
 <style scoped>
@@ -254,40 +201,6 @@ const topTags = computed(() =>
 
 .tr-empty-trend { height: 300px; }
 .tr-empty-sm { height: 190px; }
-
-/* 年度报告排行行 */
-.tr-report-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.tr-report-row:last-child { border-bottom: none; }
-
-.tr-report-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.tr-report-rank {
-  width: 18px;
-  text-align: right;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-.tr-report-name {
-  color: var(--text-primary);
-  font-weight: 550;
-}
-
-.tr-report-value {
-  font-weight: 600;
-  color: var(--text-primary);
-}
 
 @media (max-width: 1024px) {
   .tr-row { grid-template-columns: 1fr; }

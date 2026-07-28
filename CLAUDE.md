@@ -76,6 +76,14 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `transferAmount`、`feeAmount`。前端禁止从 postings 推断交易类型/金额
   (`useCategories.ts` 的 `processTransaction` 只派生展示字段)。
   统计按 posting 级聚合:转账本金不计支出,手续费计入;退款(负 Expenses)按净额冲减。
+- **每个统计字段的时间口径是页面契约的一部分**:`expenseByCategory`、`platformRanking`、
+  `merchantRanking`、`incomeBreakdown` 都是**本月**口径(「收支分析」页整页同期,
+  含前端自行按月过滤的资金流向 Sankey——用 `useCategories.isCurrentMonth`,同样截字符串比日期);
+  `weekdayDistribution`(星期分布)、`categoryTrends`(近 6 月)、各 `*Trend` 是**跨期**口径,
+  归「趋势图表」页。并排的卡片必须同期:混着放等于宣称同期,而卡片副标题是唯一的口径说明,
+  改聚合范围时必须连副标题一起改(字段口径见 `Analytics` struct 与 `types/api.ts` 的注释)。
+  两页都要的图(支出分类环形)提炼成共享组件 `ExpenseDonut.vue`,别各写一份——
+  截断规则和配色顺序会在后续改动里悄悄分叉。
 - **balance 断言**会真正核对(断言日期当天开始前的余额,官方 beancount 语义),
   失败报 `BALANCE_FAILED`。
 - **负债待还口径**(`server/parser/debts.go` 的 `ComputeDebts`,配置存 `data/debts.json`):
@@ -214,10 +222,14 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   同时开两张卡会互相覆盖。`DebtsTab` 顶部看板走 `due30`/`due90`(现金流口径,直接汇总
   schedule,与表里的数同源),`monthRemaining` 降级为**仅逾期时**显示的告警——
   逾期的钱不在 schedule 里,这是它唯一不可替代的用途;`monthDue` 不再上卡片,
-  保留为 API 的当期口径输出(测试与 `NextDue` 逻辑仍以它为基准)。
+  保留为 API 的当期口径输出(测试与 `NextDue` 逻辑仍以它为基准)。概览页的「未来 30 天待还」
+  卡与这块看板**同源同口径**(`due30` + `nextDue`,逾期才露 `monthRemaining`),
+  改口径要两处一起改;它也 `onMounted(loadDebts)`,靠单例的 `loaded` 标志与待还页共用一次请求。
 - `web/src/composables/useDebtValidation.ts` — 保存前本地轻校验,规则镜像 `debts.go` 的
   `Validate()`,只为即时反馈(后端 400 一次只回 details[0]);**后端仍是唯一权威**
-- `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段
+- `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段 + `isCurrentMonth`(本月过滤)
+- `web/src/components/ExpenseDonut.vue` — 支出分类环形图 + 图例(概览/收支分析共用)
+- `web/src/components/IncomeBreakdownList.vue` — 本月收入来源条形列表(消费 `incomeBreakdown`)
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发
 - `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,亮/暗双主题)
 - `shortcut/` — iOS 快捷指令搭建说明(不入库);AI 提示词已迁入 `server/ai/prompt.md`,

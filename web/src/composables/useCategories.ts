@@ -103,6 +103,15 @@ function toDateKey(dateStr: string): string {
     return (dateStr || '').slice(0, 10);
 }
 
+// 交易是否属于当前自然月:同样只截字符串比较,不经 new Date 落点。
+// 后端已按本月口径算好的字段(expenseByCategory / 排行 / 收入来源)不需要这个,
+// 只有前端自己聚合 transactions 时才用(如资金流向 Sankey)。
+export function isCurrentMonth(dateStr: string): boolean {
+    const now = new Date();
+    const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return toDateKey(dateStr).startsWith(prefix);
+}
+
 function localDateKey(d: Date): string {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

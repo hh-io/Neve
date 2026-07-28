@@ -71,6 +71,24 @@
         </div>
         <span class="ov-health-cap">{{ savingsCaption }}</span>
       </div>
+
+      <!-- 待还速览:即期现金压力是每天要看的量,不该只藏在待还管理页。
+           口径与待还页看板同源(due30 / nextDue),逾期时才露出 monthRemaining -->
+      <div class="card ov-health" :class="{ 'ov-health--alert': debtsOverdue }">
+        <span class="ov-mini-label">
+          未来 30 天待还
+          <span class="ov-mini-note">账单与分期</span>
+        </span>
+        <div class="ov-health-value tabular-nums">{{ formatMoney(due30) }}</div>
+        <span v-if="!debtsReport" class="ov-health-cap">待还数据不可用</span>
+        <span v-else-if="debtsOverdue" class="ov-health-cap text-expense">
+          逾期未还 {{ formatMoney(debtsSummary?.monthRemaining ?? 0) }}
+        </span>
+        <span v-else-if="debtsSummary?.nextDueDate" class="ov-health-cap">
+          {{ debtsSummary.nextDueName }} · {{ nextDueText }}
+        </span>
+        <span v-else class="ov-health-cap text-income">本期已结清</span>
+      </div>
     </div>
 
     <!-- 消费日历热力图 -->
@@ -92,29 +110,16 @@
           <h3>支出分类</h3>
           <span class="ov-panel-sub">本月</span>
         </div>
-        <div v-if="expenseByCategory.length > 0" class="ov-donut-body">
-          <div class="ov-donut-chart">
-            <v-chart :option="expensePieOption" autoresize />
-          </div>
-          <div class="ov-legend">
-            <div v-for="item in legendItems" :key="item.category" class="ov-legend-row">
-              <span class="ov-legend-dot" :style="{ background: item.color }"></span>
-              <span class="ov-legend-name">{{ item.name }}</span>
-              <span class="ov-legend-amt tabular-nums">{{ item.amount }}</span>
-              <span class="ov-legend-pct tabular-nums">{{ item.pct }}</span>
-            </div>
-          </div>
-        </div>
-        <div v-else class="chart-empty">暂无支出数据</div>
+        <ExpenseDonut :data="expenseByCategory" show-percent />
       </section>
 
       <section class="card ov-panel">
         <div class="ov-panel-head">
           <h3>最近交易</h3>
-          <span class="ov-panel-sub">共 {{ transactions.length }} 条</span>
+          <span class="ov-panel-sub">最近 {{ recentTransactions.length }} / 共 {{ transactions.length }} 条</span>
         </div>
         <TransactionList
-          :transactions="transactions"
+          :transactions="recentTransactions"
           max-height="360px"
           :show-account="false"
         />
@@ -124,9 +129,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { use } from 'echarts/core';
-import { PieChart, HeatmapChart } from 'echarts/charts';
+import { HeatmapChart } from 'echarts/charts';
 import { TooltipComponent, CalendarComponent, VisualMapComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
@@ -135,14 +140,19 @@ import {
   ArrowUpRight, ArrowDownRight,
 } from '@lucide/vue';
 import { formatMoney } from '../../composables/useFormatters';
-import { getCategoryLabel } from '../../composables/useCategories';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { useAnalytics } from '../../composables/useAnalytics';
+import { useDebts } from '../../composables/useDebts';
 import TransactionList from '../TransactionList.vue';
+import ExpenseDonut from '../ExpenseDonut.vue';
 
-use([PieChart, HeatmapChart, TooltipComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
+use([HeatmapChart, TooltipComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
 
 const { analytics } = useAnalytics();
+// loadDebts 是幂等单例(loaded 标志),与待还页各自 onMounted 互不重复请求
+const { report: debtsReport, loadDebts } = useDebts();
+onMounted(loadDebts);
+
 const currentYear = new Date().getFullYear();
 
 const summary = computed(() => analytics.value?.summary);
@@ -157,6 +167,9 @@ const monthlyIncome = computed(() => summary.value?.monthIncome || 0);
 const monthlyExpense = computed(() => Math.abs(summary.value?.monthExpense || 0));
 const monthlySavings = computed(() => monthlyIncome.value - monthlyExpense.value);
 const transactions = computed(() => analytics.value?.transactions || []);
+// 面板只有 360px 高,把全量交易塞进 DOM 靠 overflow 裁掉,账本长了会拖慢概览首屏。
+// 后端已按日期倒序(同日按文件行序),取头部即最近的那些
+const recentTransactions = computed(() => transactions.value.slice(0, 30));
 const monthlyTrend = computed(() => analytics.value?.monthlyTrend || []);
 const expenseByCategory = computed(() => analytics.value?.expenseByCategory || []);
 const dailyAverage = computed(() => analytics.value?.dailyAverage || 0);
@@ -313,49 +326,14 @@ const statCards = computed(() => {
   ];
 });
 
-// 自定义图例(替代 echarts 内建图例,避免中文截断)
-const legendItems = computed(() => {
-  void themeVersion.value;
-  const palette = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5', '--chart-6', '--chart-7', '--chart-8'].map(getThemeColor);
-  const total = expenseByCategory.value.reduce((sum, c) => sum + c.amount, 0) || 1;
-  return [...expenseByCategory.value]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 7)
-    .map((item, index) => ({
-      category: item.category,
-      name: getCategoryLabel(item.category),
-      color: palette[index % palette.length],
-      amount: formatMoney(item.amount),
-      pct: `${Math.round((item.amount / total) * 100)}%`,
-    }));
-});
-
-const expensePieOption = computed(() => {
-  void themeVersion.value;
-  const palette = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5', '--chart-6', '--chart-7', '--chart-8'].map(getThemeColor);
-  const data = [...expenseByCategory.value]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 7)
-    .map((item, index) => ({
-      name: getCategoryLabel(item.category),
-      value: item.amount,
-      itemStyle: { color: palette[index % palette.length] },
-    }));
-
-  return {
-    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-    series: [{
-      type: 'pie',
-      radius: ['58%', '82%'],
-      center: ['50%', '50%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 4, borderColor: getThemeColor('--surface-1'), borderWidth: 2 },
-      label: { show: false },
-      labelLine: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: getThemeColor('--text-primary') } },
-      data,
-    }],
-  };
+// 待还速览:数字全部取自后端已算好的报告,前端不做任何本地推算
+const debtsSummary = computed(() => debtsReport.value?.summary);
+const due30 = computed(() => debtsSummary.value?.due30 ?? 0);
+const debtsOverdue = computed(() => (debtsSummary.value?.overdueCount ?? 0) > 0);
+const nextDueText = computed(() => {
+  const days = debtsSummary.value?.nextDueInDays ?? 0;
+  if (days === 0) return '今天到期';
+  return `${days} 天后到期`;
 });
 
 // 消费日历热力图(与趋势页同口径:顺序绿标度,与收入语义绿独立)
@@ -550,7 +528,7 @@ const heatmapOption = computed(() => {
 /* ===== 日均 + 健康 行 ===== */
 .ov-row2 {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
   gap: var(--space-4);
 }
 
@@ -607,6 +585,10 @@ const heatmapOption = computed(() => {
   gap: var(--space-3);
 }
 
+.ov-health--alert {
+  border-color: var(--expense);
+}
+
 .ov-health-value {
   font-size: 1.5rem;
   font-weight: 700;
@@ -651,60 +633,6 @@ const heatmapOption = computed(() => {
   color: var(--text-tertiary);
 }
 
-.ov-donut-body {
-  padding: var(--space-4) var(--space-5) var(--space-5);
-  display: flex;
-  gap: var(--space-5);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.ov-donut-chart {
-  width: 150px;
-  height: 150px;
-  flex: none;
-  margin: 0 auto;
-}
-
-.ov-legend {
-  flex: 1;
-  min-width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.ov-legend-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-}
-
-.ov-legend-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  flex: none;
-}
-
-.ov-legend-name {
-  flex: 1;
-  min-width: 0;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ov-legend-amt { color: var(--text-primary); }
-
-.ov-legend-pct {
-  width: 42px;
-  text-align: right;
-  color: var(--text-tertiary);
-}
-
 .ov-heat-body {
   padding: var(--space-4) var(--space-5) var(--space-3);
 }
@@ -722,13 +650,18 @@ const heatmapOption = computed(() => {
   color: var(--text-tertiary);
 }
 
+/* 四张小卡在中等宽度下并排会把「未来 30 天待还」的金额挤断行,先降到两列 */
+@media (max-width: 1400px) {
+  .ov-row2 { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 1024px) {
   .ov-stats { grid-template-columns: repeat(2, 1fr); }
-  .ov-row2 { grid-template-columns: 1fr; }
   .ov-row3 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
   .ov-stats { grid-template-columns: 1fr; }
+  .ov-row2 { grid-template-columns: 1fr; }
 }
 </style>

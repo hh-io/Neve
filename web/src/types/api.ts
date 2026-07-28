@@ -308,17 +308,24 @@ export interface Analytics {
   summary: Summary
   parseIssues: ParseIssue[]
   balanceChecks: BalanceCheck[]
+  /** 本月口径(收支分析页整页同期) */
   expenseByCategory: CategoryAmount[]
   accountBalances: AccountBalance[]
   monthlyTrend: MonthlyData[]
   dailyTrend: DailyData[]
   weeklyTrend: WeeklyData[]
+  /** 全量交易(不含 opening),含未来日期的交易 */
   transactions: Transaction[]
   dailyAverage: number
+  /** 本月口径 */
   platformRanking: TagStats[]
+  /** 本月口径 */
   merchantRanking: PayeeStats[]
+  /** 全量口径(跨期视图) */
   weekdayDistribution: WeekdayStats[]
+  /** 近 6 个月 */
   categoryTrends: CategoryTrend[]
   liabilityBreakdown: LiabilityStats[]
+  /** 本月口径 */
   incomeBreakdown: IncomeSource[]
 }

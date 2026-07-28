@@ -433,3 +433,64 @@ func TestApplyLongTermLiabilitiesIdempotentAndUnknown(t *testing.T) {
 		}
 	}
 }
+
+// TestAnalyzeAtCurrentMonthScopes 锁定「收支分析」页三块数据的本月口径:
+// 商户/平台排行与收入来源只算本月,跨期视图(星期分布、分类环比)仍是全量。
+func TestAnalyzeAtCurrentMonthScopes(t *testing.T) {
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.Local)
+
+	ledger := parseMain(t, `
+2026-06-10 * "上月商户" "旧消费" #alipay
+  Expenses:Food:Coffee    100.00 CNY
+  Assets:Cash:WeChat     -100.00 CNY
+
+2026-06-20 * "老板" "六月工资"
+  Income:Salary         -8000.00 CNY
+  Assets:Cash:WeChat     8000.00 CNY
+
+2026-07-05 * "本月商户" "新消费" #wechat
+  Expenses:Food:Coffee     50.00 CNY
+  Assets:Cash:WeChat      -50.00 CNY
+
+2026-07-06 * "老板" "七月工资"
+  Income:Salary         -9000.00 CNY
+  Assets:Cash:WeChat     9000.00 CNY
+`)
+
+	a := AnalyzeAt(ledger, now)
+
+	if len(a.MerchantRanking) != 1 || a.MerchantRanking[0].Payee != "本月商户" || a.MerchantRanking[0].Amount != 5000 {
+		t.Errorf("商户排行应只含本月的「本月商户 50.00」: %+v", a.MerchantRanking)
+	}
+	if len(a.PlatformRanking) != 1 || a.PlatformRanking[0].Tag != "wechat" || a.PlatformRanking[0].Amount != 5000 {
+		t.Errorf("平台排行应只含本月的 #wechat 50.00: %+v", a.PlatformRanking)
+	}
+	if len(a.IncomeBreakdown) != 1 || a.IncomeBreakdown[0].Source != "Salary" || a.IncomeBreakdown[0].Amount != 900000 {
+		t.Errorf("收入来源应只含七月工资 9000.00: %+v", a.IncomeBreakdown)
+	}
+
+	// 星期分布是跨期视图:上月那笔仍要算进去(100 + 50)
+	var weekdayTotal Amount
+	for _, w := range a.WeekdayDistribution {
+		weekdayTotal += w.Amount
+	}
+	if weekdayTotal != 15000 {
+		t.Errorf("星期分布总额 = %s,期望 150.00(全量口径)", weekdayTotal)
+	}
+
+	// 分类环比同样跨期:六月那 100 必须还在
+	var juneFood Amount
+	for _, ct := range a.CategoryTrends {
+		if ct.Category != "Food" {
+			continue
+		}
+		for _, m := range ct.Data {
+			if m.Month == "2026-06" {
+				juneFood = m.Amount
+			}
+		}
+	}
+	if juneFood != 10000 {
+		t.Errorf("分类环比六月 Food = %s,期望 100.00(全量口径)", juneFood)
+	}
+}

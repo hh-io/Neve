@@ -130,23 +130,26 @@ type IncomeSource struct {
 
 // Analytics holds all analytical data
 type Analytics struct {
-	Summary           Summary          `json:"summary"`
-	ParseIssues       []ParseIssue     `json:"parseIssues"`
-	BalanceChecks     []BalanceCheck   `json:"balanceChecks"`
+	Summary       Summary        `json:"summary"`
+	ParseIssues   []ParseIssue   `json:"parseIssues"`
+	BalanceChecks []BalanceCheck `json:"balanceChecks"`
+	// 本月口径(与 PlatformRanking/MerchantRanking/IncomeBreakdown 同期)
 	ExpenseByCategory []CategoryAmount `json:"expenseByCategory"`
 	AccountBalances   []AccountBalance `json:"accountBalances"`
 	MonthlyTrend      []MonthlyData    `json:"monthlyTrend"`
 	DailyTrend        []DailyData      `json:"dailyTrend"`
 	WeeklyTrend       []WeeklyData     `json:"weeklyTrend"`
 	// 全量交易(不含 opening),分类/转账字段已由后端计算
-	Transactions        []Transaction    `json:"transactions"`
-	DailyAverage        float64          `json:"dailyAverage"`
-	PlatformRanking     []TagStats       `json:"platformRanking"`
-	MerchantRanking     []PayeeStats     `json:"merchantRanking"`
+	Transactions    []Transaction `json:"transactions"`
+	DailyAverage    float64       `json:"dailyAverage"`
+	PlatformRanking []TagStats    `json:"platformRanking"`
+	MerchantRanking []PayeeStats  `json:"merchantRanking"`
+	// 以下为全量口径(跨期视图)
 	WeekdayDistribution []WeekdayStats   `json:"weekdayDistribution"`
 	CategoryTrends      []CategoryTrend  `json:"categoryTrends"`
 	LiabilityBreakdown  []LiabilityStats `json:"liabilityBreakdown"`
-	IncomeBreakdown     []IncomeSource   `json:"incomeBreakdown"`
+	// 本月口径
+	IncomeBreakdown []IncomeSource `json:"incomeBreakdown"`
 }
 
 // Analyze analyzes the ledger and returns analytics
@@ -382,6 +385,11 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 			continue
 		}
 
+		// 平台/商户排行与收入来源是「收支分析」页的当期视图,与 ExpenseByCategory 统一到本月口径:
+		// 并排的几张卡口径必须一致,否则「本月分类占比」旁边挂一份几年累计的商户榜,
+		// 视觉上等同于宣称同期。跨期视图(星期分布、分类环比)不受此限,仍走全量。
+		thisMonth := sameMonth(tx.Date, now)
+
 		var txExpenseAmount Amount
 		txCategories := make(map[string]Amount)
 
@@ -399,6 +407,9 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 				categoryMonthly[category][txMonth] += posting.Amount
 				txCategories[category] += posting.Amount
 			case "Income":
+				if !thisMonth {
+					continue
+				}
 				source := getIncomeSource(posting.Account)
 				is := incomeBySource[source]
 				is.amount += -posting.Amount
@@ -439,18 +450,20 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 			}
 			weekdaySpending[weekday] = ws
 
-			for _, tag := range tx.Tags {
-				ts := tagSpending[tag]
-				ts.amount += txExpenseAmount
-				ts.count++
-				tagSpending[tag] = ts
-			}
+			if thisMonth {
+				for _, tag := range tx.Tags {
+					ts := tagSpending[tag]
+					ts.amount += txExpenseAmount
+					ts.count++
+					tagSpending[tag] = ts
+				}
 
-			if tx.Payee != "" {
-				ps := payeeSpending[tx.Payee]
-				ps.amount += txExpenseAmount
-				ps.count++
-				payeeSpending[tx.Payee] = ps
+				if tx.Payee != "" {
+					ps := payeeSpending[tx.Payee]
+					ps.amount += txExpenseAmount
+					ps.count++
+					payeeSpending[tx.Payee] = ps
+				}
 			}
 		}
 	}
