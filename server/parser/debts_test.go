@@ -604,6 +604,44 @@ func TestComputeDebtsRevolvingInstallmentGolden(t *testing.T) {
 	}
 }
 
+// 尾差向下(每期×期数 < 总额,银行抹零口径)时,未出账必须随出账完毕归零。
+// 用整额倒减(Total - Monthly*billed)会永远剩着那笔尾差:它已不会再出账,却仍被从
+// statementDue 与计划表的 pending 里扣掉,等于凭空消失。金额上限接近一期,不是一分钱。
+func TestRevolvingInstallmentTailUndershoot(t *testing.T) {
+	// 100.00 分 3 期,每期 33.33,三期整额只有 99.99,尾差 0.01 落最后一期
+	plan := RevolvingInstallment{Name: "p", TotalAmount: 10000, Months: 3, MonthlyAmount: 3333, FirstBillMonth: "2026-05"}
+
+	cases := []struct {
+		statement  string
+		billed     int
+		stUnbilled Amount
+		thisPeriod Amount
+	}{
+		{"2026-05-09", 1, 6667, 3333}, // 剩第 2、3 期 = 3333 + 3334
+		{"2026-06-09", 2, 3334, 3333}, // 剩第 3 期(收口的那期)
+		{"2026-07-09", 3, 0, 3334},    // 末期出账,收口后一分不剩
+		{"2026-08-09", 3, 0, 0},       // 出账完毕后不该再挂着尾差
+	}
+	for _, c := range cases {
+		statuses, deducted, thisPeriod := revolvingInstallmentStatuses([]RevolvingInstallment{plan}, atDate(c.statement))
+		st := statuses[0]
+		if st.BilledPeriods != c.billed || st.UnbilledAmount != c.stUnbilled || deducted != c.stUnbilled || thisPeriod != c.thisPeriod {
+			t.Errorf("%s: billed=%d unbilled=%v deducted=%v thisPeriod=%v, want %d/%v/%v/%v",
+				c.statement, st.BilledPeriods, st.UnbilledAmount, deducted, thisPeriod,
+				c.billed, c.stUnbilled, c.stUnbilled, c.thisPeriod)
+		}
+	}
+
+	// 逐期出账合计恒等于总额:未出账口径与出账口径共用 installmentPeriodAmount 的前提
+	var sum Amount
+	for period := 1; period <= plan.Months; period++ {
+		sum += installmentPeriodAmount(plan, period)
+	}
+	if sum != plan.TotalAmount {
+		t.Errorf("逐期合计 = %v, want %v", sum, plan.TotalAmount)
+	}
+}
+
 func TestRevolvingInstallmentStatuses(t *testing.T) {
 	// 10000 分 3 期,每期 3334,尾差 3332 落最后一期
 	plan := RevolvingInstallment{Name: "p", TotalAmount: 10000, Months: 3, MonthlyAmount: 3334, FirstBillMonth: "2026-05"}

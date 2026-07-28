@@ -482,11 +482,17 @@ func revolvingInstallmentStatuses(items []RevolvingInstallment, statement time.T
 		if billed > it.Months {
 			billed = it.Months
 		}
-		// 尾差自然落在最后一期:已出账金额按每期整额累计,最后一期由总额差值收口
-		unbilled := it.TotalAmount - it.MonthlyAmount*Amount(billed)
-		if unbilled < 0 {
-			unbilled = 0
+		// 未出账 = 尚未出账的各期之和。必须逐期走 installmentPeriodAmount 而不是
+		// TotalAmount - MonthlyAmount*billed:尾差是落在**最后一期**的,末期出账的是差值
+		// 而非整额。用整额倒减的话,MonthlyAmount*Months < TotalAmount 时(银行按抹零口径
+		// 出账,尾差向下)全部出完仍会剩一个尾差,而它已经不会再出账了——这笔钱从此
+		// 既不在 statementDue 里、也不在计划表里,凭空消失,且金额上限是接近一期(见 Validate)
+		var unbilled Amount
+		for period := billed + 1; period <= it.Months; period++ {
+			unbilled += installmentPeriodAmount(it, period)
 		}
+		// 逐期之和恒等于 TotalAmount,除非配置本身离谱(每期×期数远超总额);
+		// 那种配置 Validate 会拒,手改文件绕过时兜一下,别让扣减超过本金
 		if unbilled > it.TotalAmount {
 			unbilled = it.TotalAmount
 		}
