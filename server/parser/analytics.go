@@ -583,7 +583,22 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 	return analytics
 }
 
+// WithLongTermLiabilities 返回一份叠加了分层结果的**副本**,不动接收者。
+//
+// 给「已经发布出去的 Analytics」用:api 层把缓存指针取出来就脱锁序列化了,
+// 就地改会与正在编码 JSON 的请求打架(-race 能抓到)。发布后的 Analytics 一律只读,
+// 要改就换一个新指针。尚未发布的(Refresh 里刚算完的)直接用 ApplyLongTermLiabilities 即可。
+// 只深拷该方法会写的两个切片,其余字段共享——它们同样是只读的。
+func (a *Analytics) WithLongTermLiabilities(accounts []string) *Analytics {
+	clone := *a
+	clone.AccountBalances = append([]AccountBalance(nil), a.AccountBalances...)
+	clone.LiabilityBreakdown = append([]LiabilityStats(nil), a.LiabilityBreakdown...)
+	clone.ApplyLongTermLiabilities(accounts)
+	return &clone
+}
+
 // ApplyLongTermLiabilities 按长期负债账户清单补齐 Summary 的分层字段并标记明细。
+// 就地修改,只可用于尚未发布给请求处理的 Analytics(否则用 WithLongTermLiabilities)。
 //
 // 与 Analyze 分离是因为清单存在 debts.json 而非账本:改配置不该触发账本重解析。
 // 幂等——每次先清空标记再全量重算,可在配置变更后对缓存的 Analytics 反复调用。

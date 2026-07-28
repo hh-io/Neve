@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -156,8 +157,19 @@ func main() {
 		port = "8080"
 	}
 
+	// 不用 r.Run:它走 http.Server 默认值,一个超时都没有。停止读取响应的客户端
+	// (手机切后台、隧道断链)会让写操作无限期挂住,连带占住上游的资源。
+	// 只是不设 ReadTimeout——它覆盖整个请求体,而 /api/inbox 要在慢速上行里传十几 MB 图片;
+	// 防的是慢速握手,交给 ReadHeaderTimeout,体积上限已由 MaxBytesReader 把住。
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           r,
+		ReadHeaderTimeout: 20 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
 	log.Printf("Starting Neve server on http://localhost:%s", port)
-	if err := r.Run(":" + port); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }

@@ -3,11 +3,13 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -162,6 +164,40 @@ func TestSaveBudgetsQuarantinesCorruptFile(t *testing.T) {
 	if string(data) != original {
 		t.Errorf("留档内容 = %q, want %q", data, original)
 	}
+}
+
+// handleAnalytics 脱锁后才序列化,所以已发布的 Analytics 必须只读;
+// handleSaveDebts 若就地叠加分层,就会与正在编码 JSON 的请求打架(-race 可见)。
+func TestAnalyticsReadWhileDebtsSaved(t *testing.T) {
+	_, r, _ := newConfigTestServer(t)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 20; j++ {
+				if w := doJSON(r, http.MethodGet, "/api/analytics", nil); w.Code != http.StatusOK {
+					t.Errorf("GET /api/analytics = %d", w.Code)
+					return
+				}
+			}
+		}()
+	}
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			for j := 0; j < 20; j++ {
+				body := fmt.Sprintf(`{"longTermAccounts":["Liabilities:Loan:M%d"]}`, n)
+				if w := doJSON(r, http.MethodPost, "/api/debts", []byte(body)); w.Code != http.StatusOK {
+					t.Errorf("POST /api/debts = %d: %s", w.Code, w.Body.String())
+					return
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
 }
 
 // 账本刷新不该被损坏的 debts.json 拖垮:分层字段退回全量口径即可

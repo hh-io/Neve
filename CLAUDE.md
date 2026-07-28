@@ -133,8 +133,11 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   (`LongTermOthers.vue`,勾选即存)。删除账期配置**不清除**该账户的长期标记——账户还在
   账本里就仍是长期负债,只是编辑入口从卡片挪回「其他负债账户」组。
   分层由 `Analytics.ApplyLongTermLiabilities` 叠加在 `Analyze` 之后(**保持 Analyze 纯函数**——
-  清单不在账本里,改配置不该触发重解析),该方法幂等,调用点有二:`Refresh()` 与
-  `handleSaveDebts()`(后者就地重算缓存,前端 `useDebts.saveDebts` 再静默 `reload()` analytics)。
+  清单不在账本里,改配置不该触发重解析),该方法幂等,但**就地修改**,只能用在还没发布给
+  请求处理的对象上(`Refresh()` 里刚算完那份)。已经放进 `s.analytics` 的必须当只读:
+  `handleAnalytics` 锁内只取指针、脱锁才序列化,就地改会与正在编码 JSON 的请求竞争
+  (`TestAnalyticsReadWhileDebtsSaved` 用 -race 锁定)。故 `handleSaveDebts` 走
+  `WithLongTermLiabilities` 拿副本再换指针,前端 `useDebts.saveDebts` 再静默 `reload()` analytics。
   求和遍历 `AccountBalances` 而非 `LiabilityBreakdown`——后者只收余额为负的账户,
   长期负债多还成正余额时会被漏掉,与 `TotalLiabilities` 口径对不上。
 - **数据备份必须由服务端进程做,不能交给独立 launchd/cron 任务**:数据在快捷指令

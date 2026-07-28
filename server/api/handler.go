@@ -174,15 +174,20 @@ func (s *Server) SetupRoutes(r *gin.Engine) {
 }
 
 func (s *Server) handleAnalytics(c *gin.Context) {
+	// 锁内只取指针,序列化与网络写在锁外:analytics 由 Refresh 整体替换,
+	// 取到的指针本身就是一份一致快照(与 handleGetDebts 取 ledger 同理)。
+	// 持锁做网络写会被慢客户端拖住——RWMutex 一旦有 writer 在等,后续 RLock 也一并挡住,
+	// Refresh / debts / inbox 会全部堆在这一个卡死的响应后面。
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	analytics := s.analytics
+	s.mu.RUnlock()
 
-	if s.analytics == nil {
+	if analytics == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "data not loaded"})
 		return
 	}
 
-	c.JSON(http.StatusOK, s.analytics)
+	c.JSON(http.StatusOK, analytics)
 }
 
 func (s *Server) handleRefresh(c *gin.Context) {
@@ -441,9 +446,10 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 
 	// 长期负债清单变了会让缓存 analytics 的分层字段过期,就地重算(幂等,一次账户遍历);
 	// 账本本身没变,不必重跑 Analyze
+	// 换指针而非就地改:缓存已经发布出去了,handleAnalytics 取到指针后是脱锁序列化的
 	s.mu.Lock()
 	if s.analytics != nil {
-		s.analytics.ApplyLongTermLiabilities(cfg.LongTermAccounts)
+		s.analytics = s.analytics.WithLongTermLiabilities(cfg.LongTermAccounts)
 	}
 	s.mu.Unlock()
 
