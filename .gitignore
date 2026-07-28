@@ -28,3 +28,7 @@ deploy/local.env
 
 project-alias.zsh
 redesign-prompt.md
+
+docs/audit/00-tools.md
+docs/audit/01-map.md
+
