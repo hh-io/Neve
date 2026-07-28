@@ -15,8 +15,12 @@ async function loadBudgets(): Promise<void> {
       budgets.value = await res.json()
       return
     }
+    // 服务端明确报错(如 budgets.json 损坏)必须让用户知道:下面回退的是本地备份,
+    // 用户在此基础上改动并保存会覆盖服务端那份(服务端会先把损坏内容留档)
+    const body = await res.json().catch(() => null)
+    showToast('预算读取失败,已回退本地备份: ' + (body?.error?.message || `HTTP ${res.status}`), 'error')
   } catch {
-    // 网络错误与非 2xx 同样走下方本地备份
+    // 网络错误同样走下方本地备份
   }
   try {
     budgets.value = JSON.parse(localStorage.getItem('neve-budgets') || '{}')

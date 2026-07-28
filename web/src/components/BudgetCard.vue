@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Pencil, Check, Plus, Trash2, ChevronDown } from '@lucide/vue';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useBudgets } from '../composables/useBudgets';
@@ -113,8 +113,24 @@ const newAmount = ref<number | null>(null);
 
 onMounted(loadBudgets);
 
-// 预算变更即写回服务端(内部含 429/错误处理)+ localStorage 备份
-watch(budgets, saveBudgets, { deep: true });
+// 保存由三个写入口显式触发,不用 watch(budgets):加载完成时 ref 换了对象身份,
+// watcher 会把刚取回来的内容原样 POST 回去——服务端读取失败降级时这一下就是覆盖。
+// 输入框逐字触发,故防抖:否则输一个 "1500" 就是 4 次写盘 + 4 次 git 提交推送。
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleSave(): void {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    void saveBudgets();
+  }, 600);
+}
+// 离开页面时补交未落盘的改动,否则最后一次输入会随组件卸载丢掉
+onBeforeUnmount(() => {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  void saveBudgets();
+});
 
 const availableCategories = computed(() => {
   return allCategories.value.filter(cat => !budgets.value[cat]);
@@ -147,13 +163,13 @@ const budgetRows = computed(() =>
   })
 );
 
+// 空值/非法值只是"还没输完",不能当成删除意图:一删条目这一行就随 v-for 卸载,
+// 输入框连同焦点一起消失,用户没法全选重输。删除只由右侧删除按钮负责。
 function updateBudget(category: string, value: string) {
   const num = parseFloat(value);
-  if (num > 0) {
-    budgets.value[category] = num;
-  } else {
-    delete budgets.value[category];
-  }
+  if (!(num > 0)) return;
+  budgets.value[category] = num;
+  scheduleSave();
 }
 
 function addBudget() {
@@ -161,11 +177,13 @@ function addBudget() {
     budgets.value[newCategory.value] = newAmount.value;
     newCategory.value = '';
     newAmount.value = null;
+    scheduleSave();
   }
 }
 
 function deleteBudget(category: string) {
   delete budgets.value[category];
+  scheduleSave();
 }
 
 const totalBudget = computed(() => Object.values(budgets.value).reduce((sum, b) => sum + b, 0));
