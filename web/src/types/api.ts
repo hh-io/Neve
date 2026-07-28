@@ -165,6 +165,32 @@ export interface IncomeSource {
   count: number
 }
 
+// --- fundflow.go ---
+
+/**
+ * 资金流向图的节点。key 全局唯一(带层前缀),label 是展示名:
+ * account 层后端已消歧到不重名的最短后缀,直接用;
+ * income/expense 层是原始分类键,展示前过 getCategoryLabel 转中文。
+ */
+export interface FundFlowNode {
+  key: string
+  label: string
+  type: 'income' | 'account' | 'expense'
+}
+
+/** 相邻两层之间的一条流量,金额恒为正 */
+export interface FundFlowLink {
+  source: string
+  target: string
+  amount: Yuan
+}
+
+/** 收入来源 → 资金账户 → 支出分类,顺序已由后端排稳定(前端 layoutIterations: 0 直接消费) */
+export interface FundFlow {
+  nodes: FundFlowNode[]
+  links: FundFlowLink[]
+}
+
 // --- debts.go ---
 
 export interface RevolvingConfig {
@@ -328,4 +354,6 @@ export interface Analytics {
   liabilityBreakdown: LiabilityStats[]
   /** 本月口径 */
   incomeBreakdown: IncomeSource[]
+  /** 本月口径:收入来源 → 资金账户 → 支出分类的三层流量,与 expenseByCategory 净额同源 */
+  fundFlow: FundFlow
 }

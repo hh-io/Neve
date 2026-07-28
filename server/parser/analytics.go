@@ -150,6 +150,8 @@ type Analytics struct {
 	LiabilityBreakdown  []LiabilityStats `json:"liabilityBreakdown"`
 	// 本月口径
 	IncomeBreakdown []IncomeSource `json:"incomeBreakdown"`
+	// 本月口径:收入来源 → 资金账户 → 支出分类的三层流量(桑基图)
+	FundFlow FundFlow `json:"fundFlow"`
 }
 
 // Analyze analyzes the ledger and returns analytics
@@ -379,6 +381,7 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 		amount Amount
 		count  int
 	})
+	var monthTxs []Transaction // 喂 FundFlow,与本月各卡同一批交易
 
 	for _, tx := range statsTxs {
 		if tx.Kind == "opening" {
@@ -389,6 +392,9 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 		// 并排的几张卡口径必须一致,否则「本月分类占比」旁边挂一份几年累计的商户榜,
 		// 视觉上等同于宣称同期。跨期视图(星期分布、分类环比)不受此限,仍走全量。
 		thisMonth := sameMonth(tx.Date, now)
+		if thisMonth {
+			monthTxs = append(monthTxs, tx)
+		}
 
 		var txExpenseAmount Amount
 		txCategories := make(map[string]Amount)
@@ -592,6 +598,8 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 	sort.Slice(analytics.IncomeBreakdown, func(i, j int) bool {
 		return analytics.IncomeBreakdown[i].Amount > analytics.IncomeBreakdown[j].Amount
 	})
+
+	analytics.FundFlow = computeFundFlow(monthTxs, ledger.Accounts)
 
 	return analytics
 }

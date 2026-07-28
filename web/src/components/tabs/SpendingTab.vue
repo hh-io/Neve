@@ -39,7 +39,14 @@
         </div>
       </div>
       <div class="sp-flow-body">
-        <v-chart v-if="hasSankeyData" class="sp-sankey" :option="sankeyOption" autoresize />
+        <!-- 高度是数据驱动的运行时值(节点越多越高),没法交给 token -->
+        <v-chart
+          v-if="hasSankeyData"
+          class="sp-sankey"
+          :style="{ height: `${sankeyHeight}px` }"
+          :option="sankeyOption"
+          autoresize
+        />
         <div v-else class="sp-empty sp-empty-flow">本月暂无足够数据生成流向图</div>
       </div>
     </section>
@@ -80,7 +87,8 @@ import PlatformRanking from '../PlatformRanking.vue';
 import MerchantRanking from '../MerchantRanking.vue';
 import ExpenseDonut from '../ExpenseDonut.vue';
 import IncomeBreakdownList from '../IncomeBreakdownList.vue';
-import { getCategoryLabel, isCurrentMonth } from '../../composables/useCategories';
+import type { FundFlowNode } from '../../types/api';
+import { getCategoryLabel } from '../../composables/useCategories';
 import { formatMoney } from '../../composables/useFormatters';
 import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { useAnalytics } from '../../composables/useAnalytics';
@@ -97,80 +105,75 @@ const expenseTotal = computed(() => expenseByCategory.value.reduce((sum, c) => s
 const incomeTotal = computed(() => incomeBreakdown.value.reduce((sum, s) => sum + s.amount, 0));
 
 // Sankey:收入来源 → 资金账户 → 支出分类。
-// 按 posting 级聚合,一笔交易多条支出腿也能完整呈现;转账只有手续费腿会成为流量。
-// 本月过滤在前端做:transactions 是全量下发的,而本页其余卡片都是后端的本月口径,
-// 并排放着必须同期。
-interface SankeyNode {
-  name: string;
-  label: string;
-  type: 'Income' | 'Account' | 'Expense';
+// 三层聚合全部由后端 computeFundFlow 算好(净额口径、本月过滤、账户消歧、稳定排序),
+// 前端只做展示映射:自己遍历 transactions 等于把口径重写一遍,和同页的分类占比一定会漂移。
+const fundFlow = computed(() => analytics.value?.fundFlow ?? { nodes: [], links: [] });
+const hasSankeyData = computed(() => fundFlow.value.links.length > 0);
+
+// 账户名后端已消歧,分类/来源是原始键,展示时才转中文
+function nodeLabel(node: FundFlowNode): string {
+  return node.type === 'account' ? node.label : getCategoryLabel(node.label);
 }
 
-const sankeyData = computed(() => {
-  const transactions = (analytics.value?.transactions || []).filter(tx => isCurrentMonth(tx.date));
-  if (transactions.length === 0) return { nodes: [] as SankeyNode[], links: [] as { source: string; target: string; value: number }[] };
+const nodeLabels = computed(() => new Map(fundFlow.value.nodes.map(n => [n.key, nodeLabel(n)])));
 
-  const nodes = new Set<string>();
-  const linkMap: Record<string, number> = {}; // "Source|Target" -> Value
-
-  const addLink = (source: string, target: string, value: number) => {
-    if (value <= 0) return;
-    const key = `${source}|${target}`;
-    linkMap[key] = (linkMap[key] || 0) + value;
-    nodes.add(source);
-    nodes.add(target);
-  };
-
-  transactions.forEach(tx => {
-    if (tx.kind === 'opening') return;
-
-    // 资金账户取第一条 Assets/Liabilities posting 的末段
-    let account = 'Unknown';
-    for (const p of tx.postings || []) {
-      const parts = (p.account || '').split(':');
-      if (parts[0] === 'Assets' || parts[0] === 'Liabilities') {
-        account = parts[parts.length - 1];
-        break;
-      }
-    }
-
-    for (const p of tx.postings || []) {
-      const parts = (p.account || '').split(':');
-      if (parts[0] === 'Income' && p.amount < 0) {
-        addLink(`Income:${getCategoryLabel(parts[1] || 'Income')}`, `Account:${account}`, -p.amount);
-      } else if (parts[0] === 'Expenses' && p.amount > 0) {
-        addLink(`Account:${account}`, `Expense:${getCategoryLabel(parts[1] || 'Other')}`, p.amount);
-      }
-    }
-  });
-
-  const layoutNodes: SankeyNode[] = Array.from(nodes).map(name => {
-    const [type, label] = name.split(':');
-    return { name, label, type: type as SankeyNode['type'] };
-  });
-
-  const layoutLinks = Object.keys(linkMap).map(key => {
-    const [source, target] = key.split('|');
-    return { source, target, value: Number(linkMap[key].toFixed(2)) };
-  });
-
-  return { nodes: layoutNodes, links: layoutLinks };
+// 节点吞吐自己算:sankey 内建的节点 value 在 tooltip 里不稳定,而这个数正是「这个账户
+// 本月进/出了多少」,悬停时最该看到的就是它
+const nodeThroughput = computed(() => {
+  const inflow = new Map<string, number>();
+  const outflow = new Map<string, number>();
+  for (const link of fundFlow.value.links) {
+    outflow.set(link.source, (outflow.get(link.source) || 0) + link.amount);
+    inflow.set(link.target, (inflow.get(link.target) || 0) + link.amount);
+  }
+  const total = new Map<string, number>();
+  for (const node of fundFlow.value.nodes) {
+    total.set(node.key, Math.max(inflow.get(node.key) || 0, outflow.get(node.key) || 0));
+  }
+  return total;
 });
 
-const hasSankeyData = computed(() => sankeyData.value.nodes.length > 0 && sankeyData.value.links.length > 0);
+// 高度跟着最宽的一层走:固定高度在节点多时会把小额节点压成一条线、标签叠在一起
+const sankeyHeight = computed(() => {
+  const perLayer = new Map<string, number>();
+  for (const node of fundFlow.value.nodes) {
+    perLayer.set(node.type, (perLayer.get(node.type) || 0) + 1);
+  }
+  const widest = Math.max(1, ...perLayer.values());
+  return Math.min(560, Math.max(280, widest * 44));
+});
+
+const layerDepth: Record<FundFlowNode['type'], number> = { income: 0, account: 1, expense: 2 };
+
+// 边的 data 是喂给 series.links 的那个对象(sankey 的字段叫 value,不是后端契约里的 amount)
+interface SankeyTooltipParams {
+  dataType?: string;
+  name?: string;
+  data?: { source: string; target: string; value: number };
+}
 
 const sankeyOption = computed(() => {
   void themeVersion.value;
-  // 节点按类型上色:收入=income,账户=accent,支出=expense
-  const nodeColor: Record<SankeyNode['type'], string> = {
-    Income: getThemeColor('--chart-income'),
-    Account: getThemeColor('--accent'),
-    Expense: getThemeColor('--chart-expense')
+  // 节点按层上色:收入=income,账户=accent,支出=expense
+  const layerColor: Record<FundFlowNode['type'], string> = {
+    income: getThemeColor('--chart-income'),
+    account: getThemeColor('--accent'),
+    expense: getThemeColor('--chart-expense')
   };
+  const labelOf = (key: string) => nodeLabels.value.get(key) ?? key;
   return {
     tooltip: {
       trigger: 'item',
-      triggerOn: 'mousemove'
+      triggerOn: 'mousemove',
+      // 默认 tooltip 直接吐 data.name,会把 "account:Assets:Bank:CMB" 这种内部 key 露给用户
+      formatter: (params: SankeyTooltipParams) => {
+        if (params.dataType === 'edge' && params.data) {
+          const { source, target, value } = params.data;
+          return `${labelOf(source)} → ${labelOf(target)}<br/>${formatMoney(value)}`;
+        }
+        const key = params.name ?? '';
+        return `${labelOf(key)}<br/>${formatMoney(nodeThroughput.value.get(key) ?? 0)}`;
+      }
     },
     series: [
       {
@@ -179,13 +182,19 @@ const sankeyOption = computed(() => {
         bottom: 8,
         left: 4,
         right: 90,
-        data: sankeyData.value.nodes.map(n => ({
-          name: n.name,
-          itemStyle: { color: nodeColor[n.type] },
-          label: { formatter: n.label }
+        data: fundFlow.value.nodes.map(n => ({
+          name: n.key,
+          // depth 必须钉死:sankey 默认按图结构推层,本月没有收入流入的账户(信用卡就是常态)
+          // 会被排到最左列和收入来源并肩,与图例宣称的「收入 | 账户 | 支出」三层对不上
+          depth: layerDepth[n.type],
+          itemStyle: { color: layerColor[n.type] },
+          label: { formatter: () => nodeLabel(n) }
         })),
-        links: sankeyData.value.links,
+        links: fundFlow.value.links.map(l => ({ source: l.source, target: l.target, value: l.amount })),
         emphasis: { focus: 'adjacency' },
+        // 0 = 不做力导迭代,按后端给的顺序摆:开着的话每次 refresh 图都会重排,
+        // 同一份数据看两眼是两个样子
+        layoutIterations: 0,
         // sankey 的节点间距是 nodeGap(没有 nodeMargin 这个配置项);
         // 留够间距,否则金额小的节点高度趋近 0,标签会互相压住
         nodeGap: 14,
@@ -263,7 +272,7 @@ const sankeyOption = computed(() => {
 }
 
 .sp-sankey {
-  height: 300px;
+  width: 100%;
 }
 
 .sp-empty {

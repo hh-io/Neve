@@ -77,13 +77,27 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   (`useCategories.ts` 的 `processTransaction` 只派生展示字段)。
   统计按 posting 级聚合:转账本金不计支出,手续费计入;退款(负 Expenses)按净额冲减。
 - **每个统计字段的时间口径是页面契约的一部分**:`expenseByCategory`、`platformRanking`、
-  `merchantRanking`、`incomeBreakdown` 都是**本月**口径(「收支分析」页整页同期,
-  含前端自行按月过滤的资金流向 Sankey——用 `useCategories.isCurrentMonth`,同样截字符串比日期);
+  `merchantRanking`、`incomeBreakdown`、`fundFlow` 都是**本月**口径(「收支分析」页整页同期);
   `weekdayDistribution`(星期分布)、`categoryTrends`(近 6 月)、各 `*Trend` 是**跨期**口径,
   归「趋势图表」页。并排的卡片必须同期:混着放等于宣称同期,而卡片副标题是唯一的口径说明,
   改聚合范围时必须连副标题一起改(字段口径见 `Analytics` struct 与 `types/api.ts` 的注释)。
   两页都要的图(支出分类环形)提炼成共享组件 `ExpenseDonut.vue`,别各写一份——
   截断规则和配色顺序会在后续改动里悄悄分叉。
+- **资金流向图的三层聚合在后端**(`server/parser/fundflow.go` 的 `computeFundFlow`,
+  随 `Analytics.FundFlow` 下发,前端只做展示映射):它和同页的 `expenseByCategory` 并排,
+  前端自己遍历 `transactions` 就等于把净额、本月、未来日期三条口径各重写一遍,漂一条就露馅
+  (原实现丢掉负 Expenses 腿,支出侧比环形图多出整月退款额)。四条不变量:
+  ① 退款/收入冲正**按分类等比缩放**该分类的全部链路,总额恒等于 `ExpenseByCategory` /
+  `IncomeBreakdown`——不能从某条链路上直接扣,退款到账账户与原消费账户常常不是同一个,
+  按链路扣会压出负流量;净额 ≤ 0 的分类整体丢弃(桑基画不出负流量,这与分类卡允许负值是有意差异)。
+  ② 资金账户按**付款腿金额占比分摊**(无付款腿则回退收款腿,如工资代扣),取第一条资金腿
+  会让归属取决于 posting 书写顺序。③ 分摊尾差落最后一份(`allocateAmount`),否则各链路之和
+  与分类合计差几分。④ 节点用**账户全名**做 key,展示名取「在**账本全部资金账户**里不重名的
+  最短后缀」——按末段会让 `Assets:Bank:CMB` 与 `Liabilities:CreditCard:CMB` 塌成一个节点;
+  消歧范围用全账本而非当月出现的账户,否则同一张卡月月换名。
+  节点/链路顺序由后端排稳定,前端 `layoutIterations: 0` 直接消费(开着力导每次 refresh 都重排);
+  节点 `depth` 必须按层钉死,否则本月无收入流入的账户(信用卡是常态)会被排到最左列,
+  与图例的「收入 | 账户 | 支出」对不上。
 - **balance 断言**会真正核对(断言日期当天开始前的余额,官方 beancount 语义),
   失败报 `BALANCE_FAILED`。
 - **负债待还口径**(`server/parser/debts.go` 的 `ComputeDebts`,配置存 `data/debts.json`):
@@ -207,6 +221,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 
 - `server/parser/parser.go` — 解析器(正则)+ 校验 + ParseIssue 收集
 - `server/parser/analytics.go` — 统计与交易分类(`AnalyzeAt`)+ 净资产分层(`ApplyLongTermLiabilities`)
+- `server/parser/fundflow.go` — 资金流向三层聚合(`computeFundFlow`,本月口径,净额缩放/资金腿分摊/账户消歧/稳定排序)
 - `server/parser/amount.go` — 定点金额类型
 - `server/parser/debts.go` — 负债待还计算(`ComputeDebts`,账期/倒计时/剩余期数/schedule 口径)
   + `DebtsConfig`(含 `longTermAccounts`、固定分期的 `endMonth`)
@@ -236,8 +251,10 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   改口径要两处一起改;它也 `onMounted(loadDebts)`,靠单例的 `loaded` 标志与待还页共用一次请求。
 - `web/src/composables/useDebtValidation.ts` — 保存前本地轻校验,规则镜像 `debts.go` 的
   `Validate()`,只为即时反馈(后端 400 一次只回 details[0]);**后端仍是唯一权威**
-- `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段 + `isCurrentMonth`(本月过滤)
+- `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段(`processTransaction`)
 - `web/src/components/ExpenseDonut.vue` — 支出分类环形图 + 图例(概览/收支分析共用)
+- `web/src/components/tabs/SpendingTab.vue` — 收支分析页;资金流向桑基图只消费 `fundFlow`,
+  自身不聚合(口径见上「资金流向图的三层聚合在后端」)
 - `web/src/components/IncomeBreakdownList.vue` — 本月收入来源条形列表(消费 `incomeBreakdown`)
 - `web/src/composables/useThemeColor.ts` — ECharts 取实色 + `themeVersion` 主题触发
 - `web/src/styles/variables.css` — 设计 token(surface 阶梯/发丝线/accent/chart 色板,亮/暗双主题)
