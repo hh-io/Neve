@@ -53,6 +53,14 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - **软失败**:脏数据(不平衡/未 open 账户/非法金额日期等)跳过该笔并记入
   `Ledger.Issues`(带文件:行号),随 `/api/analytics` 的 `parseIssues` 展示在
   `IssuesBanner`;仅 main.bean 无法打开才是硬错误。
+- **配置文件解析失败不得降级为空**(budgets.json / debts.json):软失败策略只适用于账本
+  (脏数据跳过一笔,其余照常),配置文件反过来——空配置在界面上与"从未配置过"无法区分,
+  用户随手补一条再保存就把原文件**整份覆盖**,而配置没有第二份真源。故
+  `loadDebtsConfig` / `handleGetBudgets` 只把「文件不存在」当正常(回空),
+  解析失败一律 5xx 显式报错;写盘路径再加一道 `quarantineCorrupt`——覆盖前若磁盘上那份
+  已无法解析,先改名成 `<name>.corrupt-<时间戳>` 留档。`Refresh()` 是唯一例外
+  (走 `longTermAccounts()`):账本刷新与配置无关,读不出来就退回全量净资产口径并记日志,
+  不让一个坏配置卡死账本。
 - **AI 输出必须过 parser 预校验才可落盘**:`server/api/inbox.go` 的 `validateCandidate`
   先经 `checkTransactionOnly` 拒绝任何非交易顶层行(open/include/option/散文——parser
   会静默忽略或如实执行它们,AI 补一行 open 即可绕过账户白名单),再在临时目录拼

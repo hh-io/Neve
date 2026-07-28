@@ -67,7 +67,7 @@ func (s *Server) Refresh() error {
 	analytics := parser.Analyze(ledger)
 	// 长期负债清单在 debts.json 而非账本,叠加在 Analyze 之后;
 	// 先取 debtMu 读完配置再取 s.mu 写缓存,两把锁不嵌套
-	analytics.ApplyLongTermLiabilities(s.loadDebtsConfig().LongTermAccounts)
+	analytics.ApplyLongTermLiabilities(s.longTermAccounts())
 
 	s.mu.Lock()
 	s.analytics = analytics
@@ -240,14 +240,22 @@ func (s *Server) handleGetBudgets(c *gin.Context) {
 	budgetFile := filepath.Join(s.dataDir, "budgets.json")
 	data, err := os.ReadFile(budgetFile)
 	if err != nil {
-		// Return empty object if file doesn't exist
-		c.JSON(http.StatusOK, gin.H{})
+		if os.IsNotExist(err) {
+			c.JSON(http.StatusOK, gin.H{}) // 尚未设过预算
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": NewAPIError("BUDGETS_READ_FAILED", "budgets.json 读取失败: "+err.Error()),
+		})
 		return
 	}
 
 	var budgets map[string]float64
 	if err := json.Unmarshal(data, &budgets); err != nil {
-		c.JSON(http.StatusOK, gin.H{})
+		// 与 debts 同策略:损坏时不回空对象,否则前端当成"没设过预算",一存就覆盖原文件
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": NewAPIError("BUDGETS_CORRUPT", "budgets.json 无法解析,请修复后重试: "+err.Error()),
+		})
 		return
 	}
 
@@ -271,7 +279,12 @@ func (s *Server) handleSaveBudgets(c *gin.Context) {
 	s.budgetMu.Lock()
 	defer s.budgetMu.Unlock()
 
-	if err := atomicWriteFile(filepath.Join(s.dataDir, "budgets.json"), body); err != nil {
+	budgetFile := filepath.Join(s.dataDir, "budgets.json")
+	quarantineCorrupt(budgetFile, func(b []byte) error {
+		var old map[string]float64
+		return json.Unmarshal(b, &old)
+	})
+	if err := atomicWriteFile(budgetFile, body); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
 		return
 	}
@@ -280,27 +293,32 @@ func (s *Server) handleSaveBudgets(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "saved"})
 }
 
-// loadDebtsConfig 读取 debts.json;文件不存在或 JSON 损坏时降级为空配置(与 budgets 同策略),
-// 不阻塞页面展示。
-func (s *Server) loadDebtsConfig() *parser.DebtsConfig {
-	empty := func() *parser.DebtsConfig {
-		return &parser.DebtsConfig{
-			LongTermAccounts: []string{},
-			Revolving:        map[string]parser.RevolvingConfig{},
-			Installments:     []parser.InstallmentConfig{},
-		}
+func emptyDebtsConfig() *parser.DebtsConfig {
+	return &parser.DebtsConfig{
+		LongTermAccounts: []string{},
+		Revolving:        map[string]parser.RevolvingConfig{},
+		Installments:     []parser.InstallmentConfig{},
 	}
+}
 
+// loadDebtsConfig 读取 debts.json。文件不存在返回空配置(首次使用);内容损坏返回错误。
+//
+// 损坏时**不能**降级成空配置:配置只有这一份真源,前端拿到空的会显示"未配置",
+// 用户随手补一条再保存就把原文件整份覆盖掉,原配置再也拿不回来。
+func (s *Server) loadDebtsConfig() (*parser.DebtsConfig, error) {
 	s.debtMu.Lock()
 	defer s.debtMu.Unlock()
 
 	data, err := os.ReadFile(filepath.Join(s.dataDir, "debts.json"))
 	if err != nil {
-		return empty()
+		if os.IsNotExist(err) {
+			return emptyDebtsConfig(), nil
+		}
+		return nil, err
 	}
-	cfg := empty()
+	cfg := emptyDebtsConfig()
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return empty() // 解析失败时 cfg 可能被写了一半,丢弃重建
+		return nil, err // 解析失败时 cfg 可能被写了一半,不能拿来用
 	}
 	if cfg.Revolving == nil {
 		cfg.Revolving = map[string]parser.RevolvingConfig{}
@@ -313,7 +331,35 @@ func (s *Server) loadDebtsConfig() *parser.DebtsConfig {
 	}
 	// 老文件的额度类条目没有 installments 字段,回显给前端补成 [] 而非 null
 	cfg.Normalize()
-	return cfg
+	return cfg, nil
+}
+
+// longTermAccounts 取长期负债清单供 Refresh 叠加分层。配置读不出来时降级为空清单:
+// 分层字段退回全量口径(Analyze 已兜底),不至于让账本刷新整个失败。
+func (s *Server) longTermAccounts() []string {
+	cfg, err := s.loadDebtsConfig()
+	if err != nil {
+		log.Printf("config: debts.json 无法解析,净资产分层降级为全量口径: %v", err)
+		return nil
+	}
+	return cfg.LongTermAccounts
+}
+
+// quarantineCorrupt 在覆盖前把无法解析的旧配置改名留档。
+//
+// 走到写盘这一步,说明用户是基于界面上看到的内容做的编辑;若界面上那份是读取失败后的
+// 降级结果,这次写入就是一次静默的整份覆盖。配置文件没有第二份真源,留档是最后一道防线。
+func quarantineCorrupt(path string, parse func([]byte) error) {
+	data, err := os.ReadFile(path)
+	if err != nil || parse(data) == nil {
+		return
+	}
+	dst := path + ".corrupt-" + time.Now().Format("20060102-150405")
+	if err := os.Rename(path, dst); err != nil {
+		log.Printf("config: 留档损坏的 %s 失败: %v", filepath.Base(path), err)
+		return
+	}
+	log.Printf("config: %s 无法解析,覆盖前已留档为 %s", filepath.Base(path), filepath.Base(dst))
 }
 
 func (s *Server) handleGetDebts(c *gin.Context) {
@@ -325,7 +371,14 @@ func (s *Server) handleGetDebts(c *gin.Context) {
 		return
 	}
 
-	cfg := s.loadDebtsConfig()
+	cfg, err := s.loadDebtsConfig()
+	if err != nil {
+		// 不返回空配置:前端会当成"没配过",一次保存就把原文件覆盖
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": NewAPIError("DEBTS_CONFIG_CORRUPT", "debts.json 无法解析,请修复后重试: "+err.Error()),
+		})
+		return
+	}
 	// 每次现算:O(交易数) 一次遍历,倒计时永远新鲜,配置变更也无需 /api/refresh
 	c.JSON(http.StatusOK, gin.H{
 		"config": cfg,
@@ -372,8 +425,12 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 		return
 	}
 
+	debtsPath := filepath.Join(s.dataDir, "debts.json")
 	s.debtMu.Lock()
-	err = atomicWriteFile(filepath.Join(s.dataDir, "debts.json"), data)
+	quarantineCorrupt(debtsPath, func(b []byte) error {
+		return json.Unmarshal(b, &parser.DebtsConfig{})
+	})
+	err = atomicWriteFile(debtsPath, data)
 	s.debtMu.Unlock()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
