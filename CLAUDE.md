@@ -162,6 +162,12 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
   (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。
+  **前端不许把日期字符串喂给 `new Date()`**:交易日期序列化成带偏移的 RFC3339
+  (`2026-07-28T00:00:00+08:00`),`new Date()` 会按浏览器时区重新落点,浏览器偏西时
+  整体退一天;纯 `YYYY-MM-DD` 串更糟——它按 UTC 解析。日期比较/展示一律截字符串
+  (`useCategories.toDateKey`、`useDebtDisplay.shortDate`、`PaymentSchedule.monthLabel`),
+  只有需要星期几时才用 `new Date(y, m-1, d)` 按本地零点重建。真实时间戳
+  (`summary.lastUpdated`)不在此列,那本来就该按浏览器时区显示。
 - **ECharts 颜色**:canvas 不解析 CSS 变量,option 里必须用
   `getThemeColor('--xxx')` 取实际值,并在 computed 中引用 `themeVersion.value`
   以响应主题切换(见 `useThemeColor.ts`)。图表色板走 `--chart-1..8` /

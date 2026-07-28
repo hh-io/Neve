@@ -15,7 +15,7 @@
             class="lt-check"
             :checked="acc.longTerm"
             :disabled="saving"
-            @change="toggle(acc.account, ($event.target as HTMLInputElement).checked)"
+            @change="toggle(acc.account, ($event.target as HTMLInputElement).checked, $event.target as HTMLInputElement)"
           />
           <span class="lt-name">{{ acc.name }}</span>
           <span class="lt-account">{{ acc.account }}</span>
@@ -58,15 +58,18 @@ const others = computed(() => {
 })
 
 // 单一布尔量,没有"取消"语义,勾选即存;保存期间整组禁用,避免连点撞后端限流
-async function toggle(account: string, checked: boolean) {
+async function toggle(account: string, checked: boolean, el: HTMLInputElement) {
   if (saving.value) return
   saving.value = true
   const next: DebtsConfig = JSON.parse(JSON.stringify(config.value))
   next.longTermAccounts = checked
     ? [...new Set([...next.longTermAccounts, account])]
     : next.longTermAccounts.filter((a) => a !== account)
-  await saveDebts(next)
+  const ok = await saveDebts(next)
   saving.value = false
+  // 失败时 config 没变,:checked 绑定的值也就没变,Vue 不会重渲染——DOM 里那个勾会
+  // 停在用户点出来的状态,看起来像存成功了。手动复位。
+  if (!ok) el.checked = !checked
 }
 </script>
 

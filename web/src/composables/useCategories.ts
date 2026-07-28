@@ -95,37 +95,41 @@ export function processTransaction(tx: Transaction): ProcessedTransaction {
     };
 }
 
+// 交易日期是后端按服务器时区归属的日历日,序列化成带偏移的 RFC3339
+// ("2026-07-28T00:00:00+08:00")。直接 new Date() 会按**浏览器**时区重新落点,
+// 浏览器偏西时整体退一天(今天的交易被标成"昨天")。故一律先截出 YYYY-MM-DD 再比,
+// 只有在需要星期几时才用本地零点重建 Date——那不带任何偏移,不会漂。
+function toDateKey(dateStr: string): string {
+    return (dateStr || '').slice(0, 10);
+}
+
+function localDateKey(d: Date): string {
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${day}`;
+}
+
 // Format date for display
 export function formatTransactionDate(dateStr: string): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${month}-${day}`;
+    return toDateKey(dateStr).slice(5); // "MM-DD"
 }
 
 // Get relative date label (Today, Yesterday, etc.)
 export function getRelativeDateLabel(dateStr: string): string {
-    const date = new Date(dateStr);
+    const key = toDateKey(dateStr);
+    if (!key) return '';
+
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
 
-    date.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    yesterday.setHours(0, 0, 0, 0);
+    if (key === localDateKey(today)) return '今天';
+    if (key === localDateKey(yesterday)) return '昨天';
 
-    if (date.getTime() === today.getTime()) {
-        return '今天';
-    } else if (date.getTime() === yesterday.getTime()) {
-        return '昨天';
-    } else {
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-        const weekday = weekdays[date.getDay()];
-        return `${month}月${day}日 ${weekday}`;
-    }
+    const [year, month, day] = key.split('-').map(Number);
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekday = weekdays[new Date(year, month - 1, day).getDay()];
+    return `${month}月${day}日 ${weekday}`;
 }
 
 // Generate pastel tag color

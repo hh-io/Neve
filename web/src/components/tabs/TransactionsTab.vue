@@ -194,13 +194,18 @@ const groupedTransactions = computed<DateGroup[]>(() => {
     }
   });
 
-  return Object.values(groups).sort((a, b) => {
-    return new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime();
-  });
+  // 日期是定长 RFC3339,字典序即时间序;不经 Date 就不会被浏览器时区重新落点
+  return Object.values(groups).sort((a, b) => b.dateStr.localeCompare(a.dateStr));
 });
 
 watch([searchQuery, categoryFilter, typeFilter], () => {
   currentPage.value = 1;
+});
+
+// 刷新/记账后交易数变少时把页码收回来,否则 slice 起点越界,列表空着而分页条
+// 已因 totalPages <= 1 消失,用户没有回第一页的入口
+watch(totalPages, (pages) => {
+  if (currentPage.value > pages) currentPage.value = Math.max(pages, 1);
 });
 </script>
 
