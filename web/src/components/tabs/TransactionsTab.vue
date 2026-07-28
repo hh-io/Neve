@@ -239,9 +239,11 @@ watch(totalPages, (pages) => {
   top: 0;
   z-index: 20;
   background: var(--canvas);
-  /* 上下补出背景带,滚过的交易行不至于擦着药丸边缘走;负 margin 抵消它对静态布局的影响 */
+  /* 上下补出背景带,滚过的交易行不至于擦着药丸边缘走。
+     不加负 margin 上提:筛选行顶边要与右列日历卡的顶边落在同一条线上;
+     padding 取 space-3 后,控件中心正好落在日历卡 section-head 的标题中心上
+     (两者都是「顶边 + 12 + 控件半高」,实测同为视口 174px) */
   padding-block: var(--space-3);
-  margin-block: calc(var(--space-3) * -1);
 }
 
 .tx-filters-spacer { flex: 1; }
