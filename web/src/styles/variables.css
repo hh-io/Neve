@@ -82,6 +82,16 @@
     }
 }
 
+/* 竖屏时刘海在顶部,左右安全区必然是 0——这里钉死而不信 env():iOS 旋转回竖屏后
+   这两个值有时不刷新,残留横屏那次的值,于是内容两侧各被挤掉一段,「横屏一次就再也
+   回不去」。竖屏没有任何需要左右退让的硬件,钉 0 无副作用。必须排在 @supports 之后 */
+@media (orientation: portrait) {
+    :root {
+        --safe-left: 0px;
+        --safe-right: 0px;
+    }
+}
+
 /* ========== Light Theme ========== */
 .theme-light,
 :root:not(.theme-dark) {
