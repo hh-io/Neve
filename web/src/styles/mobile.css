@@ -204,7 +204,9 @@
     background: none;
     border: none;
     cursor: pointer;
-    transition: all var(--transition-base);
+    /* 只列真正会变的两个属性(active 换色、:active 缩放):transition: all 会把
+       尺寸/内边距也拖进 0.2s 动画,旋转这类整条栏尺寸突变的时刻会看到形变抖动 */
+    transition: color var(--transition-base), transform var(--transition-base);
     -webkit-tap-highlight-color: transparent;
 }
 
