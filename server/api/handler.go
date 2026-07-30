@@ -48,6 +48,13 @@ type Server struct {
 	// 备份失败告警的节流状态;triggerBackup 的 goroutine 可能并发进来
 	backupAlertMu   sync.Mutex
 	lastBackupAlert time.Time
+
+	// 公网入口自检(见 health.go),EnableHealthCheck 配置后 StartHealthChecker 才工作。
+	// 下面三个状态字段只由单个 checker goroutine 读写,故不像备份那样需要锁。
+	healthURL       string
+	healthFails     int  // 连续失败次数,成功即清零
+	healthDown      bool // 已告警且尚未恢复,用于只在状态翻转时推恢复通知
+	lastHealthAlert time.Time
 }
 
 // NewServer creates a new API server

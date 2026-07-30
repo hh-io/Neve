@@ -41,6 +41,12 @@
         <string>@NEVE_BACKUP_REMOTE@</string>
         <key>NEVE_BACKUP_DIR</key>
         <string>@NEVE_BACKUP_DIR@</string>
+        <!-- 公网入口自检:tunnel 域名,与 install-tunnel 同一个值。填了(且 inbox 已启用)
+             服务端就定期从公网打自己的 /api/inbox 验活,连续不可达时 Bark 告警。
+             tunnel 挂掉时本机进程/端口/账本全都正常,不主动探测就只表现为"没有请求进来",
+             与"今天没记账"无法区分——实测这样静默断过 10.5 小时。 -->
+        <key>NEVE_TUNNEL_HOSTNAME</key>
+        <string>@NEVE_TUNNEL_HOSTNAME@</string>
     </dict>
 
     <key>RunAtLoad</key>

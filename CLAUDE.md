@@ -39,7 +39,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   部署密钥统一放 gitignore 的 `deploy/local.env`(模板 `local.env.example`),由
   `make install-service` / `make install-tunnel` 渲染注入;Tunnel ingress 只放行
   `/api/inbox`,无鉴权端点不暴露公网。AI 调用走原生 HTTP,**不引入 SDK 依赖**
-  (维持后端唯一依赖 gin)。
+  (维持后端唯一依赖 gin)。`NEVE_TUNNEL_HOSTNAME` 同时注入服务端,启用公网入口自检。
 - 前端 **TypeScript**(`vue-tsc` 校验,契约类型见 `web/src/types/api.ts`),无 UI 库
   (图标用 `@lucide/vue`),无状态管理库(以 composable 模块级单例替代 Pinia:
   `useAnalytics`/`useTheme`/`useToast`/`useBudgets`/`useDebts`),手写 CSS 变量设计系统
@@ -185,6 +185,27 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   出口统一过 `redactCredentials` 抹掉内嵌 token。
   每日兜底用**墙上时钟轮询**(`backupTickInterval` + 比对日期)而非 24h 定时器:
   后者随进程重启漂移,且睡眠期间 monotonic 定时器是否推进依平台而异。
+- **公网入口故障必须靠主动探测发现,被动等日志发现不了**(`server/api/health.go`):
+  记账链路是「快捷指令 → Cloudflare edge → tunnel → 本进程」,前两段挂掉时服务端完全无感
+  ——本机进程/端口/账本全正常,现象只是"没有请求进来",与"今天没记账"无法区分;而记账是
+  单向 fire-and-forget,用户对成功的唯一感知是 Bark 推送,收不到推送时同样分不清这两者。
+  实测 tunnel 曾静默断开 10.5 小时,期间每笔记账都石沉大海(请求没到服务端,连
+  `data/failed/` 留档都没有),靠人工翻日志才发现。故 `StartHealthChecker` 定期从公网打
+  自己的 `/api/inbox`,**拿 401 当唯一健康信号**:ingress 白名单只放行 `^/api/inbox$`,
+  加健康端点就要放宽白名单、扩大暴露面;而无令牌请求由 `handleInbox` 在读 body 前返回 401,
+  零副作用不占限流额度,且 401 只可能由本进程产生(edge 侧故障给的是 5xx/1033),
+  拿到它就证明链路确实通到了应用层。`TestInboxUnauthorizedIsHealthSignal` 锁定这个契约
+  ——鉴权改成 403 之类会让自检把正常入口全判成故障。
+  连续 `healthFailThreshold` 次失败才告警(tunnel 重连、边缘节点切换有分钟级窗口,
+  单次失败不值得推送),持续故障按 `healthAlertInterval` 节流,恢复时推一次并清零计数。
+  三个状态字段只由单个 checker goroutine 读写,故不像备份告警那样需要锁。
+- **Tunnel 强制走 HTTP/2 而非默认 QUIC**(`deploy/cloudflared-config.yml.in` 的
+  `protocol: http2`):本机 Surge 以 TUN 模式运行,`udp-policy-not-supported-behaviour=reject`
+  会把代理不支持的 UDP 直接丢弃,cloudflared 的 QUIC(UDP/7844)拨不出去,只反复报
+  `no recent network activity` 并无限重试——即上面那次 10.5 小时静默中断的根因。
+  HTTP/2 走 TCP/443 不受代理 UDP 能力影响,换网络环境也稳,对每天几笔图片上传无感知代价。
+  注意 `--protocol` 已从 `cloudflared --help` 隐藏(2026.7.3 实测仍生效),升级后连不上先查这里;
+  cloudflared 自带的启动 precheck 会打印 `suggested_protocol`,可用来复核。
 - **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
   (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。
@@ -264,6 +285,8 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   喂看板的 `due30`/`due90`;**滚动而非自然月**——按自然月算每到月末都会塌成 0)
 - `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
+- `server/api/health.go` — 公网入口自检(定期从公网打自己的 `/api/inbox`,401 判活,
+  连续失败 Bark 告警;tunnel 静默断开只能靠它发现)
 - `server/backup/backup.go` — 数据备份(账本镜像进 iCloud 外 git 仓库 + 提交/推送)
 - `server/ai/` — AI 视觉客户端(claude/gemini 原生 HTTP)+ 提示词模板(prompt.md,
   `{{DATE}}`/`{{ACCOUNTS}}` 运行时注入)

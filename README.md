@@ -93,6 +93,9 @@ NEVE_BARK_URL=https://api.day.app/<key> # Bark 推送地址 (可选)
 # 数据备份 (可选):填了远程 URL 才启用,见「数据备份」
 NEVE_BACKUP_REMOTE=git@github.com:you/neve-data.git  # git 私有远程 (建议 SSH)
 NEVE_BACKUP_DIR=                        # 镜像仓库位置,留空默认 ~/Library/Application Support/Neve/data-backup
+
+# 公网入口自检 (可选):tunnel 域名,与 make install-tunnel 同一个值
+NEVE_TUNNEL_HOSTNAME=inbox.your-domain.com  # 填了且 inbox 已启用即开启,见「Cloudflare Tunnel」
 ```
 
 部署时密钥统一放 gitignore 的 `deploy/local.env`（模板见 `deploy/local.env.example`）。
@@ -185,6 +188,10 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.cloudflared.tunnel.p
 ```
 
 > 隧道用本地托管模式（config.yml + credentials），不要用仪表盘 token 连接器——路径级 ingress 限制需要留在版本化的本地配置里。没有 Cloudflare 托管域名时可改用 Tailscale 直连。
+
+配置模板里钉死了 `protocol: http2`。cloudflared 默认走 QUIC（UDP/7844），而本机代理软件以 TUN 模式运行时常常不转发 UDP，隧道会拨不出去并无限重试——实测这样静默断过 10.5 小时，期间每笔记账都石沉大海。HTTP/2 走 TCP/443 不受影响。
+
+填了 `NEVE_TUNNEL_HOSTNAME` 后服务端会开启**公网入口自检**：每 10 分钟从公网请求一次自己的 `/api/inbox`（不带令牌，期望 401），连续 3 次失败推 Bark 告警，恢复时再推一条。隧道挂掉时本机进程、端口、账本一切正常，现象只是「没有请求进来」，与「今天没记账」无法区分，只能靠主动探测发现。
 
 ### 数据备份（iCloud 之外再加一层）
 

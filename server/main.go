@@ -53,14 +53,25 @@ func main() {
 	}
 
 	// 无感记账入口:token 与 AI 配置齐备才启用,否则 /api/inbox 返回 404
+	inboxEnabled := false
 	if inboxToken := os.Getenv("NEVE_INBOX_TOKEN"); inboxToken != "" {
 		aiClient, err := ai.NewClientFromEnv()
 		if err != nil {
 			log.Printf("Warning: inbox 未启用: %v", err)
 		} else {
 			server.EnableInbox(aiClient, inboxToken, os.Getenv("NEVE_BARK_URL"))
+			inboxEnabled = true
 			log.Printf("Inbox endpoint enabled (provider=%s)", aiClient.Provider())
 		}
+	}
+
+	// 公网入口自检:配了 tunnel 域名且 inbox 已启用才有意义(自检对象就是 inbox 入口)。
+	// tunnel 挂掉时本机一切正常,不主动探测就只表现为"没有请求进来"(见 api/health.go)。
+	if host := os.Getenv("NEVE_TUNNEL_HOSTNAME"); host != "" && inboxEnabled {
+		healthURL := "https://" + host + "/api/inbox"
+		server.EnableHealthCheck(healthURL)
+		server.StartHealthChecker()
+		log.Printf("Public endpoint health check enabled (%s)", healthURL)
 	}
 
 	// 数据备份:配置了远程 URL 才启用。服务端把账本镜像进 iCloud 外的 git 仓库并推送,
