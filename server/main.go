@@ -20,14 +20,24 @@ import (
 //go:embed static/*
 var staticFiles embed.FS
 
+// fatalLog 专走 stderr。启动期致命错误与 gin Recovery 的 panic 栈同属"进程活不下去"
+// 的信号,都该落进 neve.error.log——那个文件的价值就在于非空即真出事。
+var fatalLog = log.New(os.Stderr, "", log.LstdFlags)
+
 func main() {
+	// 应用日志改走 stdout,与 gin 的访问日志同一条时间线(launchd 把两条流分别落到
+	// neve.log / neve.error.log)。默认的 stderr 会让"错误日志"里塞满启动信息和记账
+	// 成功记录,真正的失败反被淹没,而它的轮转阈值还比访问日志更小、裁得更快。
+	// 分流后 stderr 只剩 gin Recovery 的 panic 栈:neve.error.log 非空即真出事。
+	log.SetOutput(os.Stdout)
+
 	// Get data directory from env or use default
 	dataDir := os.Getenv("NEVE_DATA_DIR")
 	if dataDir == "" {
 		// Default to ./data relative to executable
 		execPath, err := os.Executable()
 		if err != nil {
-			log.Fatal("Failed to get executable path:", err)
+			fatalLog.Fatalf("boot: 无法获取可执行文件路径: %v", err)
 		}
 		dataDir = filepath.Join(filepath.Dir(execPath), "data")
 
@@ -40,16 +50,16 @@ func main() {
 	// Convert to absolute path
 	absDataDir, err := filepath.Abs(dataDir)
 	if err != nil {
-		log.Fatal("Failed to resolve data directory:", err)
+		fatalLog.Fatalf("boot: 无法解析数据目录: %v", err)
 	}
-	log.Printf("Using data directory: %s", absDataDir)
+	log.Printf("boot: 数据目录 %s", absDataDir)
 
 	// Initialize server
 	server := api.NewServer(absDataDir)
 
 	// Load initial data
 	if err := server.Refresh(); err != nil {
-		log.Printf("Warning: Failed to load initial data: %v", err)
+		log.Printf("boot: 初始账本加载失败: %v", err)
 	}
 
 	// 无感记账入口:token 与 AI 配置齐备才启用,否则 /api/inbox 返回 404
@@ -57,11 +67,11 @@ func main() {
 	if inboxToken := os.Getenv("NEVE_INBOX_TOKEN"); inboxToken != "" {
 		aiClient, err := ai.NewClientFromEnv()
 		if err != nil {
-			log.Printf("Warning: inbox 未启用: %v", err)
+			log.Printf("boot: inbox 未启用: %v", err)
 		} else {
 			server.EnableInbox(aiClient, inboxToken, os.Getenv("NEVE_BARK_URL"))
 			inboxEnabled = true
-			log.Printf("Inbox endpoint enabled (provider=%s)", aiClient.Provider())
+			log.Printf("boot: inbox 入口已启用 (provider=%s)", aiClient.Provider())
 		}
 	}
 
@@ -71,7 +81,7 @@ func main() {
 		healthURL := "https://" + host + "/api/inbox"
 		server.EnableHealthCheck(healthURL)
 		server.StartHealthChecker()
-		log.Printf("Public endpoint health check enabled (%s)", healthURL)
+		log.Printf("boot: 公网入口自检已启用 (%s)", healthURL)
 	}
 
 	// 数据备份:配置了远程 URL 才启用。服务端把账本镜像进 iCloud 外的 git 仓库并推送,
@@ -81,7 +91,7 @@ func main() {
 		if repoDir == "" {
 			home, err := os.UserHomeDir()
 			if err != nil {
-				log.Printf("Warning: 备份未启用,无法定位 HOME: %v", err)
+				log.Printf("boot: 备份未启用,无法定位 HOME: %v", err)
 				home = ""
 			}
 			if home != "" {
@@ -91,7 +101,7 @@ func main() {
 		if repoDir != "" {
 			server.EnableBackup(backup.New(absDataDir, repoDir, remote))
 			server.StartBackupScheduler()
-			log.Printf("Data backup enabled (repo=%s)", repoDir)
+			log.Printf("boot: 数据备份已启用 (repo=%s)", repoDir)
 		}
 	}
 
@@ -99,9 +109,10 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
+	// 时间格式对齐标准库 log 的 LstdFlags:两类日志现在同流同文件,格式一致才能按时序 grep
 	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		return fmt.Sprintf("[%s] %s %s %d %s\n",
-			param.TimeStamp.Format("2006-01-02 15:04:05"),
+		return fmt.Sprintf("%s %s %s %d %s\n",
+			param.TimeStamp.Format("2006/01/02 15:04:05"),
 			param.Method,
 			param.Path,
 			param.StatusCode,
@@ -115,13 +126,13 @@ func main() {
 	// Serve static files
 	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
-		log.Fatal("Failed to setup static files:", err)
+		fatalLog.Fatalf("boot: 静态资源初始化失败: %v", err)
 	}
 
 	// Read index.html content for SPA fallback
 	indexHTML, err := fs.ReadFile(staticFS, "index.html")
 	if err != nil {
-		log.Printf("Warning: index.html not found in static files")
+		log.Printf("boot: 静态资源缺少 index.html,前端未构建")
 		indexHTML = []byte("<html><body><h1>Neve</h1><p>Frontend not built. Run: make build</p></body></html>")
 	}
 
@@ -179,9 +190,9 @@ func main() {
 		WriteTimeout:      60 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-	log.Printf("Starting Neve server on http://localhost:%s", port)
+	log.Printf("boot: 服务已启动 http://localhost:%s", port)
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal("Failed to start server:", err)
+		fatalLog.Fatalf("boot: 服务启动失败: %v", err)
 	}
 }
 

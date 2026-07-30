@@ -175,6 +175,8 @@ tail -f ~/Library/Logs/neve.log
 
 > 日期按服务器本地时区归属月份/星期，plist 模板已通过 `TZ` 显式钉死记账时区（默认 `Asia/Singapore`，按需修改），避免系统时区切换导致归属漂移。
 
+`neve.log` 是全部日志（访问日志 + 应用日志同一条时间线，应用日志带 `boot:`/`inbox:`/`health:`/`backup:`/`config:` 组件前缀，可按前缀 grep）；`neve.error.log` 只接启动期致命错误与 panic 栈，**非空即真出事**，日常不必翻。
+
 ### Cloudflare Tunnel（无感记账需要）
 
 让 iPhone 在任意网络下访问 `/api/inbox`。ingress **只放行 `/api/inbox` 一条路径**，无鉴权端点绝不暴露公网：

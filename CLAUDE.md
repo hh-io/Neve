@@ -206,6 +206,13 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   HTTP/2 走 TCP/443 不受代理 UDP 能力影响,换网络环境也稳,对每天几笔图片上传无感知代价。
   注意 `--protocol` 已从 `cloudflared --help` 隐藏(2026.7.3 实测仍生效),升级后连不上先查这里;
   cloudflared 自带的启动 precheck 会打印 `suggested_protocol`,可用来复核。
+- **stderr 只留"进程活不下去"的信号**:`main` 里 `log.SetOutput(os.Stdout)` 把应用日志
+  与 gin 访问日志合到一条时间线(落 `neve.log`,时间格式统一成 `2006/01/02 15:04:05`),
+  stderr 只剩启动期致命错误(走 `fatalLog`)与 Recovery 的 panic 栈(落 `neve.error.log`)。
+  **`neve.error.log` 非空即真出事**是这个文件的全部价值,别往里写正常信息——用默认 stderr
+  时它塞满了启动信息和"记账成功"的交易明细,真正的失败反被淹没,而 newsyslog 给它的
+  轮转阈值(1MB)还比访问日志(5MB)小,信噪比最差的那份反倒裁得最快。新增日志一律
+  `组件: 中文描述` 前缀(`boot`/`inbox`/`health`/`backup`/`config`),便于按组件 grep。
 - **日期按服务器本地时区**解析与归属,部署时用 `TZ` 显式钉死记账时区
   (当前 `Asia/Singapore`,见 `deploy/com.neve.server.plist.in`)。
   同日交易按文件行序稳定排序。

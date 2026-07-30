@@ -5,6 +5,9 @@
 # when=*    只按大小轮转,不按时间
 # J         bzip2 压缩历史日志
 # N         轮转后不发信号 (无 pid 文件;进程重启时自然切到新文件)
+#
+# neve.log(stdout)  访问日志 + 应用日志,量大故给 5MB
+# neve.error.log(stderr)  只有启动期致命错误与 panic 栈,正常情况恒为空,1MB 绰绰有余
 
 @HOME@/Library/Logs/neve.log          @USER@:staff  644  7  5120  *  JN
 @HOME@/Library/Logs/neve.error.log    @USER@:staff  644  7  1024  *  JN
