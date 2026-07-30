@@ -339,7 +339,9 @@ const nextDueText = computed(() => {
 // 消费日历热力图(与趋势页同口径:顺序绿标度,与收入语义绿独立)
 const heatmapOption = computed(() => {
   void themeVersion.value;
-  const heatmapData = dailyTrend.value.map(d => [d.date, Math.abs(d.expense)] as [string, number]);
+  // 净支出为负的日子(退款多于消费)当 0:顺序绿标度画不出负值,取绝对值会把
+  // 「净退回 40」染成「花了 40」的深色。与资金流向图丢弃负净额分类同一取舍
+  const heatmapData = dailyTrend.value.map(d => [d.date, Math.max(0, d.expense)] as [string, number]);
   if (heatmapData.length === 0) return null;
   const maxExpense = Math.max(...heatmapData.map(d => d[1])) || 1;
   return {

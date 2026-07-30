@@ -168,7 +168,9 @@ const trendChartOption = computed(() => {
         lineStyle: { color: expenseColor, width: 2 },
         itemStyle: { color: expenseColor },
         areaStyle: { color: areaGradient(expenseColor) },
-        data: data.map(d => Math.abs(d.expense))
+        // 保留符号:后端是净额口径,日粒度下退款多于消费的那天为负,
+        // 折线掉到 0 轴以下才是实情;取绝对值会翻转成同额支出
+        data: data.map(d => d.expense)
       }
     ]
   };

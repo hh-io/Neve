@@ -26,7 +26,11 @@
       >
         <template v-if="cell.date">
           <span class="date-num">{{ cell.day }}</span>
-          <span v-if="cell.expense" class="expense-amount">-{{ formatAmount(cell.expense) }}</span>
+          <span
+            v-if="cell.expense"
+            class="expense-amount"
+            :class="{ 'is-refund': cell.expense < 0 }"
+          >{{ formatExpense(cell.expense) }}</span>
           <span v-if="cell.income" class="income-amount">+{{ formatAmount(cell.income) }}</span>
         </template>
         <template v-else>
@@ -100,8 +104,10 @@ const dailyMap = computed(() => {
   const map: Record<string, { expense: number; income: number }> = {};
   props.dailyData.forEach(d => {
     if (d.date) {
+      // 保留 expense 的符号:后端是净额口径(退款为负 Expenses posting),
+      // 取绝对值会把「净退回 40」画成「花了 40」,误差是金额的两倍
       map[d.date] = {
-        expense: Math.abs(d.expense || 0),
+        expense: d.expense || 0,
         income: d.income || 0
       };
     }
@@ -174,13 +180,23 @@ function getCellClass(cell: CalendarCell): string[] {
   const income = cell.income || 0;
   if (expense > 0 && income > 0) classes.push('mixed');
   else if (expense > 0) classes.push('has-expense');
-  else if (income > 0) classes.push('has-income');
+  // 净支出为负(当天退款多于消费)钱是往回走的,底色跟收入同侧
+  else if (income > 0 || expense < 0) classes.push('has-income');
   return classes;
+}
+
+// 支出侧带符号:正常消费 -18,净退回 +2
+function formatExpense(amount: number): string {
+  return `${amount < 0 ? '+' : '-'}${formatAmount(Math.abs(amount))}`;
 }
 
 function formatAmount(amount: number): number | string {
   if (amount >= 1000) {
     return (amount / 1000).toFixed(1) + 'k';
+  }
+  // 好评返现之类的角分金额,四舍五入会塌成 0
+  if (amount > 0 && amount < 1) {
+    return amount.toFixed(1);
   }
   return Math.round(amount);
 }
@@ -311,6 +327,10 @@ function formatAmount(amount: number): number | string {
   color: var(--expense);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+
+.expense-amount.is-refund {
+  color: var(--income);
 }
 
 .income-amount {

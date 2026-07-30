@@ -76,6 +76,13 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `transferAmount`、`feeAmount`。前端禁止从 postings 推断交易类型/金额
   (`useCategories.ts` 的 `processTransaction` 只派生展示字段)。
   统计按 posting 级聚合:转账本金不计支出,手续费计入;退款(负 Expenses)按净额冲减。
+  **前端展示层不许对 `expense` 取绝对值**:净额口径下退款多于消费的那天
+  `dailyTrend[].expense` 为负(日粒度很常见,一笔价保退款就够),`Math.abs` 把
+  「净退回 10.8」翻成「花了 10.8」,误差是金额的两倍——日历格子、概览热力图、
+  趋势折线曾同时犯过。日历带符号展示(`formatExpense`,净退回显示 `+N` 并染
+  `--income`、底色走 `has-income`),折线直接用原值让它掉到 0 轴以下,热力图只能
+  `Math.max(0, …)` 归零(顺序绿标度画不出负值,与资金流向图丢弃负净额分类同一取舍)。
+  月粒度那几处 `Math.abs`(`monthExpense`/环比/结余)因整月净退款不现实而无害,别新增。
 - **每个统计字段的时间口径是页面契约的一部分**:`expenseByCategory`、`platformRanking`、
   `merchantRanking`、`incomeBreakdown`、`fundFlow` 都是**本月**口径(「收支分析」页整页同期);
   `weekdayDistribution`(星期分布)、`categoryTrends`(近 6 月)、各 `*Trend` 是**跨期**口径,
