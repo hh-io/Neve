@@ -3,6 +3,13 @@
 tunnel: @NEVE_TUNNEL_ID@
 credentials-file: @HOME@/.cloudflared/@NEVE_TUNNEL_ID@.json
 
+# 强制 HTTP/2(TCP/443)而非默认 QUIC(UDP/7844):本机 Surge 走 TUN 模式,
+# UDP 不支持时按 udp-policy-not-supported-behaviour=reject 直接丢包,cloudflared 只报
+# "no recent network activity" 并无限重试——tunnel 静默断了 10 小时都没有任何信号。
+# HTTP/2 走 TCP,不受代理 UDP 能力影响,换网络环境也稳。
+# 注意 --protocol 已从 cloudflared --help 隐藏(2026.7.3 仍生效),升级后若连不上先查这里。
+protocol: http2
+
 ingress:
   - hostname: @NEVE_TUNNEL_HOSTNAME@
     path: ^/api/inbox$
