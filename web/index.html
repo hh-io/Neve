@@ -8,7 +8,11 @@
          由 --safe-top/--safe-bottom(variables.css)把安全区补进内边距与 sticky 偏移 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Neve - Personal Accounting Dashboard" />
-    <!-- 主题默认跟随系统,状态栏底色按 scheme 给两份(值 = variables.css 的 --canvas) -->
+    <!-- 主题默认跟随系统,故按 scheme 给两份(值 = variables.css 的 --canvas)。
+         只作用于 Safari 的浏览器 chrome 与 Android Chrome;iOS 加到主屏后的状态栏
+         不读 theme-color,归 apple-mobile-web-app-status-bar-style 管——但那个只有
+         default/black/black-translucent 三档、都不跟随亮暗(black-translucent 的白字
+         是写死的,亮色主题下不可读),故不设,由 iOS 自己按页面背景处理 -->
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0d10" />
     <link rel="manifest" href="/manifest.webmanifest" />
