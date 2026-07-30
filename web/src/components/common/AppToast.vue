@@ -18,7 +18,8 @@ const { toast } = useToast();
 <style scoped>
 .toast {
   position: fixed;
-  bottom: 24px;
+  /* viewport-fit=cover 后 24px 会落进 Home 指示条那一段 */
+  bottom: calc(24px + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 20px;

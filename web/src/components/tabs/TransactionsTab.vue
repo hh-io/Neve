@@ -218,6 +218,10 @@ watch(totalPages, (pages) => {
   /* 两层 sticky 的偏移量:日期头要停在筛选行下沿。
      = 药丸行高(34) + 筛选行上下各 space-3(12);改筛选行的 padding/控件尺寸要一并调 */
   --tx-filters-h: 58px;
+  /* index.html 的 viewport-fit=cover 让视口顶端伸到状态栏/灵动岛底下,两层 sticky
+     要整体下移一个安全区(iOS 上不移则筛选行钉进状态栏)。第二层的「与筛选行下沿同线」
+     只在这一处表达,左列日期头与右列日历共用 */
+  --tx-day-top: calc(var(--safe-top) + var(--tx-filters-h));
 }
 
 .tx-main {
@@ -236,7 +240,7 @@ watch(totalPages, (pages) => {
   /* 这页要连续滚很久,换筛选条件不该逼用户先滚回顶部。
      页面滚动是 document 级(.main-content 没有 overflow),故 top 直接相对视口 */
   position: sticky;
-  top: 0;
+  top: var(--safe-top);
   z-index: 20;
   background: var(--canvas);
   /* 上下补出背景带,滚过的交易行不至于擦着药丸边缘走。
@@ -323,7 +327,7 @@ watch(totalPages, (pages) => {
   background: var(--surface-2);
   /* 每天一张独立卡片,sticky 天然被限制在本日范围内:滚到次日时旧日期头被顶走 */
   position: sticky;
-  top: var(--tx-filters-h);
+  top: var(--tx-day-top);
   z-index: 10;
 }
 
@@ -459,7 +463,7 @@ watch(totalPages, (pages) => {
 .tx-cal {
   position: sticky;
   /* 与左列钉住的日期头同高,两列停在同一条线上 */
-  top: var(--tx-filters-h);
+  top: var(--tx-day-top);
 }
 
 @media (max-width: 1024px) {

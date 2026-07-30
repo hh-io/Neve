@@ -3,8 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/neve.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover:iOS 主屏 Web App(standalone)不给底部 Home 指示条留安全区,
+         而不加 cover 时 env(safe-area-inset-*) 一律返回 0,拿不到实际值补偿。铺满物理屏幕后
+         由 --safe-top/--safe-bottom(variables.css)把安全区补进内边距与 sticky 偏移 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Neve - Personal Accounting Dashboard" />
+    <!-- 主题默认跟随系统,状态栏底色按 scheme 给两份(值 = variables.css 的 --canvas) -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0d10" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- iOS 主屏图标只认 apple-touch-icon 的 PNG(不支持 SVG,也不读 manifest.icons),
+         缺了就拿页面截图当图标。PNG 由 neve.svg 渲染而来,重生成命令见 README -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Neve" />
     <title>Neve</title>
   </head>
   <body>

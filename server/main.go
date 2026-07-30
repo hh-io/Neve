@@ -184,6 +184,8 @@ func getContentType(fileName string) string {
 		return "application/javascript; charset=utf-8"
 	case strings.HasSuffix(fileName, ".json"):
 		return "application/json; charset=utf-8"
+	case strings.HasSuffix(fileName, ".webmanifest"):
+		return "application/manifest+json; charset=utf-8"
 	case strings.HasSuffix(fileName, ".svg"):
 		return "image/svg+xml"
 	case strings.HasSuffix(fileName, ".png"):

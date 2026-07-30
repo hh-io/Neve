@@ -199,6 +199,25 @@ NEVE_BACKUP_REMOTE=git@github.com:you/neve-data.git   # 务必是私有库,内�
 
 > 建议用 SSH remote：若填 `https://<token>@…` 形式，token 会明文存进镜像仓库的 `.git/config`（该目录已设 0700，报错信息也会抹掉凭据，但仍不如 SSH 干净）。
 
+### 添加到 iPhone 主屏
+
+Safari 打开站点 → 分享 → 添加到主屏幕，即以 `standalone` 全屏方式运行（`web/public/manifest.webmanifest`）。
+
+主屏图标走 `apple-touch-icon.png`——iOS 不认 SVG，也不读 `manifest.icons`，缺这个 PNG 时它会拿页面截图当图标。三个 PNG 由 `web/public/neve.svg` 渲染而来，改了 logo 就重生成一遍（图标本身是方图满幅，圆角交给 iOS 遮罩，别在源图里再切一次）：
+
+```bash
+# rx 是 favicon 用的圆角,主屏图标要方图满幅
+sed 's/ rx="7"//' web/public/neve.svg > /tmp/neve-icon-src.svg
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
+  --hide-scrollbars --screenshot=/tmp/icon-1024.png --window-size=1024,1024 file:///tmp/neve-icon-src.svg
+python3 -c "
+from PIL import Image
+src = Image.open('/tmp/icon-1024.png').convert('RGB')
+for s, n in ((180, 'apple-touch-icon.png'), (192, 'icon-192.png'), (512, 'icon-512.png')):
+    src.resize((s, s), Image.LANCZOS).save('web/public/' + n, optimize=True)
+"
+```
+
 > **为什么由服务端做而非独立定时任务**:数据位于快捷指令 App 的 iCloud 容器,属 macOS TCC 重点保护区。launchd 下未获授权的进程对该目录 `readdir`/`chdir` 一律 `Operation not permitted`,git 无法直接托管;而服务端进程已获该容器读权限,遂由它读出内容写进 iCloud 外的镜像,git 只对镜像操作,彻底绕开限制。
 
 ## 与 Claude Code 共同开发

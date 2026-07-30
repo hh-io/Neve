@@ -204,8 +204,9 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   组件样式写 `<style scoped>` 或提炼进 `styles/components.css` 共享类
   (如 `.panel`/`.filter-pill`/`.empty-state`)。**scoped 不穿透子组件**:父组件里定义、
   子组件模板复用的类必须放共享层,否则子组件那份渲染成裸元素。
-- **交易明细页是两层 sticky**:筛选行钉 `top: 0`,日期分组头钉 `top: var(--tx-filters-h)`
-  (定义在 `.tx-layout`,值 = 实测的筛选行高度 58px,改控件尺寸/内边距要同步改),
+- **交易明细页是两层 sticky**:筛选行钉 `top: var(--safe-top)`,日期分组头钉
+  `top: var(--tx-day-top)`(= `--safe-top` + `--tx-filters-h`,两者都定义在 `.tx-layout`,
+  后者是实测的筛选行高度 58px,改控件尺寸/内边距要同步改;安全区偏移见下条),
   右侧日历也停在同一条线上。筛选行**不能用负 margin 往上提**换取紧凑:它的顶边要与
   右列日历卡顶边同线,`padding-block: var(--space-3)` 又正好让搜索框/药丸的中心落在
   日历卡标题中心上(两者都是「顶边 + 12 + 控件半高」),动其一即破坏这两处对齐。列表**不做固定高度 + 内滚**——那会造出第二个滚动容器,
@@ -213,6 +214,21 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   会让它变成滚动容器、使内部 sticky 相对它定位而失效,故该页覆盖成 `overflow: clip`
   (同样裁圆角,但不建立滚动容器)。页面滚动是 document 级(`.main-content` 无 overflow),
   sticky 的 top 才能直接相对视口。
+- **安全区一律走 `--safe-top`/`--safe-bottom`,不直接写 `env()`**(定义在
+  `variables.css`,默认 0,由 `@supports` 在支持 `env()` 时覆盖成实际值)。
+  `index.html` 带 `viewport-fit=cover`:iOS 加到主屏后以 standalone 运行,系统**不给底部
+  Home 指示条留安全区**,而不加 cover 时 `env(safe-area-inset-*)` 恒返回 0——拿不到值就没法
+  补偿,故只能铺满物理屏幕后自己让位。代价是顶部的自动退让也一并撤销,于是
+  `.main-content` 的 `padding-top`、交易页两层 sticky 的 `top` 都要显式加 `--safe-top`,
+  否则内容/筛选行会钉进状态栏。Safari 里这两个值为 0(浏览器 chrome 已占位),
+  `calc()` 自然退化成原值,**双端同一份 CSS**。
+  **底栏让位靠加高整条 `.mobile-nav`**(`height: calc(64px + var(--safe-bottom))`)
+  **而非只加 `padding-bottom`**:高度固定时变大的下内边距会把 24px 图标 + 文字挤出 48px
+  内容盒,standalone 下文字直接被裁。同理 `padding-block` 不写 `padding` 简写——简写会清掉
+  基础规则里的左右安全区退让,而横屏正是刘海在侧边、最需要它的时候。
+  `.main-content` 的 `padding-bottom` 与底栏高度同源,改一处要改两处。
+  主屏图标只认 `apple-touch-icon.png`(iOS 不吃 SVG,也不读 `manifest.icons`),
+  缺了会拿页面截图当图标;PNG 由 `neve.svg` 渲染,重生成命令见 README。
 - **分类中文映射只有一份**:`web/src/composables/useCategories.ts` 的 `categoryLabels`。
 - 改解析/统计逻辑必须同步更新 `parser_test.go` / `analytics_test.go`
   (`AnalyzeAt` 可注入时钟,fixture 写 `t.TempDir()`)。
