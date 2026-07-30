@@ -13,7 +13,11 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: var(--sidebar-width);
+    /* 横屏时刘海可能落在左侧,而侧边栏是贴边的固定元素:整条加宽并把内容右推一个安全区,
+       让刘海压在纯背景上(border-box 下内容区仍是 --sidebar-width)。
+       iPhone 横屏走桌面分支,故这里而非移动端媒体查询才是正确位置 */
+    width: calc(var(--sidebar-width) + var(--safe-left));
+    padding-left: var(--safe-left);
     height: 100vh;
     background-color: var(--bg-secondary);
     border-right: 1px solid var(--border);
@@ -25,10 +29,13 @@
 
 .main-content {
     flex: 1;
-    margin-left: var(--sidebar-width);
+    /* 侧边栏已含左安全区,内容左边距要跟着走,否则被压在栏下 */
+    margin-left: calc(var(--sidebar-width) + var(--safe-left));
     padding: var(--space-8);
-    /* viewport-fit=cover 撤掉了系统的自动退让,顶部内边距要自己补出状态栏/灵动岛那段 */
+    /* viewport-fit=cover 撤掉了系统的自动退让,内边距要自己补出状态栏/灵动岛那段;
+       右侧同理(横屏刘海可能在右) */
     padding-top: calc(var(--space-8) + var(--safe-top));
+    padding-right: max(var(--space-8), var(--safe-right));
     min-height: 100vh;
 }
 

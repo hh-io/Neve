@@ -59,10 +59,16 @@
     --sidebar-width: 236px;
 
     /* 安全区(刘海/灵动岛 · Home 指示条)。index.html 带 viewport-fit=cover,页面铺满
-       物理屏幕,顶部内边距、sticky 偏移、底栏高度都要自己把这两段补出来。
-       非 iPhone / 桌面端恒为 0,写进 calc() 不影响原有取值 */
+       物理屏幕,顶部内边距、sticky 偏移、底栏高度都要自己把这四段补出来。
+       非 iPhone / 桌面端恒为 0,写进 calc() 不影响原有取值。
+       左右两段是横屏用的(刘海转到侧边,哪一侧由旋转方向决定,故两侧都要让):
+       iPhone 横屏逻辑宽度约 874px > 768,走的是**桌面布局**分支(侧边栏出现、
+       底栏隐藏),所以左右退让必须写在与断点无关的基础规则上,挂在移动端媒体查询里
+       等于没写 */
     --safe-top: 0px;
     --safe-bottom: 0px;
+    --safe-left: 0px;
+    --safe-right: 0px;
 }
 
 /* 不用 env() 的第二参数兜底:env() 本身不被支持时整条声明会残留成无法解析的
@@ -71,6 +77,8 @@
     :root {
         --safe-top: env(safe-area-inset-top);
         --safe-bottom: env(safe-area-inset-bottom);
+        --safe-left: env(safe-area-inset-left);
+        --safe-right: env(safe-area-inset-right);
     }
 }
 

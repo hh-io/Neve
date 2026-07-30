@@ -214,19 +214,26 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   会让它变成滚动容器、使内部 sticky 相对它定位而失效,故该页覆盖成 `overflow: clip`
   (同样裁圆角,但不建立滚动容器)。页面滚动是 document 级(`.main-content` 无 overflow),
   sticky 的 top 才能直接相对视口。
-- **安全区一律走 `--safe-top`/`--safe-bottom`,不直接写 `env()`**(定义在
-  `variables.css`,默认 0,由 `@supports` 在支持 `env()` 时覆盖成实际值)。
+- **安全区一律走 `--safe-top`/`--safe-bottom`/`--safe-left`/`--safe-right`,不直接写
+  `env()`**(定义在 `variables.css`,默认 0,由 `@supports` 在支持 `env()` 时覆盖成实际值)。
   `index.html` 带 `viewport-fit=cover`:iOS 加到主屏后以 standalone 运行,系统**不给底部
   Home 指示条留安全区**,而不加 cover 时 `env(safe-area-inset-*)` 恒返回 0——拿不到值就没法
   补偿,故只能铺满物理屏幕后自己让位。代价是顶部的自动退让也一并撤销,于是
   `.main-content` 的 `padding-top`、交易页两层 sticky 的 `top` 都要显式加 `--safe-top`,
   否则内容/筛选行会钉进状态栏。Safari 里这两个值为 0(浏览器 chrome 已占位),
   `calc()` 自然退化成原值,**双端同一份 CSS**。
-  **底栏让位靠加高整条 `.mobile-nav`**(`height: calc(64px + var(--safe-bottom))`)
-  **而非只加 `padding-bottom`**:高度固定时变大的下内边距会把 24px 图标 + 文字挤出 48px
-  内容盒,standalone 下文字直接被裁。同理 `padding-block` 不写 `padding` 简写——简写会清掉
-  基础规则里的左右安全区退让,而横屏正是刘海在侧边、最需要它的时候。
-  `.main-content` 的 `padding-bottom` 与底栏高度同源,改一处要改两处。
+  **底栏让位靠加高整条 `.mobile-nav`**(`height: var(--mobile-nav-total)`)**而非只加
+  `padding-bottom`**:高度固定时变大的下内边距会把 24px 图标 + 文字挤出 48px 内容盒,
+  standalone 下文字直接被裁。栏高与 `.main-content` 的 `padding-bottom` **共用
+  `--mobile-nav-total`**(= `--mobile-nav-height` + `--safe-bottom`),横屏收窄底栏也只改
+  `--mobile-nav-height` 这一个源,两处不会漂。同理 `padding-block` 不写 `padding`
+  简写——简写会清掉基础规则里的左右安全区退让。
+  **左右安全区必须写在与断点无关的基础规则上**(`.sidebar` / `.main-content` 本体,
+  而非 `≤768` 的移动端块):iPhone **横屏逻辑宽度约 874px > 768**,走的是**桌面布局**分支
+  (侧边栏出现、底栏隐藏),挂在移动端媒体查询里的左右退让在真机横屏时一行都不生效
+  ——这是真机踩出来的,别再挂错层。侧边栏是贴边固定元素,故 `width` 加上 `--safe-left`
+  且 `padding-left` 同值(border-box 下内容区仍是 `--sidebar-width`),`.main-content`
+  的 `margin-left` 要跟着含进去;刘海落哪一侧由旋转方向决定,两侧都要让。
   主屏图标只认 `apple-touch-icon.png`(iOS 不吃 SVG,也不读 `manifest.icons`),
   缺了会拿页面截图当图标;PNG 由 `neve.svg` 渲染,重生成命令见 README。
 - **分类中文映射只有一份**:`web/src/composables/useCategories.ts` 的 `categoryLabels`。
