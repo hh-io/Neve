@@ -29,6 +29,13 @@
 
 .main-content {
     flex: 1;
+    /* ECharts 的 canvas 带固定 inline 宽度,是不可收缩内容。这里是 .app-layout(flex)
+       的子项,默认 min-width: auto 会把 min-content 顶成 canvas 的宽度,于是**变宽能
+       跟随、变窄回不去**:手机横屏把图表撑到 874,转回竖屏时容器被 canvas 顶住无法收缩,
+       ResizeObserver 看到宽度没变就不再 resize,自锁——「横屏一次就再也回不去」。
+       钉 0 后整条链解锁(实测只需这一处,内层会随 canvas 收敛)。
+       同理见 TransactionsTab 的 .tx-main */
+    min-width: 0;
     /* 侧边栏已含左安全区,内容左边距要跟着走,否则被压在栏下 */
     margin-left: calc(var(--sidebar-width) + var(--safe-left));
     padding: var(--space-8);

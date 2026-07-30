@@ -236,6 +236,17 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   的 `margin-left` 要跟着含进去;刘海落哪一侧由旋转方向决定,两侧都要让。
   主屏图标只认 `apple-touch-icon.png`(iOS 不吃 SVG,也不读 `manifest.icons`),
   缺了会拿页面截图当图标;PNG 由 `neve.svg` 渲染,重生成命令见 README。
+- **图表祖先链上的 flex 子项必须 `min-width: 0`**(`.main-content` / `.tx-main`):
+  ECharts 的 canvas 带固定 inline 宽度,是**不可收缩内容**,而 flex 子项默认
+  `min-width: auto` 会把自己的 min-content 顶成 canvas 的宽度。后果是**变宽能跟随、
+  变窄回不去**——手机横屏把图表撑到 874px,转回竖屏时容器被 canvas 顶住无法收缩,
+  `ResizeObserver`(`<v-chart autoresize>`)看到宽度没变就不再 resize,形成自锁,
+  「横屏一次就再也回不去」,内容右侧被切出屏幕。`.main-content` 是 `.app-layout`(flex)
+  的子项,钉 0 后整条链解锁(实测只需这一处,内层随 canvas 一起收敛;卡片层再加是噪声)。
+  排查手法:把 `.app-layout` 的 `width` 钉成竖屏宽度,看 `.main-content` 是否跟着变窄
+  ——比改窗口尺寸精确,浏览器窗口在全屏态下 resize 不生效。
+  **别用 `*:has(.echarts)` 这种通配 `:has()` 兜底**:实测会触发全量样式重算,渲染进程
+  直接卡死 45s 以上。
 - **分类中文映射只有一份**:`web/src/composables/useCategories.ts` 的 `categoryLabels`。
 - 改解析/统计逻辑必须同步更新 `parser_test.go` / `analytics_test.go`
   (`AnalyzeAt` 可注入时钟,fixture 写 `t.TempDir()`)。
