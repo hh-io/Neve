@@ -299,6 +299,36 @@ func TestCheckTransactionOnly(t *testing.T) {
 	}
 }
 
+// 退款/返现是负 Expenses,与正常消费走的是相反符号;prompt.md 明确要求返现冲减原分类
+// 而非记 Income,这里锁定这类候选不会被落盘前的质量闸门拦掉。
+func TestValidateCandidateRefundAndCashback(t *testing.T) {
+	accounts := `option "operating_currency" "CNY"
+2020-01-01 open Assets:Cash:WeChat CNY
+2020-01-01 open Liabilities:Meituan:MP CNY
+2020-01-01 open Expenses:Food:Delivery CNY
+2020-01-01 open Income:Other CNY`
+
+	cases := map[string]string{
+		"退款进的账户与原付款账户不同": `2026-07-30 * "重庆鸡公煲" "退款" #meituan
+  Assets:Cash:WeChat             18.10 CNY
+  Expenses:Food:Delivery        -18.10 CNY`,
+		"好评返现的角分金额": `2026-07-30 * "商家" "好评返现" #meituan
+  Assets:Cash:WeChat             0.30 CNY
+  Expenses:Food:Delivery        -0.30 CNY`,
+		"返现冲减负债账户": `2026-07-30 * "商家" "返现" #meituan
+  Liabilities:Meituan:MP         2.50 CNY
+  Expenses:Food:Delivery        -2.50 CNY`,
+		"与消费无关的奖励仍走 Income": `2026-07-30 * "美团" "拉新奖励" #meituan
+  Assets:Cash:WeChat             5.00 CNY
+  Income:Other                  -5.00 CNY`,
+	}
+	for name, candidate := range cases {
+		if err := validateCandidate(accounts, candidate); err != nil {
+			t.Errorf("%s 被预校验拒绝: %v", name, err)
+		}
+	}
+}
+
 func TestCleanAIOutput(t *testing.T) {
 	cases := map[string]string{
 		"plain":                          "plain",
