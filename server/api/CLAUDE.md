@@ -20,6 +20,8 @@
   账户白名单、又是 `validateCandidate` 临时账本里唯一的 open 来源,只扫 main.bean 的话,
   账户 open 在子文件里的用户会遇到「AI 看不见该账户 → 照着账本写反而 UNKNOWN_ACCOUNT
   → 两次尝试全废」。
+- **识别提示词的唯一真源是 `server/ai/prompt.md`**(`{{DATE}}`/`{{ACCOUNTS}}` 运行时注入):
+  快捷指令本身不再携带提示词,只上传图片到 `/api/inbox`,别在快捷指令侧复制一份。
 - **已发布的 `s.analytics` 必须当只读**:`ApplyLongTermLiabilities` 是就地修改,
   `handleAnalytics` 锁内只取指针、脱锁才序列化,就地改会与正在编码 JSON 的请求竞争
   (`TestAnalyticsReadWhileDebtsSaved` 用 -race 锁定)。故 `handleSaveDebts` 走

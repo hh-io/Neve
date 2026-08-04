@@ -37,6 +37,10 @@
   `PaymentSchedule` 的常驻口径说明不可删——明细里 `statement` 与 `unbilled`
   **合并呈现为同一类「信用卡账单」**(同名同色),仅靠标记文案「账单」/「账单 · 预估」
   区分后者金额还会变;两者永不落在同一月(本期与下期账单差一个账单周期),故无需真合并数组。
+- **`types/api.ts` 是 `/api/analytics` 的契约类型,逐字段对照后端 struct 的 JSON tag**:
+  后端改字段名/口径要同步改这里,连字段注释里的时间口径一起改。
+- **`SpendingTab.vue` 的资金流向桑基图只消费 `fundFlow`,自身不聚合**
+  (三层聚合与不变量在后端,见 `server/parser/CLAUDE.md`)。
 - **`useDebtValidation.ts` 只为即时反馈**:规则镜像 `debts.go` 的 `Validate()`
   (后端 400 一次只回 details[0]),**后端仍是唯一权威**,别在前端加后端没有的规则。
 - **ECharts 颜色**:canvas 不解析 CSS 变量,option 里必须用

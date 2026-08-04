@@ -232,7 +232,7 @@ for s, n in ((180, 'apple-touch-icon.png'), (192, 'icon-192.png'), (512, 'icon-5
 这个项目是与 [Claude Code](https://claude.com/claude-code) 深度协作开发的实践：
 
 - **全程结对** — 从 Beancount 解析器、定点金额类型、交易分类算法，到前端设计 token 体系与图表组件，绝大部分代码由 Claude Code 编写，作者负责需求定义、方案取舍与代码审查；
-- **约定沉淀** — 项目的正确性约定（定点运算、软失败、AI 预校验等）沉淀在 [`CLAUDE.md`](CLAUDE.md) 中，作为每次协作的上下文与红线；
+- **约定沉淀** — 项目的正确性约定（定点运算、软失败、AI 预校验等）沉淀在 [`CLAUDE.md`](CLAUDE.md) 中，作为每次协作的上下文与红线；跨目录的硬约束留在根部，只服务单个模块的口径拆到 `server/parser/`、`server/api/`、`server/backup/`、`deploy/`、`web/` 各自的 `CLAUDE.md`，改到哪读哪；
 - **联合署名** — 提交历史中保留 `Co-Authored-By: Claude` 署名，如实记录人机协作过程。
 
 如果你也想体验这种开发方式，可以从 [Claude Code 文档](https://code.claude.com/docs)开始。
@@ -241,7 +241,7 @@ for s, n in ((180, 'apple-touch-icon.png'), (192, 'icon-192.png'), (512, 'icon-5
 
 欢迎提交 Issue 和 Pull Request。提交前请：
 
-1. 阅读 [`CLAUDE.md`](CLAUDE.md) 中的正确性约定（改代码前必读）；
+1. 阅读 [`CLAUDE.md`](CLAUDE.md) 中的正确性约定（改代码前必读），以及所改目录下的那份 `CLAUDE.md`；
 2. 运行 `make build` 确保 lint、类型检查与测试全部通过；
 3. 提交信息使用 conventional commit 格式（`type: 描述`）。
 
