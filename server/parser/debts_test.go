@@ -280,7 +280,7 @@ func TestComputeDebtsInstallmentWithPointsDeduction(t *testing.T) {
 		mkTx("2026-08-03",
 			po(loan, 172139),
 			po("Assets:Bank:PSBC", -170339),
-			po("Income:Other", -1800)),
+			po("Income:Rewards", -1800)),
 	)
 
 	// 还款日(8/3)已过,认不出这笔还款就会判成逾期

@@ -28,7 +28,8 @@ export const categoryLabels: Record<string, string> = {
     Dividend: '股息',
     Investment: '投资',
     SecondHand: '闲置交易',
-    Family: '家人'
+    Family: '家人',
+    Rewards: '积分/权益'
 };
 
 // Get localized category label

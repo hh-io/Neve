@@ -79,7 +79,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   **transfer 分支必须排在 income/mixed 之前**:「两个真实账户间有资金对流」
   (`transferAmt = min(posReal, negReal) > 0`)是转账的结构性强特征——纯收入交易只有正向真实腿、
   纯支出只有负向真实腿,都不会误命中。排在后面时,还款用积分抵掉部分现金那类交易
-  (负债 +1721.39 / 资产 -1703.39 / `Income:Other` -18)会被 `incNet > 0` 先截成 income,
+  (负债 +1721.39 / 资产 -1703.39 / `Income:Rewards` -18)会被 `incNet > 0` 先截成 income,
   而 `debts.go` 的分期已还判定走 `creditsAfter(..., transferOnly=true)` **只认 `kind=transfer`**,
   于是整期误报逾期、`MonthRemaining` 虚增一整笔月供。**改这里的分支顺序等于改分期还款的已还判定**。
   护栏是 `incNet < transferAmt`(Income 腿小于对流本金 = 抵扣/返还,不是独立收入事件),

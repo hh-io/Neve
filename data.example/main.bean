@@ -37,7 +37,8 @@ option "operating_currency" "CNY"
 2020-01-01 open Income:Dividend                        CNY ; 股息
 2020-01-01 open Income:Investment                      CNY ; 投资
 2020-01-01 open Income:SecondHand                      CNY ; 闲置交易/闲鱼
-2020-01-01 open Income:Other                           CNY ; 其他
+2020-01-01 open Income:Rewards                         CNY ; 积分/权益返还 (平台或银行给的,区别于 Gift 的人给的)
+2020-01-01 open Income:Other                           CNY ; 其他 (兜底,识别不出来源时才用)
 
 ;; 人情往来 (收入)
 2020-01-01 open Income:Gift                            CNY ; 收到红包/赠予 (记为负数)

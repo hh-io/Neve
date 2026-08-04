@@ -86,7 +86,7 @@ func TestClassifyTransaction(t *testing.T) {
 			tx: mkTx("2026-08-03",
 				po("Liabilities:Loan:ECMB", 172139),
 				po("Assets:Bank:PSBC", -170339),
-				po("Income:Other", -1800)),
+				po("Income:Rewards", -1800)),
 			wantKind: "transfer", wantDisplay: 170339, wantTransfer: 170339,
 			wantCategory: "Financial",
 		},
