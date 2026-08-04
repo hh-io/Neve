@@ -103,14 +103,14 @@
       </div>
     </section>
 
-    <!-- 支出分类环形图 + 最近交易 -->
+    <!-- 支出分类榜 + 最近交易 -->
     <div class="ov-row3">
       <section class="card ov-panel">
         <div class="ov-panel-head">
           <h3>支出分类</h3>
-          <span class="ov-panel-sub">本月</span>
+          <span class="ov-panel-sub">本月 · 环比上月</span>
         </div>
-        <ExpenseDonut :data="expenseByCategory" show-percent />
+        <ExpenseCategoryBoard :data="expenseByCategory" />
       </section>
 
       <section class="card ov-panel">
@@ -144,7 +144,7 @@ import { getThemeColor, themeVersion } from '../../composables/useThemeColor';
 import { useAnalytics } from '../../composables/useAnalytics';
 import { useDebts } from '../../composables/useDebts';
 import TransactionList from '../TransactionList.vue';
-import ExpenseDonut from '../ExpenseDonut.vue';
+import ExpenseCategoryBoard from '../ExpenseCategoryBoard.vue';
 
 use([HeatmapChart, TooltipComponent, CalendarComponent, VisualMapComponent, CanvasRenderer]);
 

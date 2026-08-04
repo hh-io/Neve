@@ -31,6 +31,10 @@ type CategoryAmount struct {
 	Amount   Amount  `json:"amount"`
 	Percent  float64 `json:"percent"`
 	Count    int     `json:"count"`
+	// 上月同分类支出净额,供概览分类榜算环比。CategoryTrends 只覆盖 top5,
+	// 而榜单要给每一类都标出涨跌,故在这里逐类带上。
+	// 本月无支出的分类不进 ExpenseByCategory,所以「上月有、本月归零」的分类不会出现在榜上。
+	PrevAmount Amount `json:"prevAmount"`
 }
 
 // AccountBalance represents an account's balance
@@ -196,6 +200,10 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 		amount Amount
 		count  int
 	})
+	// 月锚点取每月 1 号,避免 AddDate 在月末(如 31 号)回退时跳月
+	monthAnchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	prevMonthAnchor := monthAnchor.AddDate(0, -1, 0)
+	prevCategoryExpense := make(map[string]Amount)
 
 	for _, tx := range statsTxs {
 		txMonth := monthKey(tx.Date)
@@ -221,14 +229,17 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 			// 支出/收入按净额累加:退款记为负数 Expenses posting,应冲减支出而非被忽略
 			switch accountRoot(posting.Account) {
 			case "Expenses":
-				if sameMonth(tx.Date, now) {
+				category := getExpenseCategory(posting.Account)
+				switch {
+				case sameMonth(tx.Date, now):
 					analytics.Summary.MonthExpense += posting.Amount
 
-					category := getExpenseCategory(posting.Account)
 					ce := categoryExpense[category]
 					ce.amount += posting.Amount
 					ce.count++
 					categoryExpense[category] = ce
+				case sameMonth(tx.Date, prevMonthAnchor):
+					prevCategoryExpense[category] += posting.Amount
 				}
 				monthlyData[txMonth].Expense += posting.Amount
 				dailyData[txDate].Expense += posting.Amount
@@ -290,10 +301,11 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 			percent = float64(ce.amount) / float64(totalExpense) * 100
 		}
 		analytics.ExpenseByCategory = append(analytics.ExpenseByCategory, CategoryAmount{
-			Category: category,
-			Amount:   ce.amount,
-			Percent:  percent,
-			Count:    ce.count,
+			Category:   category,
+			Amount:     ce.amount,
+			Percent:    percent,
+			Count:      ce.count,
+			PrevAmount: prevCategoryExpense[category],
 		})
 	}
 	sort.Slice(analytics.ExpenseByCategory, func(i, j int) bool {
@@ -316,8 +328,6 @@ func AnalyzeAt(ledger *Ledger, now time.Time) *Analytics {
 		return analytics.AccountBalances[i].Balance > analytics.AccountBalances[j].Balance
 	})
 
-	// 月锚点取每月 1 号,避免 AddDate 在月末(如 31 号)回退时跳月
-	monthAnchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 	var last6Months []string
 	for i := 5; i >= 0; i-- {
 		last6Months = append(last6Months, monthKey(monthAnchor.AddDate(0, -i, 0)))

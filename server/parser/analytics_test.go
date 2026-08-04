@@ -324,6 +324,60 @@ func TestAnalyzeAt(t *testing.T) {
 	}
 }
 
+// TestExpenseByCategoryPrevAmount 锁定分类环比的上月口径:
+// 概览分类榜逐类标涨跌,靠的就是 PrevAmount(CategoryTrends 只覆盖 top5)。
+// 上上月不能漏进来,退款要按净额冲减上月,本月无支出的分类不该出现在榜上。
+func TestExpenseByCategoryPrevAmount(t *testing.T) {
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.Local)
+	ledger := parseMain(t, `
+2020-01-01 open Expenses:Transport:Metro CNY
+
+2026-05-10 * "老店" "上上月咖啡"
+  Expenses:Food:Coffee       300.00 CNY
+  Assets:Cash:WeChat        -300.00 CNY
+
+2026-06-10 * "星巴克" "上月咖啡"
+  Expenses:Food:Coffee       200.00 CNY
+  Assets:Cash:WeChat        -200.00 CNY
+
+2026-06-12 * "星巴克" "上月退款"
+  Expenses:Food:Coffee       -20.00 CNY
+  Assets:Cash:WeChat          20.00 CNY
+
+2026-06-15 * "地铁" "上月交通"
+  Expenses:Transport:Metro    50.00 CNY
+  Assets:Cash:WeChat         -50.00 CNY
+
+2026-07-05 * "星巴克" "本月咖啡"
+  Expenses:Food:Coffee       260.00 CNY
+  Assets:Cash:WeChat        -260.00 CNY
+
+2026-07-08 * "招商银行" "本月手续费"
+  Expenses:Financial:ServiceFee  80.00 CNY
+  Assets:Cash:WeChat           -80.00 CNY
+`)
+
+	a := AnalyzeAt(ledger, now)
+
+	cats := make(map[string]CategoryAmount)
+	for _, c := range a.ExpenseByCategory {
+		cats[c.Category] = c
+	}
+
+	// Food:本月 260,上月 200 - 20 退款 = 180(五月那 300 属上上月,不得混入)
+	if got := cats["Food"]; got.Amount != 26000 || got.PrevAmount != 18000 {
+		t.Errorf("Food = %s / prev %s,期望 260.00 / 180.00", got.Amount, got.PrevAmount)
+	}
+	// Financial:本月新增的分类,上月为 0
+	if got := cats["Financial"]; got.Amount != 8000 || got.PrevAmount != 0 {
+		t.Errorf("Financial = %s / prev %s,期望 80.00 / 0", got.Amount, got.PrevAmount)
+	}
+	// Transport 上月有、本月无:不进本月榜(榜单是本月口径,不为归零分类补行)
+	if _, ok := cats["Transport"]; ok {
+		t.Error("本月无支出的 Transport 不应出现在 ExpenseByCategory")
+	}
+}
+
 // TestAnalyzeAtMonthAnchor 验证月末不会因 AddDate 归一化跳月
 func TestAnalyzeAtMonthAnchor(t *testing.T) {
 	now := time.Date(2026, 7, 31, 12, 0, 0, 0, time.Local)

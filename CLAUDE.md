@@ -99,8 +99,15 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `weekdayDistribution`(星期分布)、`categoryTrends`(近 6 月)、各 `*Trend` 是**跨期**口径,
   归「趋势图表」页。并排的卡片必须同期:混着放等于宣称同期,而卡片副标题是唯一的口径说明,
   改聚合范围时必须连副标题一起改(字段口径见 `Analytics` struct 与 `types/api.ts` 的注释)。
-  两页都要的图(支出分类环形)提炼成共享组件 `ExpenseDonut.vue`,别各写一份——
-  截断规则和配色顺序会在后续改动里悄悄分叉。
+- **概览与收支分析不给同一个答案**:`expenseByCategory` 同时喂两页,但两页问的问题不同——
+  概览是「本月要不要紧张、哪不对劲」,收支分析是「钱具体去哪了」。故构成视图
+  (`ExpenseDonut.vue`,环形 + 占比图例)**只留在收支分析页**,概览走
+  `ExpenseCategoryBoard.vue`(金额 + 环比 + 预算执行的横条榜)。两页都画环形时,
+  收支分析页的头一屏等于白给;而构成比例月月相似,概览拿它答不了「哪不对劲」。
+  榜单的环比吃 `CategoryAmount.PrevAmount`(逐类的上月净额,后端算),不是 `categoryTrends`
+  ——后者只覆盖 top5,榜单要给每一类都标涨跌。榜里的条**按最大分类归一**表达相对量级,
+  预算是叠在同一条轴上的刻度线;条色编码的是**预算状态**(accent/warning/expense)而非分类身份,
+  分类名就在同一行,再用色板编码一遍分类是浪费,还会与环形的 7 类截断对不上。
 - **资金流向图的三层聚合在后端**(`server/parser/fundflow.go` 的 `computeFundFlow`,
   随 `Analytics.FundFlow` 下发,前端只做展示映射):它和同页的 `expenseByCategory` 并排,
   前端自己遍历 `transactions` 就等于把净额、本月、未来日期三条口径各重写一遍,漂一条就露馅
@@ -334,7 +341,9 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `web/src/composables/useDebtValidation.ts` — 保存前本地轻校验,规则镜像 `debts.go` 的
   `Validate()`,只为即时反馈(后端 400 一次只回 details[0]);**后端仍是唯一权威**
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段(`processTransaction`)
-- `web/src/components/ExpenseDonut.vue` — 支出分类环形图 + 图例(概览/收支分析共用)
+- `web/src/components/ExpenseDonut.vue` — 支出分类环形图 + 占比图例(只在「收支分析」页)
+- `web/src/components/ExpenseCategoryBoard.vue` — 概览的支出分类榜(金额 + 环比 + 预算刻度,
+  消费 `expenseByCategory.prevAmount` 与 `useBudgets`)
 - `web/src/components/tabs/SpendingTab.vue` — 收支分析页;资金流向桑基图只消费 `fundFlow`,
   自身不聚合(口径见上「资金流向图的三层聚合在后端」)
 - `web/src/components/IncomeBreakdownList.vue` — 本月收入来源条形列表(消费 `incomeBreakdown`)

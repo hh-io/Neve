@@ -25,7 +25,7 @@
         <span class="donut-dot" :style="{ background: item.color }"></span>
         <span class="donut-name">{{ item.name }}</span>
         <span class="donut-amt tabular-nums">{{ item.amount }}</span>
-        <span v-if="showPercent" class="donut-pct tabular-nums">{{ item.pct }}</span>
+        <span class="donut-pct tabular-nums">{{ item.pct }}</span>
       </div>
     </div>
   </div>
@@ -45,16 +45,15 @@ import { getThemeColor, themeVersion } from '../composables/useThemeColor';
 
 use([PieChart, CanvasRenderer]);
 
-// 概览页与收支分析页共用同一份支出占比图:两处口径本就相同(本月),
-// 各写一遍只会让图例截断规则、配色顺序在改动中悄悄分叉
+// 支出构成的唯一视图,只在「收支分析」页出现:概览要的是异动信号而非构成比例,
+// 那边走 ExpenseCategoryBoard(金额 + 环比 + 预算执行)。两页给同一个答案时,
+// 收支分析页的头一屏等于白给。
 const props = withDefaults(
   defineProps<{
     data: CategoryAmount[];
-    /** 图例是否带百分比列 */
-    showPercent?: boolean;
     emptyText?: string;
   }>(),
-  { showPercent: false, emptyText: '暂无支出数据' },
+  { emptyText: '暂无支出数据' },
 );
 
 const palette = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5', '--chart-6', '--chart-7', '--chart-8'];

@@ -80,6 +80,8 @@ export interface CategoryAmount {
   amount: Yuan
   percent: number
   count: number
+  /** 上月同分类支出净额,供概览分类榜算环比;本月新增的分类为 0 */
+  prevAmount: Yuan
 }
 
 export interface AccountBalance {
