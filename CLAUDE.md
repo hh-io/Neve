@@ -42,7 +42,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   (维持后端唯一依赖 gin)。`NEVE_TUNNEL_HOSTNAME` 同时注入服务端,启用公网入口自检。
 - 前端 **TypeScript**(`vue-tsc` 校验,契约类型见 `web/src/types/api.ts`),无 UI 库
   (图标用 `@lucide/vue`),无状态管理库(以 composable 模块级单例替代 Pinia:
-  `useAnalytics`/`useTheme`/`useToast`/`useBudgets`/`useDebts`),手写 CSS 变量设计系统
+  `useAnalytics`/`useTheme`/`useToast`/`useDebts`),手写 CSS 变量设计系统
   (`web/src/styles/variables.css`,亮/暗双主题;token 体系见该文件头部注释)。
 
 ## 正确性约定(改代码前必读)
@@ -53,10 +53,10 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - **软失败**:脏数据(不平衡/未 open 账户/非法金额日期等)跳过该笔并记入
   `Ledger.Issues`(带文件:行号),随 `/api/analytics` 的 `parseIssues` 展示在
   `IssuesBanner`;仅 main.bean 无法打开才是硬错误。
-- **配置文件解析失败不得降级为空**(budgets.json / debts.json):软失败策略只适用于账本
+- **配置文件解析失败不得降级为空**(debts.json;新增配置文件照此办理):软失败策略只适用于账本
   (脏数据跳过一笔,其余照常),配置文件反过来——空配置在界面上与"从未配置过"无法区分,
   用户随手补一条再保存就把原文件**整份覆盖**,而配置没有第二份真源。故
-  `loadDebtsConfig` / `handleGetBudgets` 只把「文件不存在」当正常(回空),
+  `loadDebtsConfig` 只把「文件不存在」当正常(回空),
   解析失败一律 5xx 显式报错;写盘路径再加一道 `quarantineCorrupt`——覆盖前若磁盘上那份
   已无法解析,先改名成 `<name>.corrupt-<时间戳>` 留档。`Refresh()` 是唯一例外
   (走 `longTermAccounts()`):账本刷新与配置无关,读不出来就退回全量净资产口径并记日志,
@@ -102,12 +102,13 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - **概览与收支分析不给同一个答案**:`expenseByCategory` 同时喂两页,但两页问的问题不同——
   概览是「本月要不要紧张、哪不对劲」,收支分析是「钱具体去哪了」。故构成视图
   (`ExpenseDonut.vue`,环形 + 占比图例)**只留在收支分析页**,概览走
-  `ExpenseCategoryBoard.vue`(金额 + 环比 + 预算执行的横条榜)。两页都画环形时,
+  `ExpenseCategoryBoard.vue`(金额 + 环比 + 上月基数的横条榜)。两页都画环形时,
   收支分析页的头一屏等于白给;而构成比例月月相似,概览拿它答不了「哪不对劲」。
   榜单的环比吃 `CategoryAmount.PrevAmount`(逐类的上月净额,后端算),不是 `categoryTrends`
-  ——后者只覆盖 top5,榜单要给每一类都标涨跌。榜里的条**按最大分类归一**表达相对量级,
-  预算是叠在同一条轴上的刻度线;条色编码的是**预算状态**(accent/warning/expense)而非分类身份,
-  分类名就在同一行,再用色板编码一遍分类是浪费,还会与环形的 7 类截断对不上。
+  ——后者只覆盖 top5,榜单要给每一类都标涨跌。榜里的条**按最大分类归一**表达相对量级
+  (按占比会让头部之后的几类几乎等长)。第二行给「上月 ¥X · N 笔」而**不是「占比 X%」**:
+  占比正是环形图例那一列,写上去等于又绕回两页重复;而上月金额是环比箭头的基数,
+  箭头只说变了多少,基数才让人判断该不该紧张。
 - **资金流向图的三层聚合在后端**(`server/parser/fundflow.go` 的 `computeFundFlow`,
   随 `Analytics.FundFlow` 下发,前端只做展示映射):它和同页的 `expenseByCategory` 并排,
   前端自己遍历 `transactions` 就等于把净额、本月、未来日期三条口径各重写一遍,漂一条就露馅
@@ -198,7 +199,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   **服务端进程已获该容器读权限**。故 `server/backup` 采用镜像法:服务端用 `os.ReadFile`
   读账本内容写进 iCloud 外的镜像 git 工作树,git 只对镜像操作(非 iCloud、无 TCC 限制)。
   备份文件清单取自 `Ledger.SourceFiles`(parser 记录实际打开的 main.bean+include 文件,
-  单一真源)+ 已知配置名(budgets/debts.json);`triggerBackup` 有护栏——账本为空或
+  单一真源)+ 已知配置名(debts.json);`triggerBackup` 有护栏——账本为空或
   `SourceFiles` 为空时**跳过**,否则空清单会把镜像里已跟踪的 .bean 全 prune 成删除。
   推送用普通 `git push`(非 force),首推需远程为空库。
   **git 子进程必须非交互 + 带超时**:launchd 下无 tty,凭据提示/未知 host key 会让 git
@@ -315,7 +316,7 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
 - `server/parser/schedule.go` — 未来还款计划(`ComputeSchedule`,现金流口径,按还款日归月,
   展开确定性分期出账 + 已出账账单 + 已消费未出账)+ 滚动窗口汇总(`SumDueWithin`,
   喂看板的 `due30`/`due90`;**滚动而非自然月**——按自然月算每到月末都会塌成 0)
-- `server/api/handler.go` — 路由、analytics 缓存、budgets 原子写
+- `server/api/handler.go` — 路由、analytics 缓存、debts.json 原子写
 - `server/api/inbox.go` — 无感记账端点(鉴权、异步识别、预校验、留档、Bark 推送)
 - `server/api/health.go` — 公网入口自检(定期从公网打自己的 `/api/inbox`,401 判活,
   连续失败 Bark 告警;tunnel 静默断开只能靠它发现)
@@ -342,8 +343,8 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `Validate()`,只为即时反馈(后端 400 一次只回 details[0]);**后端仍是唯一权威**
 - `web/src/composables/useCategories.ts` — 分类映射 + 交易展示字段(`processTransaction`)
 - `web/src/components/ExpenseDonut.vue` — 支出分类环形图 + 占比图例(只在「收支分析」页)
-- `web/src/components/ExpenseCategoryBoard.vue` — 概览的支出分类榜(金额 + 环比 + 预算刻度,
-  消费 `expenseByCategory.prevAmount` 与 `useBudgets`)
+- `web/src/components/ExpenseCategoryBoard.vue` — 概览的支出分类榜(金额 + 环比 + 上月基数,
+  消费 `expenseByCategory` 的 `amount`/`prevAmount`)
 - `web/src/components/tabs/SpendingTab.vue` — 收支分析页;资金流向桑基图只消费 `fundFlow`,
   自身不聚合(口径见上「资金流向图的三层聚合在后端」)
 - `web/src/components/IncomeBreakdownList.vue` — 本月收入来源条形列表(消费 `incomeBreakdown`)

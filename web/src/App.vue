@@ -51,11 +51,6 @@
         <TrendsTab v-show="activeTab === 'trends'" />
         <AccountsTab v-show="activeTab === 'accounts'" />
         <DebtsTab v-show="activeTab === 'debts'" />
-
-        <div v-show="activeTab === 'budget'" class="section-mb">
-          <BudgetCard />
-        </div>
-
         <TransactionsTab v-show="activeTab === 'transactions'" />
 
         <!-- Footer -->
@@ -91,7 +86,6 @@ import TrendsTab from "./components/tabs/TrendsTab.vue";
 import AccountsTab from "./components/tabs/AccountsTab.vue";
 import DebtsTab from "./components/tabs/DebtsTab.vue";
 import TransactionsTab from "./components/tabs/TransactionsTab.vue";
-import BudgetCard from "./components/BudgetCard.vue";
 
 // Composables(数据/主题为模块级单例)
 import { formatDateTime } from "./composables/useFormatters";
@@ -110,7 +104,6 @@ const pageMeta: Record<string, { title: string; desc: string }> = {
   trends: { title: '趋势图表', desc: '了解您的财务变化趋势' },
   accounts: { title: '账户管理', desc: '管理您的所有账户' },
   debts: { title: '待还管理', desc: '账单周期、还款进度与最后还款日倒计时' },
-  budget: { title: '预算管理', desc: '设置并跟踪您的预算目标' },
   transactions: { title: '交易明细', desc: '查看所有交易记录' }
 };
 

@@ -46,7 +46,7 @@ import { getThemeColor, themeVersion } from '../composables/useThemeColor';
 use([PieChart, CanvasRenderer]);
 
 // 支出构成的唯一视图,只在「收支分析」页出现:概览要的是异动信号而非构成比例,
-// 那边走 ExpenseCategoryBoard(金额 + 环比 + 预算执行)。两页给同一个答案时,
+// 那边走 ExpenseCategoryBoard(金额 + 环比 + 上月基数)。两页给同一个答案时,
 // 收支分析页的头一屏等于白给。
 const props = withDefaults(
   defineProps<{

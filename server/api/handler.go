@@ -28,9 +28,7 @@ type Server struct {
 	// 拿到旧指针继续算也是一份一致快照,无需额外同步
 	ledger      *parser.Ledger
 	lastRefresh time.Time
-	// budgets.json 的读写不经过账本,单独用一把锁
-	budgetMu sync.Mutex
-	// debts.json 同理
+	// debts.json 的读写不经过账本,单独用一把锁
 	debtMu sync.Mutex
 	// refreshMu 串行化 /api/refresh:限流检查与 Refresh 之间存在 TOCTOU,
 	// 并发请求会同时通过检查并重复解析,靠这把锁 + 拿锁后二次检查兜住
@@ -140,10 +138,10 @@ func (s *Server) triggerBackup(reason string) {
 	if ledger == nil || len(ledger.SourceFiles) == 0 {
 		return
 	}
-	files := make([]string, 0, len(ledger.SourceFiles)+2)
+	files := make([]string, 0, len(ledger.SourceFiles)+1)
 	files = append(files, ledger.SourceFiles...)
 	// 配置文件不经账本 include,按已知名补入(Snapshot 会跳过不存在的)
-	files = append(files, "budgets.json", "debts.json")
+	files = append(files, "debts.json")
 	go func() {
 		if err := s.backup.Snapshot(files, reason); err != nil {
 			log.Printf("backup: %v", err)
@@ -172,8 +170,6 @@ func (s *Server) SetupRoutes(r *gin.Engine) {
 	{
 		api.GET("/analytics", s.handleAnalytics)
 		api.POST("/refresh", s.handleRefresh)
-		api.GET("/budgets", s.handleGetBudgets)
-		api.POST("/budgets", s.handleSaveBudgets)
 		api.GET("/debts", s.handleGetDebts)
 		api.POST("/debts", s.handleSaveDebts)
 		api.POST("/inbox", s.handleInbox)
@@ -243,66 +239,6 @@ func (s *Server) handleRefresh(c *gin.Context) {
 	}
 
 	respondOK()
-}
-
-func (s *Server) handleGetBudgets(c *gin.Context) {
-	s.budgetMu.Lock()
-	defer s.budgetMu.Unlock()
-
-	budgetFile := filepath.Join(s.dataDir, "budgets.json")
-	data, err := os.ReadFile(budgetFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			c.JSON(http.StatusOK, gin.H{}) // 尚未设过预算
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": NewAPIError("BUDGETS_READ_FAILED", "budgets.json 读取失败: "+err.Error()),
-		})
-		return
-	}
-
-	var budgets map[string]float64
-	if err := json.Unmarshal(data, &budgets); err != nil {
-		// 与 debts 同策略:损坏时不回空对象,否则前端当成"没设过预算",一存就覆盖原文件
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": NewAPIError("BUDGETS_CORRUPT", "budgets.json 无法解析,请修复后重试: "+err.Error()),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, budgets)
-}
-
-func (s *Server) handleSaveBudgets(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
-		return
-	}
-
-	// Validate JSON
-	var budgets map[string]float64
-	if err := json.Unmarshal(body, &budgets); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
-		return
-	}
-
-	s.budgetMu.Lock()
-	defer s.budgetMu.Unlock()
-
-	budgetFile := filepath.Join(s.dataDir, "budgets.json")
-	quarantineCorrupt(budgetFile, func(b []byte) error {
-		var old map[string]float64
-		return json.Unmarshal(b, &old)
-	})
-	if err := atomicWriteFile(budgetFile, body); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
-		return
-	}
-
-	s.triggerBackup("budgets")
-	c.JSON(http.StatusOK, gin.H{"message": "saved"})
 }
 
 func emptyDebtsConfig() *parser.DebtsConfig {
@@ -471,8 +407,7 @@ func (s *Server) handleSaveDebts(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// atomicWriteFile 先写同目录临时文件再 rename,避免写入中断损坏目标文件
-// (budgets.json / debts.json 共用)
+// atomicWriteFile 先写同目录临时文件再 rename,避免写入中断损坏目标文件(debts.json)
 func atomicWriteFile(path string, data []byte) error {
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".neve-*.tmp")
 	if err != nil {

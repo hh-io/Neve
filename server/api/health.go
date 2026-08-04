@@ -83,7 +83,7 @@ func (s *Server) runHealthCheck() {
 // probePublicEndpoint 从公网侧请求自己的 /api/inbox,期望 401。
 //
 // 为什么拿 401 当健康信号,而不新加一个 /api/health 端点:tunnel 的 ingress 白名单
-// 只放行 ^/api/inbox$(analytics/budgets 等无鉴权端点绝不暴露公网),加端点就得放宽
+// 只放行 ^/api/inbox$(analytics/debts 等无鉴权端点绝不暴露公网),加端点就得放宽
 // 白名单、扩大暴露面。而不带令牌的请求由 handleInbox 亲自返回 401,它在读请求体之前
 // 就返回,零副作用不占用限流额度;更关键的是 401 只可能由本进程产生——edge 侧故障
 // 给的是 5xx/1033,拿到 401 就证明整条链路确实打通到了应用层。

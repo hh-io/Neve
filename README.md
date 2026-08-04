@@ -124,7 +124,7 @@ Neve/
 └── web/                 # Vue 3 + TypeScript 前端
     └── src/
         ├── components/  #   Tab 页面、图表、布局组件
-        ├── composables/ #   模块级单例 (analytics/theme/toast/budgets/debts)
+        ├── composables/ #   模块级单例 (analytics/theme/toast/debts)
         └── styles/      #   CSS 变量设计 token (亮/暗双主题)
 ```
 
@@ -134,8 +134,6 @@ Neve/
 |------|------|------|
 | `GET` | `/api/analytics` | 完整分析数据（摘要/图表/全量交易/解析问题/对账结果），前端一次拉取 |
 | `POST` | `/api/refresh` | 重新解析账本并重建缓存（5 秒限流） |
-| `GET` | `/api/budgets` | 获取预算 |
-| `POST` | `/api/budgets` | 保存预算（原子写 `budgets.json`） |
 | `GET` | `/api/debts` | 负债待还配置 + 实时计算的还款报告（账期快照/剩余待还/倒计时） |
 | `POST` | `/api/debts` | 保存待还配置（校验后原子写 `debts.json`，响应附重算报告） |
 | `POST` | `/api/inbox` | 无感记账：上传账单图片立即 202，识别与入账异步完成（Bearer 鉴权，未配置时 404） |
@@ -197,7 +195,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.cloudflared.tunnel.p
 
 ### 数据备份（iCloud 之外再加一层）
 
-账本文件仅靠 iCloud 同步不够可靠——iCloud 是「同步」而非「备份」，误删/写坏会被同步放大，且几乎无版本回溯。填入 `NEVE_BACKUP_REMOTE`（建议 SSH 私有库）即启用：服务端把账本镜像进 iCloud 外的 git 仓库，AI 记账 / 预算 / 负债保存成功后即时提交并推送，再加每日兜底（含手动改动）。得到本地版本历史 + 异地灾备两层。
+账本文件仅靠 iCloud 同步不够可靠——iCloud 是「同步」而非「备份」，误删/写坏会被同步放大，且几乎无版本回溯。填入 `NEVE_BACKUP_REMOTE`（建议 SSH 私有库）即启用：服务端把账本镜像进 iCloud 外的 git 仓库，AI 记账 / 待还配置保存成功后即时提交并推送，再加每日兜底（含手动改动）。得到本地版本历史 + 异地灾备两层。
 
 ```bash
 NEVE_BACKUP_REMOTE=git@github.com:you/neve-data.git   # 务必是私有库,内含真实财务数据

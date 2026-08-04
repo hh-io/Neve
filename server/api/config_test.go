@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -108,61 +107,6 @@ func TestSaveDebtsKeepsValidFile(t *testing.T) {
 	}
 	if found := corruptFiles(t, dataDir, "debts.json"); len(found) != 0 {
 		t.Errorf("可解析的旧文件不该被留档: %v", found)
-	}
-}
-
-func TestGetBudgetsCorruptFailsLoud(t *testing.T) {
-	_, r, dataDir := newConfigTestServer(t)
-	if err := os.WriteFile(filepath.Join(dataDir, "budgets.json"), []byte(`{"Food": }`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	w := doJSON(r, http.MethodGet, "/api/budgets", nil)
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("状态码 = %d, want 500", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), "BUDGETS_CORRUPT") {
-		t.Errorf("响应缺少错误码: %s", w.Body.String())
-	}
-}
-
-func TestGetBudgetsMissingIsEmpty(t *testing.T) {
-	_, r, _ := newConfigTestServer(t)
-
-	w := doJSON(r, http.MethodGet, "/api/budgets", nil)
-	if w.Code != http.StatusOK {
-		t.Fatalf("状态码 = %d, want 200", w.Code)
-	}
-	var got map[string]float64
-	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
-		t.Fatalf("响应不是合法 JSON 对象: %v", err)
-	}
-	if len(got) != 0 {
-		t.Errorf("预算 = %v, want 空", got)
-	}
-}
-
-func TestSaveBudgetsQuarantinesCorruptFile(t *testing.T) {
-	_, r, dataDir := newConfigTestServer(t)
-	original := `{"Food": 坏掉的内容}`
-	if err := os.WriteFile(filepath.Join(dataDir, "budgets.json"), []byte(original), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if w := doJSON(r, http.MethodPost, "/api/budgets", []byte(`{"Food": 1500}`)); w.Code != http.StatusOK {
-		t.Fatalf("状态码 = %d, want 200: %s", w.Code, w.Body.String())
-	}
-
-	found := corruptFiles(t, dataDir, "budgets.json")
-	if len(found) != 1 {
-		t.Fatalf("留档文件数 = %d, want 1", len(found))
-	}
-	data, err := os.ReadFile(filepath.Join(dataDir, found[0]))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(data) != original {
-		t.Errorf("留档内容 = %q, want %q", data, original)
 	}
 }
 

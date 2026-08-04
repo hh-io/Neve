@@ -28,19 +28,6 @@
           <span>{{ item.label }}</span>
         </button>
       </div>
-
-      <div class="nav-divider"></div>
-
-      <button
-        class="nav-item"
-        :class="{ active: activeTab === 'budget' }"
-        @click="$emit('update:activeTab', 'budget')"
-      >
-        <div class="nav-icon">
-          <Target />
-        </div>
-        <span>预算管理</span>
-      </button>
     </nav>
 
     <!-- Stats Section -->
@@ -60,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { Target, Trophy } from '@lucide/vue';
+import { Trophy } from '@lucide/vue';
 import AppLogo from './AppLogo.vue';
 import { navItems } from '../../composables/navItems';
 

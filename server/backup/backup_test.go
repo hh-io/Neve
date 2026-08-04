@@ -100,10 +100,10 @@ func TestSnapshotLifecycle(t *testing.T) {
 
 	write(t, filepath.Join(dataDir, "main.bean"), "include \"2025.bean\"\n")
 	write(t, filepath.Join(dataDir, "2025.bean"), "2025-01-01 * \"a\" \"b\"\n")
-	write(t, filepath.Join(dataDir, "budgets.json"), "{}\n")
+	write(t, filepath.Join(dataDir, "debts.json"), "{}\n")
 
-	// debts.json 不存在,应被安全跳过
-	files := []string{"main.bean", "2025.bean", "budgets.json", "debts.json"}
+	// missing.json 不存在,应被安全跳过
+	files := []string{"main.bean", "2025.bean", "debts.json", "missing.json"}
 	s := New(dataDir, repoDir, "") // 无远程,只测本地镜像与提交
 
 	// 1) 首次快照:初始化 + 提交,镜像内容与源一致
@@ -114,13 +114,13 @@ func TestSnapshotLifecycle(t *testing.T) {
 		t.Fatalf("首次提交后 commit 数 = %d,期望 1", got)
 	}
 	tracked := trackedFiles(t, repoDir)
-	for _, f := range []string{"main.bean", "2025.bean", "budgets.json"} {
+	for _, f := range []string{"main.bean", "2025.bean", "debts.json"} {
 		if !tracked[f] {
 			t.Errorf("镜像未跟踪 %s(tracked=%v)", f, tracked)
 		}
 	}
-	if tracked["debts.json"] {
-		t.Errorf("不存在的 debts.json 不应被跟踪")
+	if tracked["missing.json"] {
+		t.Errorf("不存在的 missing.json 不应被跟踪")
 	}
 	if b, _ := os.ReadFile(filepath.Join(repoDir, "2025.bean")); string(b) != "2025-01-01 * \"a\" \"b\"\n" {
 		t.Errorf("镜像 2025.bean 内容不一致: %q", b)
@@ -147,7 +147,7 @@ func TestSnapshotLifecycle(t *testing.T) {
 	if err := os.Remove(filepath.Join(dataDir, "2025.bean")); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Snapshot([]string{"main.bean", "budgets.json"}, "test"); err != nil {
+	if err := s.Snapshot([]string{"main.bean", "debts.json"}, "test"); err != nil {
 		t.Fatalf("删除后 Snapshot: %v", err)
 	}
 	if got := commitCount(t, repoDir); got != 3 {
