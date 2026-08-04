@@ -220,6 +220,13 @@ const sankeyOption = computed(() => {
   gap: var(--space-4);
 }
 
+/* 等高的两张卡里,让卡体成为纵向 flex 容器:环形图那张才能把多出来的高度分给内容
+   (子组件自身的 flex: 1 需要父是 flex 才生效) */
+.sp-row > .section-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .sp-head-right {
   display: flex;
   align-items: baseline;

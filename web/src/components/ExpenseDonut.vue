@@ -1,10 +1,26 @@
 <template>
   <div v-if="items.length > 0" class="donut">
     <div class="donut-chart">
-      <v-chart :option="option" autoresize />
+      <v-chart ref="chartRef" :option="option" autoresize @mouseover="onChartHover" @globalout="focus(null)" />
+      <!-- 中心态取代 tooltip:环内是现成的空白,浮层反而会盖住扇区与相邻文字 -->
+      <div class="donut-center">
+        <span class="donut-center-label">
+          <span v-if="center.color" class="donut-dot" :style="{ background: center.color }"></span>
+          {{ center.label }}
+        </span>
+        <span class="donut-center-value tabular-nums">{{ center.value }}</span>
+        <span class="donut-center-sub tabular-nums">{{ center.sub }}</span>
+      </div>
     </div>
     <div class="donut-legend">
-      <div v-for="item in items" :key="item.category" class="donut-legend-row">
+      <div
+        v-for="(item, index) in items"
+        :key="item.category"
+        class="donut-legend-row"
+        :class="{ 'is-active': activeIndex === index }"
+        @mouseenter="focus(index)"
+        @mouseleave="focus(null)"
+      >
         <span class="donut-dot" :style="{ background: item.color }"></span>
         <span class="donut-name">{{ item.name }}</span>
         <span class="donut-amt tabular-nums">{{ item.amount }}</span>
@@ -16,10 +32,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { use } from 'echarts/core';
 import { PieChart } from 'echarts/charts';
-import { TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
 import type { CategoryAmount } from '../types/api';
@@ -27,7 +42,7 @@ import { formatMoney } from '../composables/useFormatters';
 import { getCategoryLabel } from '../composables/useCategories';
 import { getThemeColor, themeVersion } from '../composables/useThemeColor';
 
-use([PieChart, TooltipComponent, CanvasRenderer]);
+use([PieChart, CanvasRenderer]);
 
 // 概览页与收支分析页共用同一份支出占比图:两处口径本就相同(本月),
 // 各写一遍只会让图例截断规则、配色顺序在改动中悄悄分叉
@@ -43,11 +58,13 @@ const props = withDefaults(
 
 const palette = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5', '--chart-6', '--chart-7', '--chart-8'];
 
+const total = computed(() => props.data.reduce((sum, c) => sum + c.amount, 0));
+
 // 自定义图例(替代 echarts 内建图例,避免中文截断);只取前 7 类,长尾并入图外
 const items = computed(() => {
   void themeVersion.value;
   const colors = palette.map(getThemeColor);
-  const total = props.data.reduce((sum, c) => sum + c.amount, 0) || 1;
+  const base = total.value || 1;
   return [...props.data]
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 7)
@@ -56,24 +73,50 @@ const items = computed(() => {
       name: getCategoryLabel(item.category),
       color: colors[index % colors.length],
       amount: formatMoney(item.amount),
-      pct: `${Math.round((item.amount / total) * 100)}%`,
+      pct: `${Math.round((item.amount / base) * 100)}%`,
       value: item.amount,
     }));
+});
+
+const chartRef = ref<InstanceType<typeof VChart> | null>(null);
+const activeIndex = ref<number | null>(null);
+
+// 图例与扇区双向联动:鼠标在哪一侧都让另一侧跟着高亮,中心文案随之切换
+function focus(index: number | null) {
+  activeIndex.value = index;
+  const chart = chartRef.value;
+  if (!chart) return;
+  chart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+  if (index !== null) chart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: index });
+}
+
+function onChartHover(params: { dataIndex?: number }) {
+  if (typeof params.dataIndex === 'number') activeIndex.value = params.dataIndex;
+}
+
+const center = computed(() => {
+  const item = activeIndex.value === null ? null : items.value[activeIndex.value];
+  if (!item) {
+    return { label: '合计', value: formatMoney(total.value), sub: `共 ${props.data.length} 类`, color: '' };
+  }
+  return { label: item.name, value: item.amount, sub: `占比 ${item.pct}`, color: item.color };
 });
 
 const option = computed(() => {
   void themeVersion.value;
   return {
-    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
     series: [{
       type: 'pie',
-      radius: ['58%', '82%'],
+      radius: ['62%', '86%'],
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
+      silent: false,
       itemStyle: { borderRadius: 4, borderColor: getThemeColor('--surface-1'), borderWidth: 2 },
+      // 标签一律交给中心 HTML 层:pie 的 emphasis 标签默认落在扇区外侧,
+      // 在这个尺寸的容器里必被裁掉半截
       label: { show: false },
       labelLine: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold', color: getThemeColor('--text-primary') } },
+      emphasis: { scale: true, scaleSize: 4 },
       data: items.value.map(item => ({
         name: item.name,
         value: item.value,
@@ -91,13 +134,53 @@ const option = computed(() => {
   gap: var(--space-5);
   align-items: center;
   flex-wrap: wrap;
+  /* 与并排卡片等高时(概览的最近交易、收支页的收入来源)吃掉剩余高度,
+     内容居中而非全部堆在顶部 */
+  flex: 1;
+  min-height: 0;
 }
 
 .donut-chart {
-  width: 150px;
-  height: 150px;
+  position: relative;
+  width: 190px;
+  height: 190px;
   flex: none;
   margin: 0 auto;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 22%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.donut-center-value {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.donut-center-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .donut-legend {
@@ -105,14 +188,22 @@ const option = computed(() => {
   min-width: 200px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  justify-content: center;
+  gap: 2px;
 }
 
 .donut-legend-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+  transition: background-color var(--transition-base);
+}
+
+.donut-legend-row.is-active {
+  background: var(--surface-3);
 }
 
 .donut-dot {
@@ -145,5 +236,12 @@ const option = computed(() => {
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .donut-chart {
+    width: 150px;
+    height: 150px;
+  }
 }
 </style>
