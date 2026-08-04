@@ -1,7 +1,44 @@
 # Neve 前端(`web/`)
 
-样式、图表、安全区的正确性约定。整体架构与后端口径见根目录 `CLAUDE.md`。
+样式、图表、安全区与展示口径的正确性约定。全局硬约束与后端口径见根目录 `CLAUDE.md`。
 
+- **无 Router**:`App.vue` 的 `activeTab` + `v-show` 分发页面;数据/主题走 composable
+  模块级单例(`useAnalytics`/`useTheme`/`useToast`/`useDebts`)替代 Pinia,不做 prop 钻透。
+- **展示层不许对 `expense` 取绝对值**:净额口径下退款多于消费的那天
+  `dailyTrend[].expense` 为负(日粒度很常见,一笔价保退款就够),`Math.abs` 把
+  「净退回 10.8」翻成「花了 10.8」,误差是金额的两倍——日历格子、概览热力图、
+  趋势折线曾同时犯过。日历带符号展示(`formatExpense`,净退回显示 `+N` 并染
+  `--income`、底色走 `has-income`),折线直接用原值让它掉到 0 轴以下,热力图只能
+  `Math.max(0, …)` 归零(顺序绿标度画不出负值,与资金流向图丢弃负净额分类同一取舍)。
+  月粒度那几处 `Math.abs`(`monthExpense`/环比/结余)因整月净退款不现实而无害,别新增。
+- **不许把日期字符串喂给 `new Date()`**:交易日期序列化成带偏移的 RFC3339
+  (`2026-07-28T00:00:00+08:00`),`new Date()` 会按浏览器时区重新落点,浏览器偏西时
+  整体退一天;纯 `YYYY-MM-DD` 串更糟——它按 UTC 解析。日期比较/展示一律截字符串
+  (`useCategories.toDateKey`、`useDebtDisplay.shortDate`、`PaymentSchedule.monthLabel`),
+  只有需要星期几时才用 `new Date(y, m-1, d)` 按本地零点重建。真实时间戳
+  (`summary.lastUpdated`)不在此列,那本来就该按浏览器时区显示。
+- **概览与收支分析不给同一个答案**:`expenseByCategory` 同时喂两页,但两页问的问题不同——
+  概览是「本月要不要紧张、哪不对劲」,收支分析是「钱具体去哪了」。故构成视图
+  (`ExpenseDonut.vue`,环形 + 占比图例)**只留在收支分析页**,概览走
+  `ExpenseCategoryBoard.vue`(金额 + 环比 + 上月基数的横条榜)。两页都画环形时,
+  收支分析页的头一屏等于白给;而构成比例月月相似,概览拿它答不了「哪不对劲」。
+  榜单的环比吃 `CategoryAmount.PrevAmount`(逐类的上月净额,后端算),不是 `categoryTrends`
+  ——后者只覆盖 top5,榜单要给每一类都标涨跌。榜里的条**按最大分类归一**表达相对量级
+  (按占比会让头部之后的几类几乎等长)。第二行给「上月 ¥X · N 笔」而**不是「占比 X%」**:
+  占比正是环形图例那一列,写上去等于又绕回两页重复;而上月金额是环比箭头的基数,
+  箭头只说变了多少,基数才让人判断该不该紧张。
+- **待还页的编辑互斥与看板口径**:`DebtsTab` 的 `editingKey` 控制一次只编辑一个条目——
+  保存是「合成全量 config 再 POST」,同时开两张卡会互相覆盖。顶部看板走 `due30`/`due90`
+  (现金流口径,直接汇总 schedule,与表里的数同源),`monthRemaining` 降级为**仅逾期时**
+  显示的告警——逾期的钱不在 schedule 里,这是它唯一不可替代的用途;`monthDue` 不再上卡片,
+  保留为 API 的当期口径输出(测试与 `NextDue` 逻辑仍以它为基准)。概览页的「未来 30 天待还」
+  卡与这块看板**同源同口径**(`due30` + `nextDue`,逾期才露 `monthRemaining`),
+  改口径要两处一起改;它也 `onMounted(loadDebts)`,靠单例的 `loaded` 标志与待还页共用一次请求。
+  `PaymentSchedule` 的常驻口径说明不可删——明细里 `statement` 与 `unbilled`
+  **合并呈现为同一类「信用卡账单」**(同名同色),仅靠标记文案「账单」/「账单 · 预估」
+  区分后者金额还会变;两者永不落在同一月(本期与下期账单差一个账单周期),故无需真合并数组。
+- **`useDebtValidation.ts` 只为即时反馈**:规则镜像 `debts.go` 的 `Validate()`
+  (后端 400 一次只回 details[0]),**后端仍是唯一权威**,别在前端加后端没有的规则。
 - **ECharts 颜色**:canvas 不解析 CSS 变量,option 里必须用
   `getThemeColor('--xxx')` 取实际值,并在 computed 中引用 `themeVersion.value`
   以响应主题切换(见 `useThemeColor.ts`)。图表色板走 `--chart-1..8` /
