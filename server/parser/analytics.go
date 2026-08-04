@@ -671,9 +671,25 @@ func classifyTransaction(tx *Transaction) {
 		}
 	}
 
+	transferAmt := minAmount(posReal, negReal)
+
 	switch {
 	case hasEquity:
 		tx.Kind = "opening"
+
+	case transferAmt > 0 && incNet < transferAmt:
+		// 资金在真实账户(Assets/Liabilities)间对流:转账/还款,本金取对流较小侧,
+		// 多出的 Expenses 部分是附带手续费——修复"还款 5000+手续费 5 显示成 5 元支出"。
+		// 对流本金比 Income 腿大时,那条 Income 腿是抵扣/返还(如还款用积分抵掉部分现金),
+		// 不是独立的收入事件,故本分支必须排在 income 之前:判成 income 会让 debts.go 的
+		// 分期已还判定(creditsAfter 的 transferOnly)认不出这笔还款,整期误报逾期。
+		// incNet < transferAmt 是护栏,挡住"工资到账顺手还款"这类一笔两事被吞成转账。
+		tx.Kind = "transfer"
+		tx.IsTransfer = true
+		tx.TransferAmount = transferAmt
+		tx.FeeAmount = maxAmount(expNet, 0)
+		tx.DisplayAmount = tx.TransferAmount
+		tx.Category = "Financial"
 
 	case incNet > 0 && expNet > 0:
 		// 收支混合(如税前工资拆税):按净到手展示,统计仍按 posting 分别计入
@@ -685,16 +701,6 @@ func classifyTransaction(tx *Transaction) {
 		tx.Kind = "income"
 		tx.DisplayAmount = incNet
 		tx.Category = firstCategory(tx, "Income", getIncomeSource)
-
-	case minAmount(posReal, negReal) > 0:
-		// 资金在真实账户(Assets/Liabilities)间对流:转账/还款,本金取对流较小侧,
-		// 多出的 Expenses 部分是附带手续费——修复"还款 5000+手续费 5 显示成 5 元支出"
-		tx.Kind = "transfer"
-		tx.IsTransfer = true
-		tx.TransferAmount = minAmount(posReal, negReal)
-		tx.FeeAmount = maxAmount(expNet, 0)
-		tx.DisplayAmount = tx.TransferAmount
-		tx.Category = "Financial"
 
 	default:
 		// 普通支出;退款时 expNet 为负,前端按负数金额展示

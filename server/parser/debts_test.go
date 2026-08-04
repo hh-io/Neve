@@ -262,6 +262,43 @@ func TestComputeDebtsInstallment(t *testing.T) {
 	}
 }
 
+// 银行用积分抵掉部分现金的还款(Income 腿吃掉差额)必须仍算月供已还:
+// creditsAfter 的 transferOnly 只认 kind=transfer,分类一旦判成 income 整期就误报逾期
+func TestComputeDebtsInstallmentWithPointsDeduction(t *testing.T) {
+	const loan = "Liabilities:Loan:ECMB"
+	cfg := &DebtsConfig{
+		Installments: []InstallmentConfig{{
+			ID: "ecmb", Name: "E招贷", Account: loan, DueDay: 3,
+			Schedule: []InstallmentPhase{{EffectiveFrom: "2026-08-03", Amount: 172139}},
+		}},
+	}
+	ledger := debtLedger(
+		[]string{loan, "Assets:Bank:PSBC"},
+		mkTx("2026-01-01",
+			po(loan, -5000000),
+			po("Equity:Opening-Balances", 5000000)),
+		mkTx("2026-08-03",
+			po(loan, 172139),
+			po("Assets:Bank:PSBC", -170339),
+			po("Income:Other", -1800)),
+	)
+
+	// 还款日(8/3)已过,认不出这笔还款就会判成逾期
+	report := ComputeDebts(ledger, cfg, atDate("2026-08-04"))
+	ins := report.Installments[0]
+	// 冲减的是债务全额,不是现金实付额
+	if !ins.Paid || ins.PaidAmount != 172139 {
+		t.Errorf("Paid = %v, PaidAmount = %v, want true/172139", ins.Paid, ins.PaidAmount)
+	}
+	if ins.Overdue {
+		t.Error("积分抵扣的还款被漏认,误报逾期")
+	}
+	if report.Summary.MonthRemaining != 0 || report.Summary.OverdueCount != 0 {
+		t.Errorf("Summary remaining/overdue = %v/%d, want 0/0",
+			report.Summary.MonthRemaining, report.Summary.OverdueCount)
+	}
+}
+
 func TestComputeDebtsInstallmentEdgeCases(t *testing.T) {
 	const mortgage = "Liabilities:Loan:Mortgage"
 

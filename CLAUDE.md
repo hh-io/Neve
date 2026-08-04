@@ -76,6 +76,17 @@ iOS 快捷指令上传账单图片 → POST /api/inbox(Bearer 鉴权,立即 202)
   `transferAmount`、`feeAmount`。前端禁止从 postings 推断交易类型/金额
   (`useCategories.ts` 的 `processTransaction` 只派生展示字段)。
   统计按 posting 级聚合:转账本金不计支出,手续费计入;退款(负 Expenses)按净额冲减。
+  **transfer 分支必须排在 income/mixed 之前**:「两个真实账户间有资金对流」
+  (`transferAmt = min(posReal, negReal) > 0`)是转账的结构性强特征——纯收入交易只有正向真实腿、
+  纯支出只有负向真实腿,都不会误命中。排在后面时,还款用积分抵掉部分现金那类交易
+  (负债 +1721.39 / 资产 -1703.39 / `Income:Other` -18)会被 `incNet > 0` 先截成 income,
+  而 `debts.go` 的分期已还判定走 `creditsAfter(..., transferOnly=true)` **只认 `kind=transfer`**,
+  于是整期误报逾期、`MonthRemaining` 虚增一整笔月供。**改这里的分支顺序等于改分期还款的已还判定**。
+  护栏是 `incNet < transferAmt`(Income 腿小于对流本金 = 抵扣/返还,不是独立收入事件),
+  挡住「工资到账顺手还款」这类一笔两事被整笔吞成转账而藏掉大额收入;它是结构性严格比较,
+  **不要退化成「浮动 5% 以内算已还」之类的比例阈值**——`debts.go` 的 `paid := paidAmount > 0`
+  本就不比较金额,加阈值只会把真实的部分还款掩盖成已还清(5% 对房贷 4656 是 232 元容差)。
+  被抵扣的那 18 元仍按 posting 进 `IncomeBreakdown`,总账不漏。
   **前端展示层不许对 `expense` 取绝对值**:净额口径下退款多于消费的那天
   `dailyTrend[].expense` 为负(日粒度很常见,一笔价保退款就够),`Math.abs` 把
   「净退回 10.8」翻成「花了 10.8」,误差是金额的两倍——日历格子、概览热力图、

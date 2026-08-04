@@ -79,6 +79,27 @@ func TestClassifyTransaction(t *testing.T) {
 				po("Assets:Cash:WeChat", 800000)),
 			wantKind: "mixed", wantDisplay: 800000, wantCategory: "Salary",
 		},
+		{
+			// 银行用积分抵掉部分现金:Income 腿是抵扣而非收入,整笔仍是还款。
+			// 判成 income 会让 debts.go 的分期已还判定漏掉这笔,整期误报逾期
+			name: "还款+积分抵扣",
+			tx: mkTx("2026-08-03",
+				po("Liabilities:Loan:ECMB", 172139),
+				po("Assets:Bank:PSBC", -170339),
+				po("Income:Other", -1800)),
+			wantKind: "transfer", wantDisplay: 170339, wantTransfer: 170339,
+			wantCategory: "Financial",
+		},
+		{
+			// 护栏:Income 腿大于对流本金说明这是一笔两事,收入不该被吞进转账
+			name: "收入腿大于对流本金(工资到账顺手还款)",
+			tx: mkTx("2026-07-10",
+				po("Income:Salary", -1000000),
+				po("Assets:Bank:PSBC", 800000),
+				po("Liabilities:CreditCard:CMB", 200000),
+				po("Assets:Cash:WeChat", -200000)),
+			wantKind: "income", wantDisplay: 1000000, wantCategory: "Salary",
+		},
 	}
 
 	for _, tc := range cases {
