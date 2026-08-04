@@ -1,12 +1,13 @@
 <template>
   <div v-if="items.length > 0" class="donut">
     <div class="donut-chart">
-      <v-chart ref="chartRef" :option="option" autoresize @mouseover="onChartHover" @globalout="focus(null)" />
+      <v-chart ref="chartRef" :option="option" autoresize @mouseover="onChartHover" @mouseout="onChartLeave" @globalout="focus(null)" />
       <!-- 中心态取代 tooltip:环内是现成的空白,浮层反而会盖住扇区与相邻文字 -->
       <div class="donut-center">
         <span class="donut-center-label">
           <span v-if="center.color" class="donut-dot" :style="{ background: center.color }"></span>
-          {{ center.label }}
+          <!-- 文本单独成 flex 项才能省略号:匿名 flex item 上 text-overflow 不生效 -->
+          <span class="donut-center-name">{{ center.label }}</span>
         </span>
         <span class="donut-center-value tabular-nums">{{ center.value }}</span>
         <span class="donut-center-sub tabular-nums">{{ center.sub }}</span>
@@ -94,6 +95,12 @@ function onChartHover(params: { dataIndex?: number }) {
   if (typeof params.dataIndex === 'number') activeIndex.value = params.dataIndex;
 }
 
+function onChartLeave(params: { dataIndex?: number }) {
+  if (typeof params.dataIndex === 'number' && activeIndex.value === params.dataIndex) {
+    activeIndex.value = null;
+  }
+}
+
 const center = computed(() => {
   const item = activeIndex.value === null ? null : items.value[activeIndex.value];
   if (!item) {
@@ -169,6 +176,12 @@ const option = computed(() => {
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.donut-center-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .donut-center-value {
