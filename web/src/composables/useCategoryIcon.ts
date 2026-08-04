@@ -48,6 +48,7 @@ const categoryIcons: Record<string, FunctionalComponent> = {
   Investment: TrendingUp,
   SecondHand: Repeat,
   Family: Users,
+  Rewards: Award,
 }
 
 export function getCategoryIcon(category: string | undefined): FunctionalComponent {
