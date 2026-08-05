@@ -10,7 +10,7 @@
         </div>
         <div class="ov-stat-value tabular-nums" :style="{ color: s.valueColor }">{{ s.value }}</div>
         <div class="ov-stat-foot">
-          <span class="chip" :class="s.chipCls">
+          <span v-if="s.delta" class="chip" :class="s.chipCls">
             <component :is="s.trendIcon" :size="12" />
             <span class="tabular-nums">{{ s.delta }}</span>
           </span>
@@ -176,14 +176,6 @@ const dailyAverage = computed(() => analytics.value?.dailyAverage || 0);
 const dailyTrend = computed(() => analytics.value?.dailyTrend || []);
 
 // 环比变化(基于月度趋势)
-const balanceChange = computed(() => {
-  const t = monthlyTrend.value;
-  if (t.length < 2) return 0;
-  const cur = t[t.length - 1]?.balance || 0;
-  const prev = t[t.length - 2]?.balance || 0;
-  if (prev === 0) return 0;
-  return ((cur - prev) / Math.abs(prev)) * 100;
-});
 const incomeChange = computed(() => {
   const t = monthlyTrend.value;
   if (t.length < 2) return 0;
@@ -268,7 +260,6 @@ function pct(n: number): string {
 type SuppItem = { label: string; value: string; color: string; small?: boolean };
 
 const statCards = computed(() => {
-  const nwUp = balanceChange.value >= 0;
   const incUp = incomeChange.value >= 0;
   const expUp = expenseChange.value >= 0; // 支出上升=不利
   const balUp = savingsChange.value >= 0;
@@ -287,8 +278,11 @@ const statCards = computed(() => {
       key: 'net', label: '净资产', note: hasLongTerm.value ? '不含长期负债' : '', icon: Landmark,
       value: formatMoney(netWorth.value),
       valueColor: netWorth.value < 0 ? 'var(--expense)' : 'var(--text-primary)',
-      delta: pct(balanceChange.value), trendIcon: nwUp ? ArrowUpRight : ArrowDownRight,
-      chipCls: nwUp ? 'chip-income' : 'chip-expense', hint: '环比上月',
+      // 不给环比 chip:这里原先吃的是 balanceChange(= 月度趋势 balance 的环比,也就是「月结余」
+      // 的环比),把一个流量的变化率贴在时点存量上是错的口径——净资产卡和月结余卡会显示同一个
+      // 百分比。要正确算需要「上月末净资产」快照,后端 Summary 目前没有这个字段;
+      // 显示一个来源错误的数字比不显示更坏。
+      hint: '时点余额',
       bar: { a: `${assetPct.value}%`, b: `${100 - assetPct.value}%` },
       supp: netSupp,
     },

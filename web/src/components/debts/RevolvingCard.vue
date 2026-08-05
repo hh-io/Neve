@@ -82,10 +82,15 @@
         ></div>
       </div>
       <div class="debt-card-progress-cap">
-        <span
-          >已还 <span class="tabular-nums">{{ view.paidAmount }}</span></span
-        >
-        <span class="tabular-nums">{{ Math.round(view.pct) }}%</span>
+        <template v-if="view.noStatement">
+          <span>本期无账单</span>
+        </template>
+        <template v-else>
+          <span
+            >已还 <span class="tabular-nums">{{ view.paidAmount }}</span></span
+          >
+          <span class="tabular-nums">{{ Math.round(view.pct) }}%</span>
+        </template>
       </div>
     </div>
     <div class="debt-card-foot">
@@ -93,9 +98,12 @@
         <CalendarClock :size="16" class="debt-foot-ic" />最后还款日
         <span class="tabular-nums debt-foot-strong">{{ view.dueDate }}</span>
       </span>
-      <span class="tabular-nums debt-countdown" :style="{ color: view.countdown.color }">{{
-        view.countdown.text
-      }}</span>
+      <span
+        v-if="view.countdown"
+        class="tabular-nums debt-countdown"
+        :style="{ color: view.countdown.color }"
+        >{{ view.countdown.text }}</span
+      >
     </div>
     <div v-if="view.accountMissing" class="debt-missing">账本无此账户</div>
   </div>
@@ -302,10 +310,15 @@ const listId = useId()
 const view = computed(() => {
   const rv = props.status
   if (!rv) return null
-  const settled = rv.remaining <= 0 || rv.statementDue <= 0
+  // 「本期没出过账单」不是「已还清」——两者都让 statementDue / remaining 归零,但满格绿条是
+  // 这一页最强的正向信号,不该发给一张什么都没发生的卡。badge() 早就把无账单单列成一档,
+  // 这里跟着分开,否则同一张卡上 badge 说「本期无账单」、进度条说「100%」、底部说「已还清」。
+  const noStatement = rv.statementDue <= 0
+  const settled = !noStatement && rv.remaining <= 0
   const overdue = rv.overdue && rv.remaining > 0
   return {
     name: rv.name,
+    noStatement,
     sub: `账单 ${shortDate(rv.statementDate)} → 还款 ${shortDate(rv.dueDate)}`,
     accountMissing: rv.accountMissing,
     overdue,
@@ -314,11 +327,17 @@ const view = computed(() => {
     remainColor:
       rv.remaining > 0 ? (overdue ? 'var(--expense)' : 'var(--text-primary)') : 'var(--income)',
     paidAmount: formatMoney(rv.paidSince),
-    pct: rv.statementDue > 0 ? Math.min((rv.paidSince / rv.statementDue) * 100, 100) : 100,
-    barColor: overdue ? 'var(--expense)' : settled ? 'var(--income)' : 'var(--accent)',
+    pct: noStatement ? 0 : Math.min((rv.paidSince / rv.statementDue) * 100, 100),
+    barColor: overdue
+      ? 'var(--expense)'
+      : settled
+        ? 'var(--income)'
+        : noStatement
+          ? 'var(--hairline-strong)'
+          : 'var(--accent)',
     dueDate: shortDate(rv.dueDate),
     status: badge(rv),
-    countdown: countdownFor(overdue, settled, rv.daysUntilDue),
+    countdown: noStatement ? null : countdownFor(overdue, settled, rv.daysUntilDue),
     inst: rv.installments.length
       ? {
           thisPeriod: formatMoney(rv.installmentThisPeriod),

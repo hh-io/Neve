@@ -60,22 +60,40 @@ const palette = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'
 
 const total = computed(() => props.data.reduce((sum, c) => sum + c.amount, 0));
 
-// 自定义图例(替代 echarts 内建图例,避免中文截断);只取前 7 类,长尾并入图外
+// 自定义图例(替代 echarts 内建图例,避免中文截断)
+const TOP_N = 7;
+
+// 长尾必须合并成「其他」而不是截断:分母是全部分类的 total,直接 slice 掉第 8 类往后
+// 会让它们静默消失——图例百分比加起来不到 100、圆环也只画 7 个扇区却看着像一个完整的整体,
+// 没有任何提示。categoryLabels 有 16 个支出分类,这在类目长出来后才会爆。
 const items = computed(() => {
   void themeVersion.value;
   const colors = palette.map(getThemeColor);
   const base = total.value || 1;
-  return [...props.data]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 7)
-    .map((item, index) => ({
-      category: item.category,
-      name: getCategoryLabel(item.category),
-      color: colors[index % colors.length],
-      amount: formatMoney(item.amount),
-      pct: `${Math.round((item.amount / base) * 100)}%`,
-      value: item.amount,
-    }));
+  const sorted = [...props.data].sort((a, b) => b.amount - a.amount);
+  const rows = sorted.slice(0, TOP_N).map((item, index) => ({
+    category: item.category,
+    name: getCategoryLabel(item.category),
+    color: colors[index % colors.length],
+    amount: formatMoney(item.amount),
+    pct: `${Math.round((item.amount / base) * 100)}%`,
+    value: item.amount,
+  }));
+  const rest = sorted.slice(TOP_N);
+  if (rest.length > 0) {
+    const restAmount = rest.reduce((sum, c) => sum + c.amount, 0);
+    rows.push({
+      // 合并行不是真分类,键取不会与 category 撞的哨兵值
+      category: '__rest__',
+      name: `其他 ${rest.length} 类`,
+      // 中性色:这一格不代表某一类,不该占用分类色板里的一档
+      color: getThemeColor('--text-tertiary'),
+      amount: formatMoney(restAmount),
+      pct: `${Math.round((restAmount / base) * 100)}%`,
+      value: restAmount,
+    });
+  }
+  return rows;
 });
 
 const chartRef = ref<InstanceType<typeof VChart> | null>(null);

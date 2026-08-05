@@ -37,6 +37,8 @@
       <section class="section-card">
         <div class="section-head">
           <h3 class="section-title">按星期几的消费分布</h3>
+          <!-- 口径必须写出来:同一页的收支走势可切窗口,这张是全量累计,不标会被默认读成本月 -->
+          <span class="section-sub">全量口径</span>
         </div>
         <div class="section-body">
           <WeekdayChart v-if="weekdayDistribution.length > 0" :data="weekdayDistribution" />
@@ -151,7 +153,9 @@ const trendChartOption = computed(() => {
       {
         name: '收入',
         type: 'line',
-        smooth: true,
+        // 不平滑:个人账本是稀疏序列,某天一笔孤立支出会被样条插值画成钟形,
+        // 两侧凭空长出上升段和下降段——真实数据是那天以外几乎全为 0。平滑在这里等于伪造趋势
+        smooth: false,
         symbol: 'circle',
         symbolSize: selectedPeriod.value === 'day' ? 4 : 6,
         lineStyle: { color: incomeColor, width: 2 },
@@ -162,7 +166,7 @@ const trendChartOption = computed(() => {
       {
         name: '支出',
         type: 'line',
-        smooth: true,
+        smooth: false,
         symbol: 'circle',
         symbolSize: selectedPeriod.value === 'day' ? 4 : 6,
         lineStyle: { color: expenseColor, width: 2 },

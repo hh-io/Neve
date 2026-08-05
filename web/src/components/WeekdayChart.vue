@@ -98,10 +98,9 @@ const chartOption = computed(() => {
       type: 'bar',
       data: orderedData.map(d => d.amount),
       itemStyle: {
-        color: (params: { dataIndex: number }) => {
-          const name = orderedData[params.dataIndex]?.name;
-          return (name === '周六' || name === '周日') ? getThemeColor('--warning') : getThemeColor('--accent');
-        },
+        // 周末不再染 --warning:周末消费高不是警告,而 --warning 全站的语义是
+        // 「即将到期 / 逾期 / 断言失败」。七天同色,周末靠 x 轴标签自己区分
+        color: getThemeColor('--chart-1'),
         borderRadius: [4, 4, 0, 0],
       },
       barWidth: '50%',
